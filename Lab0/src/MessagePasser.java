@@ -1,4 +1,6 @@
-import java.io.*;
+`import java.io.*;
+import java.security.AccessControlException;
+import java.security.AccessController;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -66,12 +68,22 @@ public class MessagePasser {
 		Yaml yaml = new Yaml();
 		String config = "";
 		String[] conf2 = null;
-		System.out.println("got here");
+		FilePermission perm = null;
+		
 		try {
 			yamlInput = new FileInputStream(new File(fname));			
 		} catch (FileNotFoundException e) { 
-			// TODO Auto-generated catch block to error out if not found (also need to check if readable)...
-			e.printStackTrace();
+			//error out if not found
+			System.out.println("File "+fname+" does not exist.\n");
+			System.exit(-1); //probably want to just return -1
+		}
+		
+		perm = new FilePermission(fname, "read");
+		try {
+			AccessController.checkPermission(perm);	
+		} catch (AccessControlException e) {
+			System.out.println("File "+fname+" is not readable.\n");
+			System.exit(-1); //probably want to just return -1
 		}
 		
 		for (Object data : yaml.loadAll(yamlInput)) {
@@ -91,5 +103,8 @@ public class MessagePasser {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		//TODO: Check to see if localName was found in the NAMES section of the config file; if not, return -1 ?
+		
 	}
 }
