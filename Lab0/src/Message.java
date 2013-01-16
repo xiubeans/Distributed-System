@@ -4,7 +4,7 @@ import java.io.Serializable;
 public class Message implements Serializable {
 	
 	public Message(String src, String dest, String kind, Object data) {
-		/* Not sure, but probably where the message itself is built. */
+		/* Initialize all fields of the Message object. */
 		
 		src = "";
 		dest = "";
@@ -12,13 +12,17 @@ public class Message implements Serializable {
 		data = null;
 	}
 
-	public void set_id(int id) { // used by MessagePasser.send, not your app
+	public void set_id(int id) 
+	{ 
+		// used by MessagePasser.send, not your app
 		//set original values???
 		
-	public void build_message(Object message) {
+	}
+	public Message build_message(Message message) {
 	/* This will get the message contents from the application program, as
 	 * per lab specs. */
 		
+		return message;
 	}
 	// other accessors, toString, etc as needed
 }

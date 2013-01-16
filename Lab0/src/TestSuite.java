@@ -108,7 +108,12 @@ public class TestSuite {
 		String config_file = "";
 		String local_name = "";
 		String user_input = ""; //reusable temp var
-		int user_action = "";
+		int user_action = 0;
+		String src = "";
+		String dest = "";
+		String kind = "";
+		Object data = null;
+		
 		//test program
 		System.out.println("testing");
 		//check cmdLine input
@@ -121,77 +126,77 @@ public class TestSuite {
 			mp.parseConfig(config_file); //parse the config file
 
 			
-			while(1) //this will keep the program running (need to offer choices to quit/send/recv more messages)
-			{
-				/* In the interactive portion of this program, make it such that the user needs to follow
-				 * a specific format when sending or receiving messages. For example, a send message might be:
-				 * send <src> <dest> <action> ...
-				 * It is also important to make sure that we determine how wildcards are handled, such as using
-				 * a special character (*?) to denote having no choice for that specific field.
-				 * Currently not sure where that goes w.r.t. the program setup. */
-				
-				//offer the user three choices, then from there give usage for the specific option chosen and wait for input.
-				System.out.println("Choose your action (1 for send, 2 for receive, 3 for quit)\n");
-				
-				user_input = System.in.toString(); //get the input and check it (pass back out to user if garbage input)
-				
-				if(user_input.length() > 1)
-				{
-					System.out.println("Unrecognized option "+user_input+". Choices are 1, 2, and 3.\n");
-					continue;
-				}
-				
-				try {
-					Integer.parseInt(user_input);
-				} catch(NumberFormatException e) {
-					System.out.println(user_input+" is not an integer.\n");
-				}
-				
-				user_action = Integer.parseInt(user_input);
-				
-				switch(user_action)
-				{
-				case 1:
-				{
-					System.out.println("Usage: send <src> <dest> <action> <blahblahblah>\nEnter * for wildcard.");
-					user_input = System.in.toString(); //get the input and check it (pass back out to user if garbage input)
-					if(!validateInput(user_input)) //check user input.
-					{	
-						System.out.println("Error: format of message not recognized.\n");
-						continue;
-					}
-					Message newMsg = new Message(String src, String dest, String kind, Object data);
-					newMsg = newMsg.build_message(newMsg);
-					mp.send(newMsg);
-					break;
-				}
-					
-				case 2:
-				{
-					System.out.println("Usage: receive <src> <dest> <action> <blahblahblah>\nEnter * for wildcard.");
-					user_input = System.in.toString(); //get the input and check it (pass back out to user if garbage input)
-					if(!validateInput(user_input)) //check user input and create our message from within it.
-					{	
-						System.out.println("Error: format of message not recognized.\n");
-						continue;
-					}
-					mp.receive();
-					System.out.println("Message is <something goes here?>\n");
-					break;
-				}
-					
-				case 3:
-				{
-					System.exit(1);
-				}
-				default:
-				{
-					System.out.println("Unrecognized input "+user_action+".\n");
-					break;
-				}
-				
-				}			
-			}
+//			while(true) //this will keep the program running (need to offer choices to quit/send/recv more messages)
+//			{
+//				/* In the interactive portion of this program, make it such that the user needs to follow
+//				 * a specific format when sending or receiving messages. For example, a send message might be:
+//				 * send <src> <dest> <action> ...
+//				 * It is also important to make sure that we determine how wildcards are handled, such as using
+//				 * a special character (*?) to denote having no choice for that specific field.
+//				 * Currently not sure where that goes w.r.t. the program setup. */
+//				
+//				//offer the user three choices, then from there give usage for the specific option chosen and wait for input.
+//				System.out.println("Choose your action (1 for send, 2 for receive, 3 for quit)\n");
+//				
+//				user_input = System.in.toString(); //get the input and check it (pass back out to user if garbage input)
+//				
+//				if(user_input.length() > 1)
+//				{
+//					System.out.println("Unrecognized option "+user_input+". Choices are 1, 2, and 3.\n");
+//					continue;
+//				}
+//				
+//				try {
+//					Integer.parseInt(user_input);
+//				} catch(NumberFormatException e) {
+//					System.out.println(user_input+" is not an integer.\n");
+//				}
+//				
+//				user_action = Integer.parseInt(user_input);
+//				
+//				switch(user_action)
+//				{
+//				case 1:
+//				{
+//					System.out.println("Usage: send <src> <dest> <action> <blahblahblah>\nEnter * for wildcard.");
+//					user_input = System.in.toString(); //get the input and check it (pass back out to user if garbage input)
+//					if(!validateInput(user_input)) //check user input.
+//					{	
+//						System.out.println("Error: format of message not recognized.\n");
+//						continue;
+//					}
+//					Message newMsg = new Message(src, dest, kind, data);
+//					newMsg = newMsg.build_message(newMsg);
+//					mp.send(newMsg);
+//					break;
+//				}
+//					
+//				case 2:
+//				{
+//					System.out.println("Usage: receive <src> <dest> <action> <blahblahblah>\nEnter * for wildcard.");
+//					user_input = System.in.toString(); //get the input and check it (pass back out to user if garbage input)
+//					if(!validateInput(user_input)) //check user input and create our message from within it.
+//					{	
+//						System.out.println("Error: format of message not recognized.\n");
+//						continue;
+//					}
+//					mp.receive();
+//					System.out.println("Message is <something goes here?>\n");
+//					break;
+//				}
+//					
+//				case 3:
+//				{
+//					System.exit(1);
+//				}
+//				default:
+//				{
+//					System.out.println("Unrecognized input "+user_action+".\n");
+//					break;
+//				}
+//				
+//				}			
+//			}
 		}
 		else
 		{

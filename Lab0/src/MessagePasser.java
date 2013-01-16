@@ -1,4 +1,4 @@
-`import java.io.*;
+import java.io.*;
 import java.security.AccessControlException;
 import java.security.AccessController;
 import java.util.*;
@@ -70,6 +70,14 @@ public class MessagePasser {
 		String[] conf2 = null;
 		FilePermission perm = null;
 		
+		/*perm = new FilePermission(fname, "read"); //Currently not working correctly...
+		try {
+			AccessController.checkPermission(perm);	
+		} catch (AccessControlException e) {
+			System.out.println("File "+fname+" is not readable.\n");
+			System.exit(-1); //probably want to just return -1
+		}*/
+		
 		try {
 			yamlInput = new FileInputStream(new File(fname));			
 		} catch (FileNotFoundException e) { 
@@ -78,24 +86,66 @@ public class MessagePasser {
 			System.exit(-1); //probably want to just return -1
 		}
 		
-		perm = new FilePermission(fname, "read");
-		try {
-			AccessController.checkPermission(perm);	
-		} catch (AccessControlException e) {
-			System.out.println("File "+fname+" is not readable.\n");
-			System.exit(-1); //probably want to just return -1
+		Object data = yaml.load(yamlInput);
+		LinkedHashMap<String,String> file_map = (LinkedHashMap<String,String>) data;
+		//LinkedHashMap<List<String>, List<String>> file_map = (LinkedHashMap<List<String>, List<String>>) data;
+		
+		String whole = "";
+		String[] elements = new String[10];
+		String[] pairs = new String[10];
+		Set set = file_map.entrySet();
+		Iterator i = set.iterator();
+		HashMap configuration = new HashMap<String, String>();
+		int j = 0;
+		ArrayList names = new ArrayList();
+		ArrayList ip_addys = new ArrayList();
+		ArrayList ports = new ArrayList();
+		
+		while(i.hasNext())
+		{
+			Map.Entry me = (Map.Entry)i.next();
+			System.out.print(me.getKey() + ": ");
+			System.out.println(me.getValue());
+			ArrayList<String> inner = new ArrayList<String>();
+			inner.add(me.getValue().toString());
+			whole = inner.toString();
+			whole = whole.replaceAll("[\\[\\]\\{]", "");
+			//System.out.println("Whole is: "+whole);
+			elements = whole.split("\\},?");
+			//System.out.println("element is: "+elements[0]);
+		
+			for(j=0; j<elements.length; j++) //fix this stuff, make it scalable, etc...
+			{
+				System.out.println("inner: "+elements[j]);
+				pairs = elements[j].split(", ");
+				pairs = pairs[0].split("=");
+				System.out.println("Pairs: "+pairs[0]+" "+pairs[1]);
+				if(pairs[0].toLowerCase().equals("name"))
+				{
+					System.out.println("In names, name is "+pairs[1]);
+					names.add(pairs[1]);
+				}
+				else if(pairs[0].toLowerCase().equals("ip"))
+					ip_addys.add(pairs[1]);
+				else if(pairs[0].toLowerCase().equals("port"))
+					ports.add(pairs[1]);
+				//System.out.println("First of pair is "+pairs[0]);
+				/*if(configuration.containsKey(pairs[0]))
+					configuration.put(pairs[0], configuration.get(pairs[0])+" "+pairs[1]); //append to the value of that key
+				configuration.put(pairs[0], pairs[1]);*/
+			}
+			configuration.put("name", names);
+			configuration.put("ip", ip_addys);
+			configuration.put("port", ports);
+			
+			System.out.println("Dictionary contains "+ configuration.keySet()+" and "+ configuration.values());
 		}
 		
-		for (Object data : yaml.loadAll(yamlInput)) {
-			//assertNotNull(data);
-			//assertTrue(data.toString().length() > 1);
-			System.out.println("data is "+data.toString());
-			config = data.toString();
-		}
-		conf2 = config.split("\\][,|\\}]"); //extract each of the types of things (config, send rules, receive rules)
-		System.out.println("config: "+conf2[0]); //should only reference this in constructor
-		System.out.println("send rules: "+conf2[1]); //these can be referenced at all times
-		System.out.println("receive rules: "+conf2[2]); //these can be referenced at all times
+		/*for(j=0; j<elements.length; j++)
+		{
+			System.out.println("Element: "+elements[j]+"\n");
+		}*/
+		
 		
 		try {
 			yamlInput.close();
