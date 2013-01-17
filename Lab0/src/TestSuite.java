@@ -111,14 +111,13 @@ public class TestSuite {
 			for(int j=0; j<max_options; j++)
 			{
 				System.out.println("Currently checking "+all_fields[ctr][j]+" against"+fields[ctr].toString());
-				if((all_fields[ctr][j].equalsIgnoreCase((fields[ctr].toString()))))
+				if(all_fields[ctr][j].equals(null))
+					return false; //gone through all of the options already
+				else if((all_fields[ctr][j].equalsIgnoreCase((fields[ctr].toString()))))
 					break; //we found a match in that field
 				if(j == max_options-1) //got through the loop without finding a match
 					return false;
-				//if(!(all_fields[ctr][j].equalsIgnoreCase((fields[ctr].toString()))))
-				//	return false;
 			}
-				
 		}
 		
 		return true;
@@ -133,8 +132,8 @@ public class TestSuite {
 		String src = "";
 		String dest = "";
 		String kind = "";
-		String data = "";
-		//Object data = null;
+		//String data = "";
+		Object data = null;
 		Scanner cmd_line_input = new Scanner(System.in);
 		int local_modification_time = -1;	// record the latest time we download the YAML file
 		int global_modification_time = -1;  // record teh latest time on servers
