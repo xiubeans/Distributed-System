@@ -5,7 +5,6 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.net.*;
-
 import org.yaml.snakeyaml.Yaml;
 
 /* The next three comments may all need to be handled in the MessagePasser class instead of here. */
@@ -69,6 +68,9 @@ public class MessagePasser {
 		String config = "";
 		String[] conf2 = null;
 		FilePermission perm = null;
+		/*Configuration conf_obj = new Configuration();
+		SendRule send_obj = new SendRule();
+		ReceiveRule recv_obj = new ReceiveRule();*/
 		
 		/*perm = new FilePermission(fname, "read"); //Currently not working correctly...
 		try {
@@ -88,23 +90,44 @@ public class MessagePasser {
 		
 		Object data = yaml.load(yamlInput);
 		LinkedHashMap<String,String> file_map = (LinkedHashMap<String,String>) data;
-		//LinkedHashMap<List<String>, List<String>> file_map = (LinkedHashMap<List<String>, List<String>>) data;
 		
 		String whole = "";
-		String[] elements = new String[10];
+		String[] elements = new String[10]; //figure out appropriate size for these
 		String[] pairs = new String[10];
+		String[] choices = new String[10];
+		String file_part = "";
+		
+				
 		Set set = file_map.entrySet();
 		Iterator i = set.iterator();
 		HashMap configuration = new HashMap<String, String>();
+		HashMap send_rules = new HashMap<String, String>();
+		HashMap recv_rules = new HashMap<String, String>();
 		int j = 0;
-		ArrayList names = new ArrayList();
+		ArrayList names = new ArrayList<String>();
 		ArrayList ip_addys = new ArrayList();
 		ArrayList ports = new ArrayList();
+		ArrayList sr_act = new ArrayList<String>();
+		ArrayList sr_src = new ArrayList();
+		ArrayList sr_dst = new ArrayList();
+		ArrayList sr_kind = new ArrayList<String>();
+		ArrayList sr_id = new ArrayList();
+		ArrayList sr_nth = new ArrayList();
+		ArrayList sr_every = new ArrayList();
+		ArrayList rr_act = new ArrayList<String>();
+		ArrayList rr_src = new ArrayList();
+		ArrayList rr_dst = new ArrayList();
+		ArrayList rr_kind = new ArrayList<String>();
+		ArrayList rr_id = new ArrayList();
+		ArrayList rr_nth = new ArrayList();
+		ArrayList rr_every = new ArrayList();
+		
 		
 		while(i.hasNext())
 		{
 			Map.Entry me = (Map.Entry)i.next();
-			System.out.print(me.getKey() + ": ");
+			file_part = me.getKey().toString().toLowerCase();
+			System.out.print("\nRaw parsed data --> "+file_part + ": ");
 			System.out.println(me.getValue());
 			ArrayList<String> inner = new ArrayList<String>();
 			inner.add(me.getValue().toString());
@@ -113,39 +136,119 @@ public class MessagePasser {
 			//System.out.println("Whole is: "+whole);
 			elements = whole.split("\\},?");
 			//System.out.println("element is: "+elements[0]);
-		
+			
 			for(j=0; j<elements.length; j++) //fix this stuff, make it scalable, etc...
 			{
-				System.out.println("inner: "+elements[j]);
 				pairs = elements[j].split(", ");
-				pairs = pairs[0].split("=");
-				System.out.println("Pairs: "+pairs[0]+" "+pairs[1]);
-				if(pairs[0].toLowerCase().equals("name"))
+				
+				if(file_part.equals("sendrules"))
 				{
-					System.out.println("In names, name is "+pairs[1]);
-					names.add(pairs[1]);
+					//System.out.println("inner: "+elements[j]);
+					//System.out.println(pairs.length+" pairs are: "+pairs[0]+" "+pairs[1]+" "+pairs[2]);
+					for(int k=0; k<pairs.length; k++)
+					{
+						choices = pairs[k].split("=");
+						choices[0] = choices[0].trim().toLowerCase();
+						
+						//System.out.println("Pairs: "+pairs[0].toLowerCase()+" "+pairs[1]);
+						if(choices[0].equals("action"))
+							sr_act.add(choices[1]);
+						else if(choices[0].equals("src"))
+							sr_src.add(choices[1]);
+						else if(choices[0].equals("dst"))
+							sr_dst.add(choices[1]);
+						else if(choices[0].equals("kind"))
+							sr_kind.add(choices[1]);
+						else if(choices[0].equals("id"))
+							sr_id.add(choices[1]);
+						else if(choices[0].equals("nth"))
+							sr_nth.add(choices[1]);
+						else if(choices[0].equals("everynth"))
+							sr_every.add(choices[1]);
+						//need to figure out how to make each of the lists the same length by adding wildcards to all empty fields
+					}
 				}
-				else if(pairs[0].toLowerCase().equals("ip"))
-					ip_addys.add(pairs[1]);
-				else if(pairs[0].toLowerCase().equals("port"))
-					ports.add(pairs[1]);
-				//System.out.println("First of pair is "+pairs[0]);
-				/*if(configuration.containsKey(pairs[0]))
-					configuration.put(pairs[0], configuration.get(pairs[0])+" "+pairs[1]); //append to the value of that key
-				configuration.put(pairs[0], pairs[1]);*/
+				else if(file_part.equals("receiverules"))
+				{
+					//System.out.println("inner: "+elements[j]);
+					//System.out.println(pairs.length+" pairs are: "+pairs[0]+" "+pairs[1]+" "+pairs[2]);
+					for(int k=0; k<pairs.length; k++)
+					{
+						choices = pairs[k].split("=");
+						choices[0] = choices[0].trim().toLowerCase();
+						
+						//System.out.println("Pairs: "+pairs[0].toLowerCase()+" "+pairs[1]);
+						if(choices[0].equals("action"))
+							rr_act.add(choices[1]);
+						else if(choices[0].equals("src"))
+							rr_src.add(choices[1]);
+						else if(choices[0].equals("dst"))
+							rr_dst.add(choices[1]);
+						else if(choices[0].equals("kind"))
+							rr_kind.add(choices[1]);
+						else if(choices[0].equals("id"))
+							rr_id.add(choices[1]);
+						else if(choices[0].equals("nth"))
+							rr_nth.add(choices[1]);
+						else if(choices[0].equals("everynth"))
+							rr_every.add(choices[1]);
+						//need to figure out how to make each of the lists the same length by adding wildcards to all empty fields in the right place
+
+					}
+				}
+				else if(file_part.equals("configuration")) //handle config third because it happens least often?
+				{
+					//System.out.println("inner: "+elements[j]);
+					//System.out.println(pairs.length+" pairs are: "+pairs[0]+" "+pairs[1]+" "+pairs[2]);
+					for(int k=0; k<pairs.length; k++)
+					{
+						choices = pairs[k].split("=");
+						choices[0] = choices[0].trim();
+						
+						//System.out.println("Pairs: "+pairs[0].toLowerCase()+" "+pairs[1]);
+						if(choices[0].toLowerCase().equals("name"))
+							names.add(choices[1]);
+						else if(choices[0].toLowerCase().equals("ip"))
+							ip_addys.add(choices[1]);
+						else if(choices[0].toLowerCase().equals("port"))
+							ports.add(choices[1]);
+						//System.out.println("First of pair is "+pairs[0]);
+						/*if(configuration.containsKey(pairs[0]))
+							configuration.put(pairs[0], configuration.get(pairs[0])+" "+pairs[1]); //append to the value of that key
+						configuration.put(pairs[0], pairs[1]);*/
+					}
+				}
+				else
+				{
+					System.out.println("Error!");
+					break;
+				}
 			}
-			configuration.put("name", names);
-			configuration.put("ip", ip_addys);
-			configuration.put("port", ports);
-			
-			System.out.println("Dictionary contains "+ configuration.keySet()+" and "+ configuration.values());
-		}
+		}	
+		send_rules.put("action", sr_act);
+		send_rules.put("src", sr_src);
+		send_rules.put("dst", sr_dst);
+		send_rules.put("kind", sr_kind);
+		send_rules.put("id", sr_id);
+		send_rules.put("nth", sr_nth);
+		send_rules.put("everynth", sr_every);
 		
-		/*for(j=0; j<elements.length; j++)
-		{
-			System.out.println("Element: "+elements[j]+"\n");
-		}*/
+		recv_rules.put("action", rr_act);
+		recv_rules.put("src", rr_src);
+		recv_rules.put("dst", rr_dst);
+		recv_rules.put("kind", rr_kind);
+		recv_rules.put("id", rr_id);
+		recv_rules.put("nth", rr_nth);
+		recv_rules.put("everynth", rr_every);
 		
+		configuration.put("name", names);
+		configuration.put("ip", ip_addys);
+		configuration.put("port", ports);
+		
+		//Just temporary print statements for reference
+		System.out.println("Config Dict contains "+ configuration.keySet()+" and "+ configuration.values());
+		System.out.println("Send Dict contains "+ send_rules.keySet()+" and "+ send_rules.values());
+		System.out.println("Recv Dict contains "+ recv_rules.keySet()+" and "+ recv_rules.values());
 		
 		try {
 			yamlInput.close();

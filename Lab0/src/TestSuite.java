@@ -1,7 +1,4 @@
-import java.io.*;
 import java.util.ArrayList;
-
-//import org.yaml.snakeyaml.Yaml;
 
 public class TestSuite {
 
@@ -124,7 +121,6 @@ public class TestSuite {
 			
 			MessagePasser mp = new MessagePasser(config_file, local_name); 
 			mp.parseConfig(config_file); //parse the config file
-
 			
 //			while(true) //this will keep the program running (need to offer choices to quit/send/recv more messages)
 //			{
