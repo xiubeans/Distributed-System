@@ -20,7 +20,7 @@ public class TestSuite {
 		
 		int ctr = 0;
 		int max_fields = 8;
-		int max_options = 3;
+		int max_options = 10;
 		ArrayList options = new ArrayList();
 		//List<String[]> all_fields_holder = new ArrayList<String[]>();
 		//String[] all_fields = new String
@@ -32,6 +32,7 @@ public class TestSuite {
 		 *  inside contains options of each field. Refactor as
 		 *  a function at some point.
 		 */
+		String[] names = null;
 		System.out.println("User input: "+user_input);
 		for (ctr = 0; ctr<max_fields; ctr++) 
 		{
@@ -47,11 +48,22 @@ public class TestSuite {
 					all_fields[ctr][2] = "duplicate";					
 					break;
 				case 2:
-					all_fields[ctr] = mp.getSrcNames();
+					names = mp.getNames();
+					
+					for(int i=0; i<names.length; i++)
+					{
+						//System.out.println("Assigned "+src_names[i]+" to all_fields["+ctr+"]["+i+"]");
+						all_fields[ctr][i] = names[i]; 
+					}
 					break; //need to get source names from the config file and add them here
-				case 3:
-					all_fields[ctr][0] = "";
-					break; //need to get dest names from the config file and add them here
+				case 3:		
+					for(int i=0; i<names.length; i++)
+					{
+						//System.out.println("Assigned "+src_names[i]+" to all_fields["+ctr+"]["+i+"]");
+						all_fields[ctr][i] = names[i]; 
+					}
+					break; //need to get dest names from the config file and add them here...are these same as those from case 2? Can it be optimized?
+
 				case 4:
 					all_fields[ctr][0] = "ack";
 					all_fields[ctr][1] = "lookup";
@@ -106,9 +118,6 @@ public class TestSuite {
 		//test program
 		System.out.println("testing");
 		
-		SFTPConnection svr_conn = new SFTPConnection();
-		svr_conn.connect("unix.andrew.cmu.edu", "dpearson");
-		
 		//check cmdLine input
 		if (args.length == 2)
 		{
@@ -116,10 +125,12 @@ public class TestSuite {
 			local_name = args[1];
 			/* setup the connection to AFS
 			 * please setup the fields in CONSTANTS.java at first */
-	    	SFTPConnection conn = new SFTPConnection();
-	    	conn.connect(CONSTANTS.HOST, CONSTANTS.USER, CONSTANTS.PWD);
-	    	local_modification_time = conn.getLastModificationTime(CONSTANTS.CONFIGFILE);	// record the time-stamp of YAML file
-	    	conn.downloadFile(CONSTANTS.CONFIGFILE, CONSTANTS.LOCALPATH);	// download the YAML file
+			SFTPConnection svr_conn = new SFTPConnection();
+			svr_conn.connect("unix.andrew.cmu.edu", "dpearson");
+			//SFTPConnection conn = new SFTPConnection();
+	    	//conn.connect(CONSTANTS.HOST, CONSTANTS.USER, CONSTANTS.PWD);
+	    	local_modification_time = svr_conn.getLastModificationTime(CONSTANTS.CONFIGFILE);	// record the time-stamp of YAML file
+	    	svr_conn.downloadFile(CONSTANTS.CONFIGFILE, CONSTANTS.LOCALPATH);	// download the YAML file
 			
 			MessagePasser mp = new MessagePasser(config_file, local_name);
 			
@@ -156,11 +167,11 @@ public class TestSuite {
 				// if the user is going to send/receive, try to get the latest YAML file at first
 				if(user_action == 1 || user_action == 2){
 					// get the YAML file at first
-					if(!conn.isConnected())
-						conn.connect(CONSTANTS.HOST, CONSTANTS.USER, CONSTANTS.PWD);
-			    	global_modification_time = conn.getLastModificationTime(CONSTANTS.CONFIGFILE);	// record the time-stamp of YAML file
+					if(!svr_conn.isConnected())
+						svr_conn.connect(CONSTANTS.HOST, CONSTANTS.USER);//, CONSTANTS.PWD);
+			    	global_modification_time = svr_conn.getLastModificationTime(CONSTANTS.CONFIGFILE);	// record the time-stamp of YAML file
 			    	if(global_modification_time != local_modification_time)
-			    		conn.downloadFile(CONSTANTS.CONFIGFILE, CONSTANTS.LOCALPATH);	// download the YAML file
+			    		svr_conn.downloadFile(CONSTANTS.CONFIGFILE, CONSTANTS.LOCALPATH);	// download the YAML file
 				}
 				
 				switch(user_action)
@@ -190,7 +201,7 @@ public class TestSuite {
 						break;
 					case 3:
 						cmd_line_input.close();
-						conn.disconnect();		// close the SFTP connection to AFS
+						svr_conn.disconnect();		// close the SFTP connection to AFS
 						System.exit(1);
 					default:
 						System.out.println("Unrecognized input "+user_action+".");

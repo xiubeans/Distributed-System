@@ -301,9 +301,10 @@ public class MessagePasser {
 		
 	}
 	
-	String[] getSrcNames(){
-		String[] dummy = new String[2];
-		System.out.println("Names are "+configuration.get("name"));
+	String[] getNames(){
+		String tmp = configuration.get("name").toString();
+		tmp = tmp.replaceAll("[\\[\\]]", "");
+		String[] dummy = tmp.split(", ");
 		return dummy;
 	}
 }
