@@ -165,7 +165,24 @@ public class MessagePasser {
 							sr_nth.add(choices[1]);
 						else if(choices[0].equals("everynth"))
 							sr_every.add(choices[1]);
-						//need to figure out how to make each of the lists the same length by adding wildcards to all empty fields
+						
+						if(k == pairs.length-1) //make each of the lists the same length by adding wildcards to all empty fields
+						{
+							int l_len = sr_act.size();
+							if(sr_src.size() < l_len)
+								sr_src.add("*");
+							if(sr_dst.size() < l_len)
+								sr_dst.add("*");
+							if(sr_kind.size() < l_len)
+								sr_kind.add("*");
+							if(sr_id.size() < l_len)
+								sr_id.add("*");
+							if(sr_nth.size() < l_len)
+								sr_nth.add("*");
+							if(sr_every.size() < l_len)
+								sr_every.add("*");
+							//System.out.println("ID list length is "+sr_id.size()+" instead of "+sr_act.size());
+						}
 					}
 				}
 				else if(file_part.equals("receiverules"))
@@ -193,6 +210,25 @@ public class MessagePasser {
 						else if(choices[0].equals("everynth"))
 							rr_every.add(choices[1]);
 						//need to figure out how to make each of the lists the same length by adding wildcards to all empty fields in the right place
+						//check pairs.length and once (pairs.length-1) is reached, fill in all empty fields.
+						
+						if(k == pairs.length-1)  //make each of the lists the same length by adding wildcards to all empty fields
+						{
+							int l_len = rr_act.size();
+							if(rr_src.size() < l_len)
+								rr_src.add("*");
+							if(rr_dst.size() < l_len)
+								rr_dst.add("*");
+							if(rr_kind.size() < l_len)
+								rr_kind.add("*");
+							if(rr_id.size() < l_len)
+								rr_id.add("*");
+							if(rr_nth.size() < l_len)
+								rr_nth.add("*");
+							if(rr_every.size() < l_len)
+								rr_every.add("*");
+							//System.out.println("ID list length is "+sr_id.size()+" instead of "+sr_act.size());
+						}
 
 					}
 				}
