@@ -103,6 +103,10 @@ public class TestSuite {
 		
 		//test program
 		System.out.println("testing");
+		
+		SFTPConnection svr_conn = new SFTPConnection();
+		svr_conn.connect("unix.andrew.cmu.edu", "dpearson");
+		
 		//check cmdLine input
 		if (args.length == 2)
 		{
