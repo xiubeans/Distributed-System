@@ -14,7 +14,7 @@ public class JschTest {
             session = jsch.getSession("zhechen", "unix.andrew.cmu.edu", 22);
             session.setConfig("StrictHostKeyChecking", "no");
             // Set the Andrew password in clear text; it must have non-clear version, and I will look into that...
-            session.setPassword("");
+            session.setPassword(""); //can we pop up a dialog box?
             session.connect();
 
             Channel channel = session.openChannel("sftp");

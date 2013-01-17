@@ -21,15 +21,18 @@ of the file and checking before each send and receive method...*/
  * IDs can be reused across different nodes. */
 
 public class MessagePasser {
-	//public MessagePasser(String configuration_filename, String local_name); //constructor 
+	HashMap configuration = new HashMap<String, String>();
+	HashMap send_rules = new HashMap<String, String>();
+	HashMap recv_rules = new HashMap<String, String>();
+	
 	public MessagePasser(String configuration_filename, String local_name) {
-		/* Create send and recv buffers of 1 MB each */
-		String[] send_buf = null; //where we'll store the send buffered messages per connection.
+		/* Create send and recv buffers */		
+		String[] send_buf =  null; //where we'll store the send buffered messages per connection.
 		String[] recv_buf = null;
 		
-		//create (from the ArrayList class in Java) sockets for the nodes.
-		
-		//Using TCP sockets, so keep the connection alive for more than just the send/receive of a message.
+		/* I think the creation of sockets should be a separate call either made by the user program or
+		 * by us in a different location than the constructor. Feel free to argue otherwise. 
+		 * */
 		
 	}
 	
@@ -58,19 +61,25 @@ public class MessagePasser {
 		return null;
 	}  // may block
 	
+	void initSockets() {
+		/*Create (from the ArrayList class in Java) sockets for the nodes.
+		 *Using TCP sockets, so keep the connection alive for more than just the 
+		 *send/receive of a message.
+		 */
+		
+		
+	}
+	
 	void parseConfig(String fname) {
-		/*Parses the configuration file. Not sure where to put this. ALSO, not finished.
-		 * Taken from a Yaml tutorial on SnakeYaml's Google code page.
+		/*Parses the configuration file and stores all of the sections into
+		 *their own hash maps. Any field not present is stored as "*" to 
+		 *denote a wildcard functionality. 
 		 */
 		
 		InputStream yamlInput = null;
 		Yaml yaml = new Yaml();
 		String config = "";
-		String[] conf2 = null;
 		FilePermission perm = null;
-		/*Configuration conf_obj = new Configuration();
-		SendRule send_obj = new SendRule();
-		ReceiveRule recv_obj = new ReceiveRule();*/
 		
 		/*perm = new FilePermission(fname, "read"); //Currently not working correctly...
 		try {
@@ -100,9 +109,6 @@ public class MessagePasser {
 				
 		Set set = file_map.entrySet();
 		Iterator i = set.iterator();
-		HashMap configuration = new HashMap<String, String>();
-		HashMap send_rules = new HashMap<String, String>();
-		HashMap recv_rules = new HashMap<String, String>();
 		int j = 0;
 		ArrayList names = new ArrayList<String>();
 		ArrayList ip_addys = new ArrayList();
@@ -137,7 +143,7 @@ public class MessagePasser {
 			elements = whole.split("\\},?");
 			//System.out.println("element is: "+elements[0]);
 			
-			for(j=0; j<elements.length; j++) //fix this stuff, make it scalable, etc...
+			for(j=0; j<elements.length; j++) //fix this stuff, make it scalable???, etc...
 			{
 				pairs = elements[j].split(", ");
 				
@@ -229,7 +235,6 @@ public class MessagePasser {
 								rr_every.add("*");
 							//System.out.println("ID list length is "+sr_id.size()+" instead of "+sr_act.size());
 						}
-
 					}
 				}
 				else if(file_part.equals("configuration")) //handle config third because it happens least often?
@@ -289,11 +294,16 @@ public class MessagePasser {
 		try {
 			yamlInput.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.out.println("Could not close configuration file\n");
 		}
 		
 		//TODO: Check to see if localName was found in the NAMES section of the config file; if not, return -1 ?
 		
+	}
+	
+	String[] getSrcNames(){
+		String[] dummy = new String[2];
+		System.out.println("Names are "+configuration.get("name"));
+		return dummy;
 	}
 }
