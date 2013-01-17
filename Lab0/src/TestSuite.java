@@ -100,6 +100,8 @@ public class TestSuite {
 		String kind = "";
 		Object data = null;
 		Scanner cmd_line_input = new Scanner(System.in);
+		int local_modification_time = -1;	// record the latest time we download the YAML file
+		int global_modification_time = -1;  // record teh latest time on servers
 		
 		//test program
 		System.out.println("testing");
@@ -112,11 +114,18 @@ public class TestSuite {
 		{
 			config_file = args[0];
 			local_name = args[1];
+			/* setup the connection to AFS
+			 * please setup the fields in CONSTANTS.java at first */
+	    	SFTPConnection conn = new SFTPConnection();
+	    	conn.connect(CONSTANTS.HOST, CONSTANTS.USER, CONSTANTS.PWD);
+	    	local_modification_time = conn.getLastModificationTime(CONSTANTS.CONFIGFILE);	// record the time-stamp of YAML file
+	    	conn.downloadFile(CONSTANTS.CONFIGFILE, CONSTANTS.LOCALPATH);	// download the YAML file
 			
 			MessagePasser mp = new MessagePasser(config_file, local_name);
 			
 			mp.parseConfig(config_file); //parse the config file
 			mp.initSockets(); //setup sockets here (see comment in MessagePasser constructor)
+			
 			
 			while(true)
 			{
@@ -142,6 +151,16 @@ public class TestSuite {
 				} catch(NumberFormatException e) {
 					System.out.println(user_input+" is not an integer.");
 					continue;
+				}
+				
+				// if the user is going to send/receive, try to get the latest YAML file at first
+				if(user_action == 1 || user_action == 2){
+					// get the YAML file at first
+					if(!conn.isConnected())
+						conn.connect(CONSTANTS.HOST, CONSTANTS.USER, CONSTANTS.PWD);
+			    	global_modification_time = conn.getLastModificationTime(CONSTANTS.CONFIGFILE);	// record the time-stamp of YAML file
+			    	if(global_modification_time != local_modification_time)
+			    		conn.downloadFile(CONSTANTS.CONFIGFILE, CONSTANTS.LOCALPATH);	// download the YAML file
 				}
 				
 				switch(user_action)
@@ -171,6 +190,7 @@ public class TestSuite {
 						break;
 					case 3:
 						cmd_line_input.close();
+						conn.disconnect();		// close the SFTP connection to AFS
 						System.exit(1);
 					default:
 						System.out.println("Unrecognized input "+user_action+".");
@@ -182,5 +202,7 @@ public class TestSuite {
 		{
 			System.out.println("Error: incorrect number of args: "+args.length+" (should be 2)");
 		}
+		
+		
 	}
 }
