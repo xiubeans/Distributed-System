@@ -301,10 +301,23 @@ public class MessagePasser {
 		
 	}
 	
-	String[] getNames(){
-		String tmp = configuration.get("name").toString();
+	String[] getField(String field){
+		/* Accessor to return any field desired by the user
+		 * program. 
+		 * */
+		
+		String tmp = "";
+		
+		if(send_rules.keySet().contains(field))
+			tmp = send_rules.get(field).toString();
+		else if(recv_rules.keySet().contains(field))
+			tmp = recv_rules.get(field).toString();
+		else if(configuration.keySet().contains(field))
+			tmp = configuration.get(field).toString();
+		else
+			System.out.println("Could not match "+field+" to any field.");
 		tmp = tmp.replaceAll("[\\[\\]]", "");
-		String[] dummy = tmp.split(", ");
-		return dummy;
+		String[] values = tmp.split(", ");
+		return values;
 	}
 }

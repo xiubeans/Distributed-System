@@ -3,13 +3,13 @@ import java.io.Serializable;
 
 public class Message implements Serializable {
 	
-	public Message(String src, String dest, String kind, Object data) {
+	public Message(String src, String dest, String kind, String data /*Object data*/) {
 		/* Initialize all fields of the Message object. */
 		
-		src = "";
-		dest = "";
-		kind = "";
-		data = null;
+		src = src;
+		dest = dest;
+		kind = kind;
+		data = data;//null;
 	}
 
 	public void set_id(int id) 

@@ -16,7 +16,7 @@ public class TestSuite {
 		 * Return: false (no) or true (yes)
 		 *  */
 		
-		String[] fields = new String[9];
+		String[] fields = new String[10];
 		
 		int ctr = 0;
 		int max_fields = 8;
@@ -38,17 +38,17 @@ public class TestSuite {
 		{
 			switch(ctr)
 			{
-				case 0:
+				case 0: //type of message
 					all_fields[ctr][0] = "send";
 					all_fields[ctr][1] = "receive";
 					break;
-				case 1:
+				case 1: //action taken on message
 					all_fields[ctr][0] = "drop";
 					all_fields[ctr][1] = "delay";
 					all_fields[ctr][2] = "duplicate";					
 					break;
 				case 2:
-					names = mp.getNames();
+					names = mp.getField("name"); //do we need source names here or all names?
 					
 					for(int i=0; i<names.length; i++)
 					{
@@ -56,27 +56,46 @@ public class TestSuite {
 						all_fields[ctr][i] = names[i]; 
 					}
 					break; //need to get source names from the config file and add them here
-				case 3:		
+				case 3:	//do we need dest names here or all names (currently using ALL names)?
 					for(int i=0; i<names.length; i++)
 					{
 						//System.out.println("Assigned "+src_names[i]+" to all_fields["+ctr+"]["+i+"]");
 						all_fields[ctr][i] = names[i]; 
 					}
-					break; //need to get dest names from the config file and add them here...are these same as those from case 2? Can it be optimized?
+					break; 
 
-				case 4:
+				case 4: //what kind of message
 					all_fields[ctr][0] = "ack";
 					all_fields[ctr][1] = "lookup";
-					break;//others????
-				case 5:
-					all_fields[ctr][0] = "";
+					break;
+				case 5: //the ID mentioned in the config file
+					String[] ids = mp.getField("id"); //do we need source names here or all names?
+					
+					for(int i=0; i<ids.length; i++)
+					{
+						//System.out.println("Assigned "+src_names[i]+" to all_fields["+ctr+"]["+i+"]");
+						all_fields[ctr][i] = ids[i]; 
+					}
 					break; //need to get all IDs already used to make sure we don't reuse if in same name
-				case 6:
-					all_fields[ctr][0] = "";
+				case 6: //Nth specifications
+					String[] nth = mp.getField("nth"); //do we need source names here or all names?
+					
+					for(int i=0; i<nth.length; i++)
+					{
+						//System.out.println("Assigned "+src_names[i]+" to all_fields["+ctr+"]["+i+"]");
+						all_fields[ctr][i] = nth[i]; 
+					}
 					break; //this needs to be in the same order as the source/dest names...how to do this?
-				case 7:
-					all_fields[ctr][0] = "";
+				case 7: //EveryNth specifications
+					String[] every = mp.getField("everynth"); //do we need source names here or all names?
+					
+					for(int i=0; i<every.length; i++)
+					{
+						//System.out.println("Assigned "+src_names[i]+" to all_fields["+ctr+"]["+i+"]");
+						all_fields[ctr][i] = every[i]; 
+					}
 					break; //this needs to be in the same order as the source/dest names...how to do this?
+					//just grab them and keep them in order, then it should all match up
 			}
 		}
 		
@@ -91,7 +110,11 @@ public class TestSuite {
 			//if(!(all_fields.get(ctr).contains(fields[ctr].toString().toLowerCase())))
 			for(int j=0; j<max_options; j++)
 			{
-				System.out.println("Currently checking "+all_fields[ctr][j]);
+				System.out.println("Currently checking "+all_fields[ctr][j]+" against"+fields[ctr].toString());
+				if((all_fields[ctr][j].equalsIgnoreCase((fields[ctr].toString()))))
+					break; //we found a match in that field
+				if(j == max_options-1) //got through the loop without finding a match
+					return false;
 				//if(!(all_fields[ctr][j].equalsIgnoreCase((fields[ctr].toString()))))
 				//	return false;
 			}
@@ -110,7 +133,8 @@ public class TestSuite {
 		String src = "";
 		String dest = "";
 		String kind = "";
-		Object data = null;
+		String data = "";
+		//Object data = null;
 		Scanner cmd_line_input = new Scanner(System.in);
 		int local_modification_time = -1;	// record the latest time we download the YAML file
 		int global_modification_time = -1;  // record teh latest time on servers
@@ -177,19 +201,24 @@ public class TestSuite {
 				switch(user_action)
 				{
 					case 1:
-						System.out.println("Usage: send <src> <dest> <action> <blahblahblah>Enter * for wildcard.");
+						System.out.println("Usage: send <action> <src> <dest> <kind> <id> <Nth> <EveryNth> <data> (* is wildcard)");
 						user_input = cmd_line_input.nextLine(); //get the input and check it (pass back out to user if garbage input)
 						if(!validateInput(user_input, mp)) //check user input.
 						{	
 							System.out.println("Error: format of message not recognized.");
 							continue;
 						}
+						String[] fields = user_input.trim().split("\\s");
+						src = fields[2];
+						dest = fields[3];
+						kind = fields[4];
+						data = fields[8];
 						Message newMsg = new Message(src, dest, kind, data);
 						newMsg = newMsg.build_message(newMsg);
 						mp.send(newMsg);
 						break;
 					case 2:
-						System.out.println("Usage: receive <src> <dest> <action> <blahblahblah>Enter * for wildcard.");
+						System.out.println("Usage: receive <action> <src> <dest> <kind> <id> <Nth> <EveryNth> (* is wildcard)");
 						user_input = cmd_line_input.nextLine(); //get the input and check it (pass back out to user if garbage input)
 						if(!validateInput(user_input, mp)) //check user input and create our message from within it.
 						{	
