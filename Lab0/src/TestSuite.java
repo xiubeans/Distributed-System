@@ -26,7 +26,7 @@ public class TestSuite {
 		//String[] all_fields = new String
 		String[][] all_fields = new String[max_fields][max_options]; 
 		
-		//TODO: figure out how to grab the source names from below such that they can be stored appropriately in my data structure
+		//TODO: Put all methods into appropriate classes
 		
 		/*build a 2D array. Outside contains all fields,
 		 *  inside contains options of each field. Refactor as
@@ -45,7 +45,7 @@ public class TestSuite {
 				case 1: //action taken on message
 					all_fields[ctr][0] = "drop";
 					all_fields[ctr][1] = "delay";
-					all_fields[ctr][2] = "duplicate";					
+					all_fields[ctr][2] = "duplicate";			
 					break;
 				case 2:
 					names = mp.getField("name"); //do we need source names here or all names?
@@ -74,7 +74,8 @@ public class TestSuite {
 					for(int i=0; i<ids.length; i++)
 					{
 						//System.out.println("Assigned "+src_names[i]+" to all_fields["+ctr+"]["+i+"]");
-						all_fields[ctr][i] = ids[i]; 
+						all_fields[ctr][i] = ids[i];
+						//REREAD config file example with ID to understand how to handle this.
 					}
 					break; //need to get all IDs already used to make sure we don't reuse if in same name
 				case 6: //Nth specifications
@@ -122,7 +123,7 @@ public class TestSuite {
 		
 		return true;
 	}
-	
+	/* If the src and dest match, kick it out as invalid input. Put this somewhere. */
 	public static void main(String[] args)
 	{
 		String config_file = "";
@@ -136,7 +137,7 @@ public class TestSuite {
 		Object data = null;
 		Scanner cmd_line_input = new Scanner(System.in);
 		int local_modification_time = -1;	// record the latest time we download the YAML file
-		int global_modification_time = -1;  // record teh latest time on servers
+		int global_modification_time = -1;  // record the latest time on servers
 		
 		//test program
 		System.out.println("testing");
@@ -167,7 +168,7 @@ public class TestSuite {
 				 * a specific format when sending or receiving messages. For example, a send message might be:
 				 * send <src> <dest> <action> ...
 				 * It is also important to make sure that we determine how wildcards are handled, such as using
-				 * a special character (*?) to denote having no choice for that specific field.
+				 * a special character (*) to denote having no choice for that specific field.
 				 * Currently not sure where that goes w.r.t. the program setup. */
 				
 				//offer the user three choices, then from there give usage for the specific option chosen and wait for input.
