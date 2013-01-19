@@ -21,9 +21,13 @@ of the file and checking before each send and receive method...*/
  * IDs can be reused across different nodes. */
 
 public class MessagePasser {
-	HashMap configuration = new HashMap<String, String>();
+	/*HashMap configuration = new HashMap<String, String>();
 	HashMap send_rules = new HashMap<String, String>();
-	HashMap recv_rules = new HashMap<String, String>();	
+	HashMap recv_rules = new HashMap<String, String>();*/
+	int max_vals = 8;
+	String[][] conf = new String[max_vals][10]; //temporary holders
+	String[][] send_rules = new String[max_vals][10]; //temporary holders
+	String[][] recv_rules = new String[max_vals][10]; //temporary holders
 	
 	public MessagePasser(String configuration_filename, String local_name) {
 		/* Create send and recv buffers */		
@@ -37,9 +41,9 @@ public class MessagePasser {
 	}
 	
 	
-	public String[] matchRules(String type, Message message)
+	/*public String[] matchRules(String type, Message message)
 	{
-		/* Returns the first rule matched. */
+		// Returns the first rule matched. 
 		
 		String[] rule = new String[10];
 		System.out.println("In matchrules");
@@ -82,7 +86,7 @@ public class MessagePasser {
 		}
 		return rule; //return the actual string representation of it to use for handling
 	}
-	
+	*/
 	
 	void send(Message message) {
 		/*Should keep track of IDs and make sure to send next unused ID (should be
@@ -92,7 +96,7 @@ public class MessagePasser {
 		
 		int id = 0; //placeholder for now
 		
-		String[] matched = matchRules("send", message); //needs to be written correctly
+		//String[] matched = matchRules("send", message); //needs to be written correctly
 		
 		message.set_id(id);
 		
@@ -158,13 +162,22 @@ public class MessagePasser {
 		String[] elements = new String[10]; //figure out appropriate size for these
 		String[] pairs = new String[10];
 		String[] choices = new String[10];
-		String file_part = "";
+		String file_part = "";	
 		
-				
+		for(int ctr=0; ctr<max_vals; ctr++) //quickly initialize all elements
+		{
+			for(int j=0; j<10; j++)
+			{
+				conf[ctr][j] = "*";
+				send_rules[ctr][j] = "*";
+				recv_rules[ctr][j] = "*";
+			}
+		}
+		
 		Set set = file_map.entrySet();
 		Iterator i = set.iterator();
 		int j = 0;
-		ArrayList names = new ArrayList<String>();
+		/*ArrayList names = new ArrayList<String>();
 		ArrayList ip_addys = new ArrayList();
 		ArrayList ports = new ArrayList();
 		ArrayList sr_act = new ArrayList<String>();
@@ -180,7 +193,7 @@ public class MessagePasser {
 		ArrayList rr_kind = new ArrayList<String>();
 		ArrayList rr_id = new ArrayList();
 		ArrayList rr_nth = new ArrayList();
-		ArrayList rr_every = new ArrayList();
+		ArrayList rr_every = new ArrayList();*/
 		
 		while(i.hasNext())
 		{
@@ -207,23 +220,23 @@ public class MessagePasser {
 					{
 						choices = pairs[k].split("=");
 						choices[key] = choices[key].trim().toLowerCase();
-						
-						if(choices[key].equals("action"))
-							sr_act.add(choices[val]);
+						fillLoop(send_rules, choices, k, val, choices[key]);
+						/*if(choices[key].equals("action"))
+							fillLoop(send_rules, choices, k, val);//sr_act.add(choices[val]);
 						else if(choices[key].equals("src"))
-							sr_src.add(choices[val]);
+							fillLoop(send_rules, choices, k, val);//sr_src.add(choices[val]);
 						else if(choices[key].equals("dest"))
-							sr_dst.add(choices[val]);
+							fillLoop(send_rules, choices, k, val);//sr_dst.add(choices[val]);
 						else if(choices[key].equals("kind"))
-							sr_kind.add(choices[val]);
+							fillLoop(send_rules, choices, k, val);//sr_kind.add(choices[val]);
 						else if(choices[key].equals("id"))
-							sr_id.add(choices[val]);
+							fillLoop(send_rules, choices, k, val);//sr_id.add(choices[val]);
 						else if(choices[key].equals("nth"))
-							sr_nth.add(choices[val]);
+							fillLoop(send_rules, choices, k, val);//sr_nth.add(choices[val]);
 						else if(choices[key].equals("everynth"))
-							sr_every.add(choices[val]);
-						
-						if(k == pairs.length-1) //make each of the lists the same length by adding wildcards to all empty fields
+							fillLoop(send_rules, choices, k, val);//sr_every.add(choices[val]);
+						*/
+						/*if(k == pairs.length-1) //make each of the lists the same length by adding wildcards to all empty fields
 						{
 							int l_len = sr_act.size();
 							if(sr_src.size() < l_len)
@@ -238,7 +251,7 @@ public class MessagePasser {
 								sr_nth.add("*");
 							if(sr_every.size() < l_len)
 								sr_every.add("*");
-						}
+						}*/
 					}
 				}
 				else if(file_part.equals("receiverules"))
@@ -247,23 +260,24 @@ public class MessagePasser {
 					{
 						choices = pairs[k].split("=");
 						choices[key] = choices[key].trim().toLowerCase();
+						fillLoop(recv_rules, choices, k, val, choices[key]);
 						
-						if(choices[key].equals("action"))
-							rr_act.add(choices[val]);
+						/*if(choices[key].equals("action"))
+							fillLoop(recv_rules, choices, k, val);//rr_act.add(choices[val]);
 						else if(choices[key].equals("src"))
-							rr_src.add(choices[val]);
+							fillLoop(recv_rules, choices, k, val);//rr_src.add(choices[val]);
 						else if(choices[key].equals("dest"))
-							rr_dst.add(choices[val]);
+							fillLoop(recv_rules, choices, k, val);//rr_dst.add(choices[val]);
 						else if(choices[key].equals("kind"))
-							rr_kind.add(choices[val]);
+							fillLoop(recv_rules, choices, k, val);//rr_kind.add(choices[val]);
 						else if(choices[key].equals("id"))
-							rr_id.add(choices[val]);
+							fillLoop(recv_rules, choices, k, val);//rr_id.add(choices[val]);
 						else if(choices[key].equals("nth"))
-							rr_nth.add(choices[val]);
+							fillLoop(recv_rules, choices, k, val);//rr_nth.add(choices[val]);
 						else if(choices[key].equals("everynth"))
-							rr_every.add(choices[val]);
-						
-						if(k == pairs.length-1)  //make each of the lists the same length by adding wildcards to all empty fields
+							fillLoop(recv_rules, choices, k, val);//rr_every.add(choices[val]);
+						*/
+						/*if(k == pairs.length-1)  //make each of the lists the same length by adding wildcards to all empty fields
 						{
 							int l_len = rr_act.size();
 							if(rr_src.size() < l_len)
@@ -278,25 +292,39 @@ public class MessagePasser {
 								rr_nth.add("*");
 							if(rr_every.size() < l_len)
 								rr_every.add("*");
-						}
+						}*/
 					}
 				}
 				else if(file_part.equals("configuration")) //handle config third because it happens only once
 				{
-					//System.out.println("inner: "+elements[j]);
-					//System.out.println(pairs.length+" pairs are: "+pairs[0]+" "+pairs[1]+" "+pairs[2]);
+					System.out.println("inner: "+elements[j]);
+					System.out.println(pairs.length+" pairs are: "+pairs[0]+" "+pairs[1]+" "+pairs[2]);
 					for(int k=0; k<pairs.length; k++)
 					{
 						choices = pairs[k].split("=");
 						choices[key] = choices[key].trim();
+						fillLoop(conf, choices, k, val, choices[key]);
 						
-						//System.out.println("Pairs: "+pairs[0].toLowerCase()+" "+pairs[1]);
+						/*System.out.println("Pairs: "+pairs[0].toLowerCase()+" "+pairs[1]);
+						System.out.println("Choices key: "+choices[key]);
+						System.out.println("Choices val: "+choices[val]);
 						if(choices[key].toLowerCase().equals("name"))
-							names.add(choices[val]);
+						{
+							fillLoop(conf, choices, k, val);
+							//System.out.println("Adding "+choices[val]+" to position "+k+" in array index for "+choices[key]);
+							//names.add(choices[val]);
+						}
 						else if(choices[key].toLowerCase().equals("ip"))
-							ip_addys.add(choices[val]);
+						{
+							fillLoop(conf, choices, k, val);
+							//ip_addys.add(choices[val]);
+							//System.out.println("Adding "+choices[val]+" to position "+k+" in array index for "+choices[key]);
+						}
 						else if(choices[key].toLowerCase().equals("port"))
-							ports.add(choices[val]);
+						{
+							fillLoop(conf, choices, k, val);
+							//ports.add(choices[val]);
+						}*/
 					}
 				}
 				else
@@ -306,6 +334,7 @@ public class MessagePasser {
 				}
 			}
 		}	
+		/*
 		send_rules.put("action", sr_act);
 		send_rules.put("src", sr_src);
 		send_rules.put("dest", sr_dst);
@@ -321,15 +350,22 @@ public class MessagePasser {
 		recv_rules.put("id", rr_id);
 		recv_rules.put("nth", rr_nth);
 		recv_rules.put("everynth", rr_every);
-		
 		configuration.put("name", names);
 		configuration.put("ip", ip_addys);
-		configuration.put("port", ports);
+		configuration.put("port", ports);*/
 		
 		//Just temporary print statements for reference --REMOVE BEFORE SUBMISSION
-		System.out.println("Config Dict contains "+ configuration.keySet()+" and "+ configuration.values());
-		System.out.println("Send Dict contains "+ send_rules.keySet()+" and "+ send_rules.values());
-		System.out.println("Recv Dict contains "+ recv_rules.keySet()+" and "+ recv_rules.values());
+		//System.out.println("Config Dict contains "+ configuration.keySet()+" and "+ configuration.values());
+//		System.out.println("New dict:");
+//		for(int g=0; g<8; g++)
+//		{
+//			for(int l=0; l<10; l++)
+//			{
+//				System.out.println(conf[g][l]);
+//			}
+//		}
+		//System.out.println("Send Dict contains "+ send_rules.keySet()+" and "+ send_rules.values());
+		//System.out.println("Recv Dict contains "+ recv_rules.keySet()+" and "+ recv_rules.values());
 		
 		try {
 			yamlInput.close();
@@ -341,13 +377,76 @@ public class MessagePasser {
 	}
 	
 	
+	void fillLoop(String[][] arr, String[] choices, int k, int val, String field)
+	{
+		arr[k][0] = field;
+		for(int f=1; f<arr[k].length; f++)
+		{
+			//System.out.println("tmp["+k+"]["+f+"] is "+tmp[k][f]+".");
+			if(arr[k][f].equals("*"))
+			{
+				arr[k][f] = choices[val];
+				break;
+			}
+		}
+	}
+	
+			
 	String[] getField(String field){
 		/* Accessor to return any field desired by the user
 		 * program. 
 		 * */
 		
-		String tmp = "";
+		String[] tmp = null;
+		int i, j;
 		
+		for(i=0; i<send_rules.length; i++)
+		{
+			//System.out.println("currently looking at "+send_rules[i][0]);
+			for(j=0; j<send_rules[i].length; j++)
+			{
+				if(send_rules[i][j].equals("*"))
+					break;
+			}
+			if(send_rules[i][0].equalsIgnoreCase(field))
+			{
+				tmp = Arrays.copyOfRange(send_rules[i], 0, j);
+				return tmp; //send_rules[i];
+			}
+		}
+		
+		for(i=0; i<recv_rules.length; i++)
+		{
+			//System.out.println("currently looking at "+recv_rules[i][0]);
+			for(j=0; j<recv_rules[i].length; j++)
+			{
+				if(recv_rules[i][j].equals("*"))
+					break;
+			}
+			if(recv_rules[i][0].equalsIgnoreCase(field))
+			{
+				tmp = Arrays.copyOfRange(recv_rules[i], 0, j);
+				return tmp; //send_rules[i];
+			}
+		}
+		
+		for(i=0; i<conf.length; i++)
+		{
+			//System.out.println("currently looking at "+conf[i][0]);
+			for(j=0; j<conf[i].length; j++)
+			{
+				if(conf[i][j].equals("*"))
+					break;
+			}
+			if(conf[i][0].equalsIgnoreCase(field))
+			{
+				tmp = Arrays.copyOfRange(conf[i], 0, j);
+				return tmp; //send_rules[i];
+			}
+		}
+		System.out.println("Could not match "+field+" to any field.");
+		return tmp;
+		/*
 		if(send_rules.keySet().contains(field))
 			tmp = send_rules.get(field).toString();
 		else if(recv_rules.keySet().contains(field))
@@ -358,7 +457,7 @@ public class MessagePasser {
 			System.out.println("Could not match "+field+" to any field.");
 		tmp = tmp.replaceAll("[\\[\\]]", "");
 		String[] values = tmp.split(", ");
-		return values;
+		return values;*/
 	}
 	
 	
@@ -369,9 +468,8 @@ public class MessagePasser {
 		 *configuration file (in the case of names, for example) into a 
 		 *two-dimensional array.
 		 */
-		
+
 		String[][] all_fields = new String[max_fields][max_options]; 
-		String[] names = null;
 		int ctr;
 		
 		for(ctr=0; ctr<max_fields; ctr++) //quickly initialize all elements
@@ -389,24 +487,38 @@ public class MessagePasser {
 					all_fields[ctr][0] = "send";
 					all_fields[ctr][1] = "receive";
 					break;
-				case 1: //action taken on message
+				/*case 1: //action taken on message
 					all_fields[ctr][0] = "drop";
 					all_fields[ctr][1] = "delay";
 					all_fields[ctr][2] = "duplicate";
 					break;
+					
 				case 2: //combined with case 3 because they are very similar
 					names = mp.getField("name");
-				case 3:
-					for(int i=0; i<names.length; i++)
-						all_fields[ctr][i] = names[i]; 
-					all_fields[ctr][names.length] = "*";
+					*/
+				case 1:
+					String[] names = mp.getField("name");
+					int i;
+					for(i=1; i<names.length; i++)
+					{
+						if(!names[i].equals("*"))
+						{	
+							System.out.println("Name: "+names[i]);
+							all_fields[ctr][i] = names[i];
+						} 
+					}
+					all_fields[ctr][i] = "*";
 					break;
-				case 4: //what kind of message
+				case 2: //what kind of message
 					String[] kind = mp.getField("kind");
-					for(int i=0; i<kind.length; i++)
-						all_fields[ctr][i] = kind[i];
-					all_fields[ctr][kind.length] = "*"; //since it's possible to have a message with only an action specified
+					for(i=1; i<kind.length; i++)
+						if(!kind[i].equals("*"))
+						{
+							all_fields[ctr][i] = kind[i];
+							all_fields[ctr][i] = "*"; //since it's possible to have a message with only an action specified
+						}
 					break;
+					/*
 				case 5: //the ID mentioned in the config file
 					String[] ids = mp.getField("id");
 					for(int i=0; i<ids.length; i++)
@@ -425,13 +537,16 @@ public class MessagePasser {
 						all_fields[ctr][i] = every[i];
 					all_fields[ctr][every.length] = "*";
 					break;
+					*/
+				default:
+					break;
 			}
 		}
 		return all_fields;
 	}
 	
 	
-	public boolean validateUserRequests(String user_input, MessagePasser mp)
+	public boolean validateUserRequests(String user_input, MessagePasser mp, String local_name)
 	{
 		/* Determines whether the user has followed the usage
 		 * guidelines. A send or receive rule can have up to
@@ -441,35 +556,68 @@ public class MessagePasser {
 		 * Return: false (no) or true (yes)
 		 *  */
 		
+		String[] kind = mp.getField("kind");
+		String[] names = mp.getField("name");
 		int ctr = 0;
-		int max_fields = 8;
-		int max_options = 10;
-		int name1 = 2;
+		int max_fields = 3;
+		System.out.println("Name length: "+names.length);
+		System.out.println("kind length: "+kind.length);
+		int max_options =  (names.length >= kind.length) ? names.length+1 : kind.length+1; 
+		int dest = 1;
 		String[] user_options = new String[max_options];
 		String[][] all_fields = new String[max_fields][max_options]; /*2D array; outside is all possible fields,
 																	   inner is all possible options*/
 		user_options = user_input.trim().split("\\s");
-
-		if(user_options[name1].equalsIgnoreCase(user_options[name1+1]) && !user_options[name1].equals("*")) //same src and dest
+		if(user_options.length == 1)
 		{
-			System.out.println("Error - same src and dest "+user_options[name1]+". No loopback functionality offered.");
+			if(user_input.trim().equalsIgnoreCase("receive"))
+				return true;
+			else
+				return false;
+		}
+				
+		if(user_options[dest].equalsIgnoreCase(local_name)) //same src and dest
+		{
+			System.out.println("Error - same src and dest "+local_name+". No loopback functionality offered.");
 			return false;
 		}
 		
 		all_fields = populateOptions(mp, user_input, max_fields, max_options);	
 		
+		System.out.println("All fields:");
+		for(ctr=0; ctr<max_fields; ctr++)
+		{
+			for(int a=0; a<max_options; a++)
+				System.out.println(all_fields[ctr][a]);
+		}
+		
 		for (ctr = 0; ctr<max_fields; ctr++) //verify user entered valid options 
 		{
 			for(int j=0; j<max_options; j++)
 			{
-				//System.out.println("Currently checking "+all_fields[ctr][j]+" against "+user_options[ctr].toString());
-				if(!(all_fields[ctr][j].equals("")) && j != max_options-1)
+				System.out.println("Currently checking "+all_fields[ctr][j]+" against "+user_options[ctr].toString());
+				if((all_fields[ctr][j].equalsIgnoreCase((user_options[ctr].toString()))))
+					break; //found a match for that field
+				else
+				{
+					if(j == max_options-1)
+					{
+						if(all_fields[ctr][j].equals("")) //need to figure this stuff out nowwwww!
+							return false;
+					}
+					else
+					{	
+						continue;
+					}
+				}
+				break;
+				/*if(!(all_fields[ctr][j].equals("")) && j != max_options-1)
 				{
 					if((all_fields[ctr][j].equalsIgnoreCase((user_options[ctr].toString()))))
 						break; //found a match for that field
 				}
 				else //went through all options available for given field
-					return false;
+					return false;*/
 			}
 		}
 		return true;

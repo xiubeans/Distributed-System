@@ -7,7 +7,7 @@ public class Message implements Serializable {
 		/* Initialize all fields of the Message object. */
 		//Not really sure what to do here...
 		//HashMap header = new HashMap();
-				
+		
 		src = src;
 		dest = dest;
 		kind = kind;

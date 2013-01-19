@@ -59,35 +59,37 @@ public class TestSuite {
 				switch(user_action)
 				{
 					case 1: //send request
-						System.out.println("Usage: send <action> <src> <dest> <kind> <id> <Nth> <EveryNth> <data> (* is wildcard)");
+						System.out.println("Usage: send <dest> <kind>");
+						//System.out.println("Usage: send <action> <src> <dest> <kind> <id> <Nth> <EveryNth> <data> (* is wildcard)");
 						user_input = cmd_line_input.nextLine(); //get the input and check it (pass back out to user if garbage input)
 						
 						if(!mp.isNewestConfig(local_modification_time, global_modification_time, svr_conn)) //MAKE THIS transparent to user!
 							mp.parseConfig(config_file);
 						
-						if(!mp.validateUserRequests(user_input, mp)) //check user input
+						if(!mp.validateUserRequests(user_input, mp, local_name)) //check user input
 						{	
 							System.out.println("Error: format of message not recognized.");
 							continue;
 						}
 						
 						String[] fields = user_input.trim().split("\\s");
-						src = fields[2];
-						dest = fields[3];
-						kind = fields[4];
-						data = fields[8];
+						src = local_name; //fields[2];
+						dest = fields[1];
+						kind = fields[2];
+						data = null; //fields[8];
 						Message newMsg = new Message(src, dest, kind, data);
 						newMsg = newMsg.build_message(newMsg);
 						mp.send(newMsg);
 						break;
 					case 2: //receive request
-						System.out.println("Usage: receive <action> <src> <dest> <kind> <id> <Nth> <EveryNth> <data> (* is wildcard)");
+						System.out.println("Usage: receive");
+						//System.out.println("Usage: receive <action> <src> <dest> <kind> <id> <Nth> <EveryNth> <data> (* is wildcard)");
 						user_input = cmd_line_input.nextLine(); //get the input and check it (pass back out to user if garbage input)
 						
 						if(!mp.isNewestConfig(local_modification_time, global_modification_time, svr_conn)) //MAKE THIS transparent to user!
 							mp.parseConfig(config_file);
 						
-						if(!mp.validateUserRequests(user_input, mp)) //check user input and create our message from within it --but this is a receive message....?
+						if(!mp.validateUserRequests(user_input, mp, local_name)) //check user input and create our message from within it --but this is a receive message....?
 						{	
 							System.out.println("Error: format of message not recognized.");
 							continue;
