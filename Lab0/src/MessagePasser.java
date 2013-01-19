@@ -37,6 +37,53 @@ public class MessagePasser {
 	}
 	
 	
+	public String[] matchRules(String type, Message message)
+	{
+		/* Returns the first rule matched. */
+		
+		String[] rule = new String[10];
+		System.out.println("In matchrules");
+		//iterate through the message's fields and see which rule is matched for the right HashMap (send or recv)
+		if(type.equals("send"))
+		{
+			String[] keys = new String[send_rules.size()];
+			send_rules.keySet().toArray(keys);
+			for(int i=0; i<keys.length; i++)
+			{
+				String[] vals = new String[send_rules.size()];
+				vals = send_rules.get(keys[i]).toString().replaceAll("[\\[\\]]","").split(", ");
+				//System.out.println("Outside: "+keys[i]);
+				for(int j=0; j<vals.length; j++)
+				{
+					//if(message.getSrc().equalsIgnoreCase(vals[j])) //need to write getSrc and other accessors...
+						//we matched something, so continue trying to match that rule first...
+					//System.out.println("Inside: "+vals[j]);
+					continue;
+				}
+			}
+		}
+		else if(type.equals("receive"))
+		{
+			String[] keys = new String[recv_rules.size()];
+			recv_rules.keySet().toArray(keys);
+			for(int i=0; i<keys.length; i++)
+			{
+				String[] vals = new String[recv_rules.size()];
+				vals = recv_rules.get(keys[i]).toString().replaceAll("[\\[\\]]","").split(", ");
+				//System.out.println("Outside: "+keys[i]);
+				for(int j=0; j<vals.length; j++)
+				{
+					//if(message.getSrc().equalsIgnoreCase(vals[j])) //need to write getSrc and other accessors...
+						//we matched something, so continue trying to match that rule first...
+					//System.out.println("Inside: "+vals[j]);
+					continue;
+				}
+			}
+		}
+		return rule; //return the actual string representation of it to use for handling
+	}
+	
+	
 	void send(Message message) {
 		/*Should keep track of IDs and make sure to send next unused ID (should be
 		 *monotonically increasing). Need to write the code for set_id in the 
@@ -44,6 +91,8 @@ public class MessagePasser {
 		 *rules to handle the message appropriately. */
 		
 		int id = 0; //placeholder for now
+		
+		String[] matched = matchRules("send", message); //needs to be written correctly
 		
 		message.set_id(id);
 		
@@ -60,6 +109,7 @@ public class MessagePasser {
 		 
 		/* Upon receiving a message, check the size and then remove that amount from the buffer's free space. */
 		
+		//String[] matched = matchRules("receive", Message message); //needs to be written correctly
 		return null;
 	}  // may block
 	
