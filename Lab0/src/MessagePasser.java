@@ -23,7 +23,7 @@ of the file and checking before each send and receive method...*/
 public class MessagePasser {
 	HashMap configuration = new HashMap<String, String>();
 	HashMap send_rules = new HashMap<String, String>();
-	HashMap recv_rules = new HashMap<String, String>();
+	HashMap recv_rules = new HashMap<String, String>();	
 	
 	public MessagePasser(String configuration_filename, String local_name) {
 		/* Create send and recv buffers */		
@@ -319,5 +319,166 @@ public class MessagePasser {
 		tmp = tmp.replaceAll("[\\[\\]]", "");
 		String[] values = tmp.split(", ");
 		return values;
+	}
+	
+	public String[][] populateOptions(MessagePasser mp, String user_input, int max_fields, int max_options)
+	{
+		/*Stores all of the possible options for each field of a message from
+		 *the lab information (such as for the message action) and from the 
+		 *configuration file (in the case of names, for example) into a 
+		 *two-dimensional array.
+		 */
+		
+		String[][] all_fields = new String[max_fields][max_options]; 
+		String[] names = null;
+		int ctr;
+		
+		for(ctr=0; ctr<max_fields; ctr++) //quickly initialize all elements
+		{
+			for(int j=0; j<max_options; j++)
+				all_fields[ctr][j] = "";
+		}
+				
+		
+		System.out.println("User input: "+user_input);
+		for (ctr = 0; ctr<max_fields; ctr++) 
+		{
+			switch(ctr)
+			{
+				case 0: //type of message
+					all_fields[ctr][0] = "send";
+					all_fields[ctr][1] = "receive";
+					break;
+				case 1: //action taken on message
+					all_fields[ctr][0] = "drop";
+					all_fields[ctr][1] = "delay";
+					all_fields[ctr][2] = "duplicate";			
+					break;
+				case 2: //combine this with case 3
+					names = mp.getField("name");
+				case 3:
+					for(int i=0; i<names.length; i++)
+					{
+						//System.out.println("Assigned "+src_names[i]+" to all_fields["+ctr+"]["+i+"]");
+						all_fields[ctr][i] = names[i]; 
+					}
+					break;
+				/*case 3:
+					for(int i=0; i<names.length; i++)
+					{
+						//System.out.println("Assigned "+src_names[i]+" to all_fields["+ctr+"]["+i+"]");
+						all_fields[ctr][i] = names[i]; 
+					}
+					break; 
+				*/
+				case 4: //what kind of message
+					all_fields[ctr][0] = "ack";
+					all_fields[ctr][1] = "lookup";
+					break;
+				case 5: //the ID mentioned in the config file
+					String[] ids = mp.getField("id");
+					
+					for(int i=0; i<ids.length; i++)
+					{
+						//System.out.println("Assigned "+src_names[i]+" to all_fields["+ctr+"]["+i+"]");
+						all_fields[ctr][i] = ids[i];
+						//REREAD config file example with ID to understand how to handle this.
+					}
+					break; //need to get all IDs already used to make sure we don't reuse if in same name
+				case 6: //Nth specifications
+					String[] nth = mp.getField("nth"); //do we need source names here or all names?
+					
+					for(int i=0; i<nth.length; i++)
+					{
+						//System.out.println("Assigned "+src_names[i]+" to all_fields["+ctr+"]["+i+"]");
+						all_fields[ctr][i] = nth[i]; 
+					}
+					break; //this needs to be in the same order as the source/dest names...how to do this?
+				case 7: //EveryNth specifications
+					String[] every = mp.getField("everynth"); //do we need source names here or all names?
+					
+					for(int i=0; i<every.length; i++)
+					{
+						//System.out.println("Assigned "+src_names[i]+" to all_fields["+ctr+"]["+i+"]");
+						all_fields[ctr][i] = every[i]; 
+					}
+					break; //this needs to be in the same order as the source/dest names...how to do this?
+					//just grab them and keep them in order, then it should all match up
+			}
+		}
+		return all_fields;
+	}
+	
+	
+	public boolean validateUserRequests(String user_input, MessagePasser mp)
+	{
+		/* Determines whether the user has followed the usage
+		 * guidelines. A send or receive rule can have up to
+		 * nine elements:
+		 * <receive | send> <action> <src> <dest> <kind> <ID> <Nth> <EveryNth> <data>
+		 * 
+		 * Return: false (no) or true (yes)
+		 *  */
+		
+		String[] user_options = new String[10];
+		
+		int ctr = 0;
+		int max_fields = 8;
+		int max_options = 10;
+		ArrayList options = new ArrayList();
+		String[][] all_fields = new String[max_fields][max_options]; /*2D array; outside is all possible fields,
+																	   inner is all possible options*/
+		
+		all_fields = populateOptions(mp, user_input, max_fields, max_options);	
+		user_options = user_input.trim().split("\\s");
+
+		for (ctr = 0; ctr<max_fields; ctr++) //verify user entered valid options 
+		{
+			for(int j=0; j<max_options; j++)
+			{
+				//System.out.println("Currently checking "+all_fields[ctr][j]+" against "+user_options[ctr].toString());
+				if(!(all_fields[ctr][j].equals("")) && j != max_options-1)
+				{
+					if((all_fields[ctr][j].equalsIgnoreCase((user_options[ctr].toString()))))
+						break; //found a match for that field
+				}
+				else //went through all options available for given field
+					return false;
+			}
+		}
+		return true;
+	}
+
+	public int validOption(String user_input)
+	{
+		int user_action = -1;
+		
+		if(user_input.length() > 1)
+		{
+			System.out.println("Unrecognized option "+user_input+". Choices are 1, 2, and 3.");
+			return -1;
+		}
+		
+		try {
+			user_action = Integer.parseInt(user_input);
+		} catch(NumberFormatException e) {
+			System.out.println(user_input+" is not an integer.");
+			return -1;
+		}
+		return user_action;
+	}	
+	
+	public boolean isNewestConfig(int local_modification_time, int global_modification_time, SFTPConnection svr_conn)
+	{
+		// get the YAML file at first
+		if(!svr_conn.isConnected())
+			svr_conn.connect(CONSTANTS.HOST, CONSTANTS.USER);
+    	global_modification_time = svr_conn.getLastModificationTime(CONSTANTS.CONFIGFILE); // record the time-stamp of YAML file
+    	if(global_modification_time != local_modification_time)
+    	{
+    		svr_conn.downloadFile(CONSTANTS.CONFIGFILE, CONSTANTS.LOCALPATH); // download the YAML file
+    		return true;
+    	}
+    	return false;
 	}
 }
