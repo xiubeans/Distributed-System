@@ -36,6 +36,7 @@ public class MessagePasser {
 		
 	}
 	
+	
 	void send(Message message) {
 		/*Should keep track of IDs and make sure to send next unused ID (should be
 		 *monotonically increasing). Need to write the code for set_id in the 
@@ -49,6 +50,7 @@ public class MessagePasser {
 		/* Upon sending of a message, check the size and then free that amount from the buffer. */
 	}
 	
+	
 	Message receive( ) {
 		/*check if anything in the receive buffer to be processed according to the rules.
 		 * If above check is passed (ie. a message should be delivered) we should get the 
@@ -61,6 +63,7 @@ public class MessagePasser {
 		return null;
 	}  // may block
 	
+	
 	void initSockets() {
 		/*Create (from the ArrayList class in Java) sockets for the nodes.
 		 *Using TCP sockets, so keep the connection alive for more than just the 
@@ -69,6 +72,7 @@ public class MessagePasser {
 		
 		
 	}
+	
 	
 	void parseConfig(String fname) {
 		/*Parses the configuration file and stores all of the sections into
@@ -94,7 +98,7 @@ public class MessagePasser {
 		} catch (FileNotFoundException e) { 
 			//error out if not found
 			System.out.println("File "+fname+" does not exist.\n");
-			System.exit(-1); //probably want to just return -1
+			System.exit(-1); 
 		}
 		
 		Object data = yaml.load(yamlInput);
@@ -128,7 +132,6 @@ public class MessagePasser {
 		ArrayList rr_nth = new ArrayList();
 		ArrayList rr_every = new ArrayList();
 		
-		
 		while(i.hasNext())
 		{
 			Map.Entry me = (Map.Entry)i.next();
@@ -139,38 +142,36 @@ public class MessagePasser {
 			inner.add(me.getValue().toString());
 			whole = inner.toString();
 			whole = whole.replaceAll("[\\[\\]\\{]", "");
-			//System.out.println("Whole is: "+whole);
 			elements = whole.split("\\},?");
-			//System.out.println("element is: "+elements[0]);
 			
-			for(j=0; j<elements.length; j++) //fix this stuff, make it scalable???, etc...
+			for(j=0; j<elements.length; j++)
 			{
+				int key = 0;
+				int val = 1;
+				
 				pairs = elements[j].split(", ");
 				
 				if(file_part.equals("sendrules"))
-				{
-					//System.out.println("inner: "+elements[j]);
-					//System.out.println(pairs.length+" pairs are: "+pairs[0]+" "+pairs[1]+" "+pairs[2]);
+				{					
 					for(int k=0; k<pairs.length; k++)
 					{
 						choices = pairs[k].split("=");
-						choices[0] = choices[0].trim().toLowerCase();
+						choices[key] = choices[key].trim().toLowerCase();
 						
-						//System.out.println("Pairs: "+pairs[0].toLowerCase()+" "+pairs[1]);
-						if(choices[0].equals("action"))
-							sr_act.add(choices[1]);
-						else if(choices[0].equals("src"))
-							sr_src.add(choices[1]);
-						else if(choices[0].equals("dst"))
-							sr_dst.add(choices[1]);
-						else if(choices[0].equals("kind"))
-							sr_kind.add(choices[1]);
-						else if(choices[0].equals("id"))
-							sr_id.add(choices[1]);
-						else if(choices[0].equals("nth"))
-							sr_nth.add(choices[1]);
-						else if(choices[0].equals("everynth"))
-							sr_every.add(choices[1]);
+						if(choices[key].equals("action"))
+							sr_act.add(choices[val]);
+						else if(choices[key].equals("src"))
+							sr_src.add(choices[val]);
+						else if(choices[key].equals("dest"))
+							sr_dst.add(choices[val]);
+						else if(choices[key].equals("kind"))
+							sr_kind.add(choices[val]);
+						else if(choices[key].equals("id"))
+							sr_id.add(choices[val]);
+						else if(choices[key].equals("nth"))
+							sr_nth.add(choices[val]);
+						else if(choices[key].equals("everynth"))
+							sr_every.add(choices[val]);
 						
 						if(k == pairs.length-1) //make each of the lists the same length by adding wildcards to all empty fields
 						{
@@ -187,36 +188,30 @@ public class MessagePasser {
 								sr_nth.add("*");
 							if(sr_every.size() < l_len)
 								sr_every.add("*");
-							//System.out.println("ID list length is "+sr_id.size()+" instead of "+sr_act.size());
 						}
 					}
 				}
 				else if(file_part.equals("receiverules"))
 				{
-					//System.out.println("inner: "+elements[j]);
-					//System.out.println(pairs.length+" pairs are: "+pairs[0]+" "+pairs[1]+" "+pairs[2]);
 					for(int k=0; k<pairs.length; k++)
 					{
 						choices = pairs[k].split("=");
-						choices[0] = choices[0].trim().toLowerCase();
+						choices[key] = choices[key].trim().toLowerCase();
 						
-						//System.out.println("Pairs: "+pairs[0].toLowerCase()+" "+pairs[1]);
-						if(choices[0].equals("action"))
-							rr_act.add(choices[1]);
-						else if(choices[0].equals("src"))
-							rr_src.add(choices[1]);
-						else if(choices[0].equals("dst"))
-							rr_dst.add(choices[1]);
-						else if(choices[0].equals("kind"))
-							rr_kind.add(choices[1]);
-						else if(choices[0].equals("id"))
-							rr_id.add(choices[1]);
-						else if(choices[0].equals("nth"))
-							rr_nth.add(choices[1]);
-						else if(choices[0].equals("everynth"))
-							rr_every.add(choices[1]);
-						//need to figure out how to make each of the lists the same length by adding wildcards to all empty fields in the right place
-						//check pairs.length and once (pairs.length-1) is reached, fill in all empty fields.
+						if(choices[key].equals("action"))
+							rr_act.add(choices[val]);
+						else if(choices[key].equals("src"))
+							rr_src.add(choices[val]);
+						else if(choices[key].equals("dest"))
+							rr_dst.add(choices[val]);
+						else if(choices[key].equals("kind"))
+							rr_kind.add(choices[val]);
+						else if(choices[key].equals("id"))
+							rr_id.add(choices[val]);
+						else if(choices[key].equals("nth"))
+							rr_nth.add(choices[val]);
+						else if(choices[key].equals("everynth"))
+							rr_every.add(choices[val]);
 						
 						if(k == pairs.length-1)  //make each of the lists the same length by adding wildcards to all empty fields
 						{
@@ -233,30 +228,25 @@ public class MessagePasser {
 								rr_nth.add("*");
 							if(rr_every.size() < l_len)
 								rr_every.add("*");
-							//System.out.println("ID list length is "+sr_id.size()+" instead of "+sr_act.size());
 						}
 					}
 				}
-				else if(file_part.equals("configuration")) //handle config third because it happens least often?
+				else if(file_part.equals("configuration")) //handle config third because it happens only once
 				{
 					//System.out.println("inner: "+elements[j]);
 					//System.out.println(pairs.length+" pairs are: "+pairs[0]+" "+pairs[1]+" "+pairs[2]);
 					for(int k=0; k<pairs.length; k++)
 					{
 						choices = pairs[k].split("=");
-						choices[0] = choices[0].trim();
+						choices[key] = choices[key].trim();
 						
 						//System.out.println("Pairs: "+pairs[0].toLowerCase()+" "+pairs[1]);
-						if(choices[0].toLowerCase().equals("name"))
-							names.add(choices[1]);
-						else if(choices[0].toLowerCase().equals("ip"))
-							ip_addys.add(choices[1]);
-						else if(choices[0].toLowerCase().equals("port"))
-							ports.add(choices[1]);
-						//System.out.println("First of pair is "+pairs[0]);
-						/*if(configuration.containsKey(pairs[0]))
-							configuration.put(pairs[0], configuration.get(pairs[0])+" "+pairs[1]); //append to the value of that key
-						configuration.put(pairs[0], pairs[1]);*/
+						if(choices[key].toLowerCase().equals("name"))
+							names.add(choices[val]);
+						else if(choices[key].toLowerCase().equals("ip"))
+							ip_addys.add(choices[val]);
+						else if(choices[key].toLowerCase().equals("port"))
+							ports.add(choices[val]);
 					}
 				}
 				else
@@ -268,7 +258,7 @@ public class MessagePasser {
 		}	
 		send_rules.put("action", sr_act);
 		send_rules.put("src", sr_src);
-		send_rules.put("dst", sr_dst);
+		send_rules.put("dest", sr_dst);
 		send_rules.put("kind", sr_kind);
 		send_rules.put("id", sr_id);
 		send_rules.put("nth", sr_nth);
@@ -276,7 +266,7 @@ public class MessagePasser {
 		
 		recv_rules.put("action", rr_act);
 		recv_rules.put("src", rr_src);
-		recv_rules.put("dst", rr_dst);
+		recv_rules.put("dest", rr_dst);
 		recv_rules.put("kind", rr_kind);
 		recv_rules.put("id", rr_id);
 		recv_rules.put("nth", rr_nth);
@@ -286,7 +276,7 @@ public class MessagePasser {
 		configuration.put("ip", ip_addys);
 		configuration.put("port", ports);
 		
-		//Just temporary print statements for reference
+		//Just temporary print statements for reference --REMOVE BEFORE SUBMISSION
 		System.out.println("Config Dict contains "+ configuration.keySet()+" and "+ configuration.values());
 		System.out.println("Send Dict contains "+ send_rules.keySet()+" and "+ send_rules.values());
 		System.out.println("Recv Dict contains "+ recv_rules.keySet()+" and "+ recv_rules.values());
@@ -298,8 +288,8 @@ public class MessagePasser {
 		}
 		
 		//TODO: Check to see if localName was found in the NAMES section of the config file; if not, return -1 ?
-		
 	}
+	
 	
 	String[] getField(String field){
 		/* Accessor to return any field desired by the user
@@ -321,6 +311,7 @@ public class MessagePasser {
 		return values;
 	}
 	
+	
 	public String[][] populateOptions(MessagePasser mp, String user_input, int max_fields, int max_options)
 	{
 		/*Stores all of the possible options for each field of a message from
@@ -338,7 +329,6 @@ public class MessagePasser {
 			for(int j=0; j<max_options; j++)
 				all_fields[ctr][j] = "";
 		}
-				
 		
 		System.out.println("User input: "+user_input);
 		for (ctr = 0; ctr<max_fields; ctr++) 
@@ -352,58 +342,39 @@ public class MessagePasser {
 				case 1: //action taken on message
 					all_fields[ctr][0] = "drop";
 					all_fields[ctr][1] = "delay";
-					all_fields[ctr][2] = "duplicate";			
+					all_fields[ctr][2] = "duplicate";
 					break;
-				case 2: //combine this with case 3
+				case 2: //combined with case 3 because they are very similar
 					names = mp.getField("name");
 				case 3:
 					for(int i=0; i<names.length; i++)
-					{
-						//System.out.println("Assigned "+src_names[i]+" to all_fields["+ctr+"]["+i+"]");
 						all_fields[ctr][i] = names[i]; 
-					}
+					all_fields[ctr][names.length] = "*";
 					break;
-				/*case 3:
-					for(int i=0; i<names.length; i++)
-					{
-						//System.out.println("Assigned "+src_names[i]+" to all_fields["+ctr+"]["+i+"]");
-						all_fields[ctr][i] = names[i]; 
-					}
-					break; 
-				*/
 				case 4: //what kind of message
-					all_fields[ctr][0] = "ack";
-					all_fields[ctr][1] = "lookup";
+					String[] kind = mp.getField("kind");
+					for(int i=0; i<kind.length; i++)
+						all_fields[ctr][i] = kind[i];
+					all_fields[ctr][kind.length] = "*"; //since it's possible to have a message with only an action specified
 					break;
 				case 5: //the ID mentioned in the config file
 					String[] ids = mp.getField("id");
-					
 					for(int i=0; i<ids.length; i++)
-					{
-						//System.out.println("Assigned "+src_names[i]+" to all_fields["+ctr+"]["+i+"]");
 						all_fields[ctr][i] = ids[i];
-						//REREAD config file example with ID to understand how to handle this.
-					}
-					break; //need to get all IDs already used to make sure we don't reuse if in same name
+					all_fields[ctr][ids.length] = "*";
+					break;
 				case 6: //Nth specifications
-					String[] nth = mp.getField("nth"); //do we need source names here or all names?
-					
+					String[] nth = mp.getField("nth");
 					for(int i=0; i<nth.length; i++)
-					{
-						//System.out.println("Assigned "+src_names[i]+" to all_fields["+ctr+"]["+i+"]");
-						all_fields[ctr][i] = nth[i]; 
-					}
-					break; //this needs to be in the same order as the source/dest names...how to do this?
+						all_fields[ctr][i] = nth[i];
+					all_fields[ctr][nth.length] = "*";
+					break;
 				case 7: //EveryNth specifications
-					String[] every = mp.getField("everynth"); //do we need source names here or all names?
-					
+					String[] every = mp.getField("everynth");
 					for(int i=0; i<every.length; i++)
-					{
-						//System.out.println("Assigned "+src_names[i]+" to all_fields["+ctr+"]["+i+"]");
-						all_fields[ctr][i] = every[i]; 
-					}
-					break; //this needs to be in the same order as the source/dest names...how to do this?
-					//just grab them and keep them in order, then it should all match up
+						all_fields[ctr][i] = every[i];
+					all_fields[ctr][every.length] = "*";
+					break;
 			}
 		}
 		return all_fields;
@@ -420,18 +391,23 @@ public class MessagePasser {
 		 * Return: false (no) or true (yes)
 		 *  */
 		
-		String[] user_options = new String[10];
-		
 		int ctr = 0;
 		int max_fields = 8;
 		int max_options = 10;
-		ArrayList options = new ArrayList();
+		int name1 = 2;
+		String[] user_options = new String[max_options];
 		String[][] all_fields = new String[max_fields][max_options]; /*2D array; outside is all possible fields,
 																	   inner is all possible options*/
-		
-		all_fields = populateOptions(mp, user_input, max_fields, max_options);	
 		user_options = user_input.trim().split("\\s");
 
+		if(user_options[name1].equalsIgnoreCase(user_options[name1+1]) && !user_options[name1].equals("*")) //same src and dest
+		{
+			System.out.println("Error - same src and dest "+user_options[name1]+". No loopback functionality offered.");
+			return false;
+		}
+		
+		all_fields = populateOptions(mp, user_input, max_fields, max_options);	
+		
 		for (ctr = 0; ctr<max_fields; ctr++) //verify user entered valid options 
 		{
 			for(int j=0; j<max_options; j++)
@@ -449,6 +425,7 @@ public class MessagePasser {
 		return true;
 	}
 
+	
 	public int validOption(String user_input)
 	{
 		int user_action = -1;
@@ -468,17 +445,26 @@ public class MessagePasser {
 		return user_action;
 	}	
 	
+	
 	public boolean isNewestConfig(int local_modification_time, int global_modification_time, SFTPConnection svr_conn)
 	{
 		// get the YAML file at first
 		if(!svr_conn.isConnected())
 			svr_conn.connect(CONSTANTS.HOST, CONSTANTS.USER);
+		clearCounters(); //GET RID OF THIS specific instance of the function...just so we don't forget to do this (such as for below)
     	global_modification_time = svr_conn.getLastModificationTime(CONSTANTS.CONFIGFILE); // record the time-stamp of YAML file
     	if(global_modification_time != local_modification_time)
     	{
     		svr_conn.downloadFile(CONSTANTS.CONFIGFILE, CONSTANTS.LOCALPATH); // download the YAML file
+    		clearCounters(); //get rid of the Nth and EveryNth counters upon new config file, as per lab specs.
     		return true;
     	}
     	return false;
+	}
+	
+	
+	public void clearCounters()
+	{
+		System.out.println("MUST WRITE THE FUNCTION TO CLEAR NTH AND EVERYNTH COUNTERS!!!");
 	}
 }

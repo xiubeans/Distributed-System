@@ -20,9 +20,10 @@ public class TestSuite {
 		int user_action = 0;
 		int local_modification_time = -1;	// record the latest time we download the YAML file
 		int global_modification_time = -1;  // record the latest time on servers
+		int expectedNumArgs = 2;
 		
 		//check cmdLine input
-		if (args.length == 2)
+		if (args.length == expectedNumArgs)
 		{
 			config_file = args[0];
 			local_name = args[1];
@@ -47,7 +48,7 @@ public class TestSuite {
 				 */
 				
 				//offer the user three choices, then from there give usage for the specific option chosen and wait for input.
-				System.out.println("Choose your action (1 for send, 2 for receive, 3 for quit)");
+				System.out.println("Choose your action (1 for send, 2 for receive, 3 for quit) -- May need to remove receive stuff and change stuff...?");
 				
 				user_input = cmd_line_input.nextLine(); //get the input and check it
 				user_action = mp.validOption(user_input);
@@ -80,7 +81,7 @@ public class TestSuite {
 						mp.send(newMsg);
 						break;
 					case 2: //receive request
-						System.out.println("Usage: receive <action> <src> <dest> <kind> <id> <Nth> <EveryNth> (* is wildcard)");
+						System.out.println("Usage: receive <action> <src> <dest> <kind> <id> <Nth> <EveryNth> <data> (* is wildcard)");
 						user_input = cmd_line_input.nextLine(); //get the input and check it (pass back out to user if garbage input)
 						
 						if(!mp.isNewestConfig(local_modification_time, global_modification_time, svr_conn)) //MAKE THIS transparent to user!
@@ -106,7 +107,7 @@ public class TestSuite {
 		}
 		else
 		{
-			System.out.println("Error: incorrect number of args: "+args.length+" (should be 2)");
+			System.out.println("Error: incorrect number of args: "+args.length+" (should be "+expectedNumArgs+")");
 		}
 	}
 }
