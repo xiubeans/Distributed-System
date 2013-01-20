@@ -22,7 +22,7 @@ of the file and checking before each send and receive method...*/
 
 public class MessagePasser {
 	int max_vals = 8;
-	String[][] conf = new String[max_vals][10]; //temporary holders
+	String[][] conf = new String[max_vals][10]; //temporary holders -- FIX THESE!
 	String[][] send_rules = new String[max_vals][10]; //temporary holders
 	String[][] recv_rules = new String[max_vals][10]; //temporary holders
 	
@@ -38,51 +38,143 @@ public class MessagePasser {
 	}
 	
 	
-	/*public String[] matchRules(String type, Message message)
+	public void buildRule(HashMap rule, int ctr, String type)
 	{
-		// Returns the first rule matched. 
+		/* Builds the rule in an easy to use format for user
+		 * examination. */
 		
-		String[] rule = new String[10];
-		System.out.println("In matchrules");
-		//iterate through the message's fields and see which rule is matched for the right HashMap (send or recv)
+		int header = 0;
+		
 		if(type.equals("send"))
 		{
-			String[] keys = new String[send_rules.size()];
-			send_rules.keySet().toArray(keys);
-			for(int i=0; i<keys.length; i++)
+			for(int i=0; i<send_rules.length; i++)
 			{
-				String[] vals = new String[send_rules.size()];
-				vals = send_rules.get(keys[i]).toString().replaceAll("[\\[\\]]","").split(", ");
-				//System.out.println("Outside: "+keys[i]);
-				for(int j=0; j<vals.length; j++)
-				{
-					//if(message.getSrc().equalsIgnoreCase(vals[j])) //need to write getSrc and other accessors...
-						//we matched something, so continue trying to match that rule first...
-					//System.out.println("Inside: "+vals[j]);
+				if(send_rules[i][header].equals("*"))
 					continue;
+				rule.put(send_rules[i][header], send_rules[i][ctr]);
+			}
+		}
+		else if(type.equals("receive"))
+		{
+			for(int i=0; i<recv_rules.length; i++)
+			{
+				if(recv_rules[i][header].equals("*"))
+					continue;
+				rule.put(recv_rules[i][header], recv_rules[i][ctr]);
+			}
+		}
+	}
+	
+	
+	public HashMap matchRules(String type, Message message)
+	{
+		/*Returns the first rule matched so appropriate actions
+		 *can be taken. */
+		
+		int header = 0;
+		String field_name = "";
+		HashMap rule = new HashMap();
+		
+		if(type.equals("send"))
+		{
+			for(int i=0; i<send_rules.length; i++)
+			{
+				for(int j=1; j<send_rules[i].length; j++)
+				{
+					buildRule(rule, j, type); //builds the current rule
+					//System.out.println(rule.keySet()+" "+rule.values());
+					//System.out.println(send_rules[i][header]);
+					field_name = send_rules[i][header].toLowerCase();
+					if(field_name.equals("src"))
+					{
+						//if we have the right field, let's check if the rule value (or *) matches the user input src
+						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
+							continue; //it didn't match, so go on to the next rule
+					}
+					if(field_name.equals("dest")) //continual IFs because we want to make sure all fields listed in rule match
+					{
+						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
+							continue;
+					}	
+					if(field_name.equals("kind"))
+					{
+						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
+							continue;
+					}
+					if(field_name.equals("id"))
+					{
+						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
+							continue;
+					}
+					if(field_name.equals("nth"))
+					{
+						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
+							continue;
+					}
+					if(field_name.equals("everynth"))
+					{
+						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
+							continue;
+					}
+					else
+					{
+						System.out.println("Don't forget to add a check for "+field_name+"!");
+						continue;	
+					}
 				}
 			}
 		}
 		else if(type.equals("receive"))
 		{
-			String[] keys = new String[recv_rules.size()];
-			recv_rules.keySet().toArray(keys);
-			for(int i=0; i<keys.length; i++)
+			for(int i=0; i<recv_rules.length; i++)
 			{
-				String[] vals = new String[recv_rules.size()];
-				vals = recv_rules.get(keys[i]).toString().replaceAll("[\\[\\]]","").split(", ");
-				//System.out.println("Outside: "+keys[i]);
-				for(int j=0; j<vals.length; j++)
+				for(int j=1; j<recv_rules[i].length; j++)
 				{
-					//if(message.getSrc().equalsIgnoreCase(vals[j])) //need to write getSrc and other accessors...
-						//we matched something, so continue trying to match that rule first...
-					//System.out.println("Inside: "+vals[j]);
-					continue;
+					buildRule(rule, j, type); //builds the current rule
+					//System.out.println(rule.keySet()+" "+rule.values());
+					//System.out.println(send_rules[i][header]);
+					field_name = recv_rules[i][header].toLowerCase();
+					if(field_name.equals("src"))
+					{
+						//if we have the right field, let's check if the rule value (or *) matches the user input src
+						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
+							continue; //it didn't match, so go on to the next rule
+					}
+					if(field_name.equals("dest")) //continual IFs because we want to make sure all fields listed in rule match
+					{
+						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
+							continue;
+					}	
+					if(field_name.equals("kind"))
+					{
+						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
+							continue;
+					}
+					if(field_name.equals("id"))
+					{
+						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
+							continue;
+					}
+					if(field_name.equals("nth"))
+					{
+						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
+							continue;
+					}
+					if(field_name.equals("everynth"))
+					{
+						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
+							continue;
+					}
+					else
+					{
+						System.out.println("Don't forget to add a check for "+field_name+"!");
+						continue;	
+					}
 				}
 			}
 		}
-		return rule; //return the actual string representation of it to use for handling
-	}*/
+		return rule; //return the representation of the rule matched to use for handling
+	}
 	
 	
 	void send(Message message) {
@@ -92,10 +184,9 @@ public class MessagePasser {
 		 *rules to handle the message appropriately. */
 		
 		int id = 0; //placeholder for now
-		
-		//String[] matched = matchRules("send", message); //needs to be written correctly
-		
 		message.set_id(id);
+		HashMap matched = matchRules("send", message); //not sure what is returned if it doesn't match...
+		//pay attention to the ACTION of the returned rule and stuff here
 		
 		/* Upon sending of a message, check the size and then free that amount from the buffer. */
 	}
@@ -110,7 +201,9 @@ public class MessagePasser {
 		 
 		/* Upon receiving a message, check the size and then remove that amount from the buffer's free space. */
 		
-		//String[] matched = matchRules("receive", Message message); //needs to be written correctly
+		//String[] matched = matchRules("receive", message); //needs to be written correctly
+		//pay attention to the ACTION of the returned rule and stuff here
+		
 		return null;
 	}  // may block
 	
@@ -417,12 +510,12 @@ public class MessagePasser {
 		
 		all_fields = populateOptions(mp, user_input, max_fields, max_options);	
 		
-		System.out.println("All fields:");
+		/*System.out.println("All fields:");
 		for(ctr=0; ctr<max_fields; ctr++)
 		{
 			for(int a=0; a<max_options; a++)
 				System.out.println(all_fields[ctr][a]);
-		}
+		}*/
 		
 		for (ctr = 0; ctr<max_fields; ctr++) //verify user entered valid options 
 		{

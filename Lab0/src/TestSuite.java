@@ -73,10 +73,10 @@ public class TestSuite {
 						}
 						
 						String[] fields = user_input.trim().split("\\s");
-						src = local_name; //fields[2];
+						src = local_name;
 						dest = fields[1];
 						kind = fields[2];
-						data = null; //fields[8];
+						data = null;
 						Message newMsg = new Message(src, dest, kind, data);
 						newMsg = newMsg.build_message(newMsg);
 						mp.send(newMsg);
@@ -108,8 +108,6 @@ public class TestSuite {
 			}
 		}
 		else
-		{
 			System.out.println("Error: incorrect number of args: "+args.length+" (should be "+expectedNumArgs+")");
-		}
 	}
 }

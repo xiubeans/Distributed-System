@@ -3,17 +3,24 @@ import java.io.Serializable;
 
 public class Message implements Serializable {
 	
-	public Message(String src, String dest, String kind, Object data) {
+	public Message(String asrc, String adest, String akind, Object adata) {
 		/* Initialize all fields of the Message object. */
 		//Not really sure what to do here...
 		//HashMap header = new HashMap();
 		
-		src = src;
-		dest = dest;
-		kind = kind;
-		data = data;//null;
+		String src = asrc;
+		String dest = adest;
+		String kind = akind;
+		Object data = adata;
 	}
-
+	
+	public String getVal(String field, Message message)
+	{
+		String val = "";
+		
+		return val;
+	}
+	
 	public void set_id(int id) 
 	{ 
 		// used by MessagePasser.send, not your app
