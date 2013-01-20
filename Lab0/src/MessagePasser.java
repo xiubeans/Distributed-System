@@ -877,13 +877,17 @@ class ServerThread implements Runnable {
 		
 		// Get the configuration of local server
 		int i;
-		for(i = 0; i < this.mmp.max_vals; i++) 
-			if(this.mmp.conf[i][0].equals(mmp.local_name))
+		for(i = 0; i < 10; i++) {
+			// TEST !!!
+			// System.out.println("we have: " + this.mmp.conf[0][i]);
+			if(this.mmp.conf[0][i].equals(mmp.local_name))
 				break;
+		}
 		
-		// if no such name, terminate the appication
+		// if no such name, terminate the application
 		if(i == this.mmp.max_vals) {
-			System.out.println("No such name");
+			// TEST !!!
+			System.out.println("No such name: " + mmp.local_name);
 			System.exit(0);
 		} 
 		// local name found, setup the local server
