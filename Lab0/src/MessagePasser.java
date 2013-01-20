@@ -1,4 +1,3 @@
-
 import java.io.*;
 import java.security.AccessControlException;
 import java.security.AccessController;
@@ -251,7 +250,7 @@ public class MessagePasser {
 	public void send(Message message) {
 		
 		// get the output stream
-		ObjectOutputStream oos = this.connections.get(message.dest).getObjectOutputStream();
+		ObjectOutputStream oos;
 		// check against the send rules, and follow the first rule matched
 		HashMap rule = this.matchRules("send", message);
 
@@ -288,8 +287,9 @@ public class MessagePasser {
 				conn.setObjectOutputStream(new ObjectOutputStream(s.getOutputStream()));
 				conn.setObjectInputStream(new ObjectInputStream(s.getInputStream()));
 				this.connections.put(remote_name, conn);
-				
 			}
+			oos = this.connections.get(message.dest).getObjectOutputStream();
+
 
 			if(rule != null) {
 				// 3 actions: duplicate, drop, and delay
