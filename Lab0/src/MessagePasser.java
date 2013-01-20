@@ -32,7 +32,7 @@ public class MessagePasser {
 	// IMPORTANT !!!
 	// new fields from Jasper: 
 	private static MessagePasser uniqInstance = null;
-	ReentrantLock globalLock = new ReentrantLock();	// may be used to synchronize 
+	static ReentrantLock globalLock = new ReentrantLock();	// may be used to synchronize 
 	String config_file;
 	String local_name;
 	AtomicInteger message_id = new AtomicInteger(1);	// atomic message id counter
@@ -66,20 +66,23 @@ public class MessagePasser {
 		this.rcv_buf = new MessageBuffer(1000);
 		this.rcv_delayed_buf = new MessageBuffer(1000);
 		
-		// Init the local server which waits for incoming connection
-		Runnable runnableServer = new ServerThread();
-		Thread threadServer = new Thread(runnableServer);
-		threadServer.start();
-		
 	}
 	
 	/*
 	 * The way how other can get the singleton instance of this class
 	 */
 	public static synchronized MessagePasser getInstance() {
-		if (uniqInstance == null)
-			new MessagePasser();
-			
+		if (uniqInstance == null) {
+			uniqInstance = new MessagePasser();
+			// System.out.println("Create the singleton instance !");
+		}
+		
+//		System.out.println("Create the singleton instance !");
+//		try {
+//			Thread.sleep(1000);
+//		} catch(Exception e) {
+//			e.printStackTrace();
+//		}
 		return uniqInstance;
 	}
 	
@@ -89,6 +92,13 @@ public class MessagePasser {
 	public void setConfigAndName(String configuration_filename, String local_name) {
 		this.config_file = configuration_filename;
 		this.local_name = local_name;		
+	}
+	
+	public void runServer() {
+		// Init the local server which waits for incoming connection
+		Runnable runnableServer = new ServerThread();
+		Thread threadServer = new Thread(runnableServer);
+		threadServer.start();
 	}
 	
 	public void buildRule(HashMap rule, int ctr, String type)
