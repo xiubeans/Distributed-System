@@ -3,17 +3,45 @@ import java.io.Serializable;
 
 public class Message implements Serializable {
 	
-	public Message(String asrc, String adest, String akind, Object adata) {
+	int id;
+	String src;
+	String dest;
+	String kind;
+	Object payload;
+	
+	
+	public Message(String src, String dest, String kind, Object payload) {
 		/* Initialize all fields of the Message object. */
-		//Not really sure what to do here...
-		//HashMap header = new HashMap();
 		
-		String src = asrc;
-		String dest = adest;
-		String kind = akind;
-		Object data = adata;
+		this.src = src;
+		this.dest = dest;
+		this.kind = kind;
+		this.payload = payload;
+		
+	}
+
+	public void set_id(int id) 
+	{ 
+		// used by MessagePasser.send, not your app
+		//set original values???
+		this.id = id;
+		
 	}
 	
+	public int get_id() {
+		return this.id;
+	}
+	
+	public Message build_message(Message message) {
+	/* This will get the message contents from the application program, as
+	 * per lab specs. */
+		
+		return message;
+	}
+	
+	/*
+	 * Am not so sure !!!!!!!!!
+	 */
 	public String getVal(String field, Message message)
 	{
 		String val = "";
@@ -21,16 +49,10 @@ public class Message implements Serializable {
 		return val;
 	}
 	
-	public void set_id(int id) 
-	{ 
-		// used by MessagePasser.send, not your app
-		
+	public Object getPayload() {
+		return this.payload;
 	}
-	public Message build_message(Message message) {
-	/* This will get the message contents from the application program, as
-	 * per lab specs. */
-		
-		return message;
-	}
+	
 	// other accessors, toString, etc as needed
+	
 }

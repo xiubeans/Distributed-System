@@ -5,7 +5,8 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.net.*;
-import org.yaml.snakeyaml.Yaml;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
 
 /* The next three comments may all need to be handled in the MessagePasser class instead of here. */
 /*Check if a file has been modified since last time by storing an MD5 hash
@@ -26,17 +27,67 @@ public class MessagePasser {
 	String[][] send_rules = new String[max_vals][10]; //temporary holders
 	String[][] recv_rules = new String[max_vals][10]; //temporary holders
 	
-	public MessagePasser(String configuration_filename, String local_name) {
-		/* Create send and recv buffers */		
-		String[] send_buf =  null; //where we'll store the send buffered messages per connection.
-		String[] recv_buf = null;
+	// IMPORTANT !!!
+	// new fields from Jasper: 
+	private static MessagePasser uniqInstance = null;
+	ReentrantLock globalLock = new ReentrantLock();	// may be used to synchronize 
+	String config_file;
+	String local_name;
+	AtomicInteger message_id = new AtomicInteger(1);	// atomic message id counter
+	Hashtable<String, ConnState> connections = new Hashtable<String, ConnState>();	// maintain all connection state information
+	MessageBuffer send_buf;
+	MessageBuffer rcv_buf;
+	MessageBuffer rcv_delayed_buf;
+	
+	/*
+	 * Constructor: private
+	 * IMPORTANT: make it singleton
+	 */
+	private MessagePasser() {
+		// Stupid part
+		conf[0] = new String[10];
+		conf[0][0] = "Jasper";
+		conf[0][1] = "127.0.0.1";
+		conf[0][2] = "8001";
+		conf[1] = new String[10];
+		conf[1][0] = "David";
+		conf[1][1] = "127.0.0.1";
+		conf[1][2] = "8002";
+		conf[2] = new String[10];
+		conf[2][0] = "Bill";
+		conf[2][1] = "127.0.0.1";
+		conf[2][2] = "8003";
 		
-		/* I think the creation of sockets should be a separate call either made by the user program or
-		 * by us in a different location than the constructor. Feel free to argue otherwise. 
-		 * */
+		// IMPORTANT !!!
+		// Smart part
+		this.send_buf = new MessageBuffer(1000);
+		this.rcv_buf = new MessageBuffer(1000);
+		this.rcv_delayed_buf = new MessageBuffer(1000);
+		
+		// Init the local server which waits for incoming connection
+		Runnable runnableServer = new ServerThread();
+		Thread threadServer = new Thread(runnableServer);
+		threadServer.start();
 		
 	}
 	
+	/*
+	 * The way how other can get the singleton instance of this class
+	 */
+	public static synchronized MessagePasser getInstance() {
+		if (uniqInstance == null)
+			new MessagePasser();
+			
+		return uniqInstance;
+	}
+	
+	/*
+	 * Remember to call it after we firstly getInstance() in our application
+	 */
+	public void setConfigAndName(String configuration_filename, String local_name) {
+		this.config_file = configuration_filename;
+		this.local_name = local_name;		
+	}
 	
 	public void buildRule(HashMap rule, int ctr, String type)
 	{
@@ -177,35 +228,137 @@ public class MessagePasser {
 	}
 	
 	
-	void send(Message message) {
-		/*Should keep track of IDs and make sure to send next unused ID (should be
-		 *monotonically increasing). Need to write the code for set_id in the 
-		 *Message class. ALSO, this should check the message against the send
-		 *rules to handle the message appropriately. */
+	/*
+	 * Send
+	 */
+	public void send(Message message) {
 		
-		int id = 0; //placeholder for now
-		message.set_id(id);
-		HashMap matched = matchRules("send", message); //not sure what is returned if it doesn't match...
-		//pay attention to the ACTION of the returned rule and stuff here
+		// get the output stream
+		ObjectOutputStream oos = this.connections.get(message.dest).getObjectOutputStream();
+		// check against the send rules, and follow the first rule matched
+		HashMap rule = this.matchRules("send", message);
+
+		// IMPORTANT !!!!!!
+		// Only for testing !!!!
 		
-		/* Upon sending of a message, check the size and then free that amount from the buffer. */
+		// if one rule matched
+		// put code here !
+		try{
+			if(rule != null) {
+				// 3 actions: duplicate, drop, and delay
+				// Get the action at first !!!!
+				String action = "";
+				// action: drop -- simply return
+				if(action.equals("drop"))
+					return;
+				// action: duplicate -- send two identical messages, but with different message id
+				else if(action.equals("duplicate")) {
+					// step 1: send two identical messages
+					message.set_id(this.message_id.getAndIncrement());
+					oos.writeObject(message);
+					message.set_id(this.message_id.getAndIncrement());
+					oos.writeObject(message);
+					
+					// step 2: flush send buffer
+					ArrayList<Message> delayed_messages = this.send_buf.nonblockingTakeAll();
+					while(!delayed_messages.isEmpty()) {
+						Message dl_message = delayed_messages.remove(0);
+						dl_message.set_id(this.message_id.getAndIncrement());
+						oos.writeObject(dl_message);
+					}
+				}
+				// action: delay -- put the message in the send_buf
+				else {
+					this.send_buf.nonblockingOffer(message);
+				}
+			}
+			// no rule matched
+			else {
+				try {
+					
+					// step 1: write this object to the socket
+					message.set_id(this.message_id.getAndIncrement());
+					oos.writeObject(message);
+					
+					// step 2: flush all delayed messages
+					ArrayList<Message> delayed_messages = this.send_buf.nonblockingTakeAll();
+					while(!delayed_messages.isEmpty()) {
+						Message dl_message = delayed_messages.remove(0);
+						dl_message.set_id(this.message_id.getAndIncrement());
+						oos.writeObject(dl_message);
+					}
+					
+				} catch(Exception e) {
+					e.printStackTrace();
+				}
+			}
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
-	
-	Message receive( ) {
-		/*check if anything in the receive buffer to be processed according to the rules.
-		 * If above check is passed (ie. a message should be delivered) we should get the 
-		 * front-most msg in the recv queue. As of 01/15/13, we plan to make the receiver
-		 * block.
-		 */
-		 
-		/* Upon receiving a message, check the size and then remove that amount from the buffer's free space. */
+	/*
+	 * Receive
+	 * Get single message once called; 
+	 * Receiving any non-delayed message will append all delayed message in the rcv_delay_buf to the tail of rcv_buf
+	 * Blocking mode
+	 * If it takes a message with "drop", it will return null
+	 */
+	public Message receive() {
+		Message message = this.rcv_buf.blockingTake();
+		// check against receive rules
+		HashMap rule = this.matchRules("receive", message);
 		
-		//String[] matched = matchRules("receive", message); //needs to be written correctly
-		//pay attention to the ACTION of the returned rule and stuff here
+		try {
+			// single rule matched
+			if(rule != null) {
+				// 3 actions: duplicate, drop, and delay
+				// Get the action at first !!!!
+				String action = "";
+				// 1: drop -- drop the message and return null
+				if(action.equals("drop")) 
+					return null;
+				// 2: duplicate 
+				else if(action.equals("duplicate")) {
+					// step 1: duplicate another message, and append it to the tail of the rcv_buf
+					this.rcv_buf.nonblockingOffer(message);
+					
+					// step 2: move all delayed messages in the rcv_delay_buf to the rcv_buf
+					ArrayList<Message> delayed_messages = this.rcv_delayed_buf.nonblockingTakeAll();
+					while(!delayed_messages.isEmpty()) {
+						Message dl_message = delayed_messages.remove(0);
+						this.rcv_buf.nonblockingOffer(dl_message);
+					}
+					
+					// step 3: return message
+					return message;
+				}
+				// 3: delay -- put it to the rcv_delay_buf and return null
+				else {
+					this.rcv_delayed_buf.nonblockingOffer(message);
+					return null;
+				}
+			}
+			// no rule matched
+			else {
+				// step 1: move all delayed messages in the rcv_delay_buf to the rcv_buf
+				ArrayList<Message> delayed_messages = this.rcv_delayed_buf.nonblockingTakeAll();
+				while(!delayed_messages.isEmpty()) {
+					Message dl_message = delayed_messages.remove(0);
+					this.rcv_buf.nonblockingOffer(dl_message);
+				}
+				
+				// step 2: return message
+				return message;
+			}
+						
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
 		
-		return null;
-	}  // may block
+		return message;
+	}
+
 	
 	
 	void initSockets() {
@@ -581,5 +734,185 @@ public class MessagePasser {
 	public void clearCounters()
 	{
 		System.out.println("MUST WRITE THE FUNCTION TO CLEAR NTH AND EVERYNTH COUNTERS!!!");
+	}
+}
+
+/*
+ * Describe the connection state with another remote end
+ * The MessagePasser should keep a set of ConnStates
+ */
+class ConnState {
+	
+	String remote_name;		// the remote end
+	Socket local_socket;	// the local socket used to connect to remote end
+	AtomicInteger in_messsage_counter = new AtomicInteger(0);	// the number of incoming messages to the remote end
+	AtomicInteger out_message_counter = new AtomicInteger(0);	// the number of outgoing messages to the remote end
+	ObjectOutputStream oos;
+	ObjectInputStream ois;
+
+	/*
+	 * Constructor
+	 */
+	public ConnState(String remote_name, Socket local_socket) {
+		this.remote_name = remote_name;
+		this.local_socket = local_socket;
+	}
+	
+	/*
+	 * Atomic methods
+	 */
+	public int getInMessageCounter() {
+		return this.in_messsage_counter.get();
+	}
+	
+	public int getAndIncrementInMessageCounter() {
+		return this.in_messsage_counter.getAndIncrement();
+	}
+	
+	public void resetInMessageCounter() {
+		this.in_messsage_counter.set(0);
+	}
+	
+	public int getOutMessageCounter() {
+		return this.out_message_counter.get();
+	}
+	
+	public int getAndIncrementOutMessageCounter() {
+		return this.out_message_counter.getAndIncrement();
+	}
+	
+	public void resetOutMessageCounter() {
+		this.out_message_counter.set(0);
+	}
+	
+	public void setObjectOutputStream(ObjectOutputStream oos) {
+		this.oos = oos; 
+	}
+	
+	public ObjectOutputStream getObjectOutputStream() {
+		return oos;
+	}
+
+	public void setObjectInputStream(ObjectInputStream ois) {
+		this.ois = ois; 
+	}
+	
+	public ObjectInputStream getObjectInputStream() {
+		return ois;
+	}
+}
+
+
+/*
+ * This class will be created as a new thread, to wait for incoming connections
+ */
+class ServerThread implements Runnable {
+	MessagePasser mmp;
+	
+	public ServerThread() {
+		mmp = MessagePasser.getInstance();
+	}
+	
+	public void run() {
+		
+		// Get the configuration of local server
+		int i;
+		for(i = 0; i < this.mmp.max_vals; i++) 
+			if(this.mmp.conf[i][0].equals(mmp.local_name))
+				break;
+		
+		// if no such name, terminate the appication
+		if(i == this.mmp.max_vals) {
+			System.out.println("No such name");
+			System.exit(0);
+		} 
+		// local name found, setup the local server
+		else 
+			try {
+				// Init the local listening socket
+				ServerSocket socket = new ServerSocket(Integer.parseInt(this.mmp.conf[i][2]));
+				while(true) {
+					Socket s = socket.accept();
+					
+					// find the remote end's name
+					InetAddress iaddr = s.getInetAddress();
+					String ip = iaddr.getHostAddress();
+					String port = "" + s.getPort();
+					String remote_name = "";
+					for(i = 0; i < this.mmp.max_vals; i++) 
+						if(this.mmp.conf[i][1].equals(ip) && this.mmp.conf[i][2].equals(port)) {
+							remote_name = this.mmp.conf[i][0];
+							break;
+						}
+					
+					// if remote client not found, ignore and continue
+					if(remote_name.equals("")) {
+						System.out.println("Denied a connection from a anonymous client.");
+						continue;
+					}
+					
+					// Put the new socket into mmp's ConnState
+					ConnState conn_state = new ConnState(remote_name, s);
+					conn_state.setObjectOutputStream(new ObjectOutputStream(s.getOutputStream()));
+					conn_state.setObjectInputStream(new ObjectInputStream(s.getInputStream()));
+					this.mmp.connections.put(remote_name, new ConnState(remote_name, s));
+					
+					// create a new thread to get input stream from this connection
+					Runnable receiveRunnable = new ReceiveThread(remote_name);
+					Thread receiveThread = new Thread(receiveRunnable);
+					receiveThread.start();
+									
+				}
+			} catch(Exception e) {
+				e.printStackTrace();
+			}
+	}
+}
+
+/*
+ * Child thread created by the Server
+ * Only keep track of the input stream of a given socket, and deal with the buffer issue
+ * It also maintain some connection state information, like the counter of input message number
+ */
+class ReceiveThread implements Runnable {
+	String remote_name;
+	MessagePasser mmp;
+	
+	/*
+	 * Constructor
+	 */
+	public ReceiveThread(String remote_name) {
+
+		this.remote_name = remote_name;
+		this.mmp = MessagePasser.getInstance();
+		
+	}
+	
+	/*
+	 * This method do the real work when this thread is created
+	 * It listens to the input stream of the socket
+	 * The connection will never close until the application terminates
+	 */
+	public void run() {
+		
+		// get the connection state of this socket at first
+		ConnState conn_state = this.mmp.connections.get(this.remote_name);
+		ObjectInputStream ois = conn_state.getObjectInputStream();
+		
+		// Infinite loop: listen for input
+		while(true) {
+			try {
+				// read one message from the socket at once 
+				Message message = (Message)ois.readObject(); 
+				
+				// put it into the MessagePasser's rcv_buf
+				// drop the message if the buffer is full
+				if(!this.mmp.rcv_buf.nonblockingOffer(message)) 
+					continue;
+				
+			} catch(Exception e) {
+				e.printStackTrace();
+			}
+		}
 	}
 }
