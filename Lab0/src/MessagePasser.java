@@ -253,7 +253,33 @@ public class MessagePasser {
 		try{
 			
 			// get the connection state information
-			ConnState conn = this.connections.get(message.dest);
+			ConnState conn_state = this.connections.get(message.dest);
+			
+			// if connection has not been established yet, setup it
+			if(conn_state == null) {
+				// get the meta information of the remote host
+				String remote_addr = "";
+				int port = 0;
+				String remote_name = message.dest;
+				for(int i = 0; i < this.max_vals; i++) {
+					if(this.conf[i][0].equals(remote_name)) {
+						remote_addr = conf[i][1];
+						port = Integer.parseInt(conf[i][2]);
+					}
+				}
+				
+				// remote host not found 
+				if(remote_addr.equals(""))
+					return;
+				
+				// establish the new socket
+				Socket s = new Socket(InetAddress.getByAddress(remote_addr.getBytes()), port);		
+				conn_state = new ConnState(message.dest, s);
+				conn_state.setObjectOutputStream(new ObjectOutputStream(s.getOutputStream()));
+				conn_state.setObjectInputStream(new ObjectInputStream(s.getInputStream()));
+				this.connections.put(remote_name, conn_state);
+				
+			}
 
 			if(rule != null) {
 				// 3 actions: duplicate, drop, and delay
