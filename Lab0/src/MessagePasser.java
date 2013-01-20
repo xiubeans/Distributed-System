@@ -44,21 +44,7 @@ public class MessagePasser {
 	 * Constructor: private
 	 * IMPORTANT: make it singleton
 	 */
-	private MessagePasser() {
-		// Stupid part
-		conf[0] = new String[10];
-		conf[0][0] = "Jasper";
-		conf[0][1] = "127.0.0.1";
-		conf[0][2] = "8001";
-		conf[1] = new String[10];
-		conf[1][0] = "David";
-		conf[1][1] = "127.0.0.1";
-		conf[1][2] = "8002";
-		conf[2] = new String[10];
-		conf[2][0] = "Bill";
-		conf[2][1] = "127.0.0.1";
-		conf[2][2] = "8003";
-		
+	private MessagePasser() {		
 		// IMPORTANT !!!
 		// Smart part
 		this.send_buf = new MessageBuffer(1000);
@@ -249,64 +235,106 @@ public class MessagePasser {
 	 */
 	public void send(Message message) {
 		
+		
+		// return if message is null
+		if(message == null) 
+			return;
+		
 		// get the output stream
 		ObjectOutputStream oos;
-		// check against the send rules, and follow the first rule matched
-		HashMap rule = this.matchRules("send", message);
-
-		// IMPORTANT !!!!!!
-		// Only for testing !!!!
 		
-		// if one rule matched
-		// put code here !
 		try{
 			
 			// get the connection state information
 			ConnState conn = this.connections.get(message.dest);
 			
-			// if connection has not been established yet, setup it
+			// if connection has not been established yet, set it up
 			if(conn == null) {
+							
 				// get the meta information of the remote host
 				String remote_addr = "";
 				int port = 0;
 				String remote_name = message.dest;
-				for(int i = 0; i < this.max_vals; i++) {
-					if(this.conf[i][0].equals(remote_name)) {
-						remote_addr = conf[i][1];
-						port = Integer.parseInt(conf[i][2]);
+				System.out.println("remote name is " + remote_name);
+				for(int i = 1; i < 10; i++) {
+					//System.out.println("we have " + this.conf[0][i]);
+					if(this.conf[0][i].equals(remote_name)) {
+						remote_addr = conf[1][i];
+						port = Integer.parseInt(conf[2][i]);
+						// TEST
+						System.out.println(remote_addr + ": " + port);
 					}
 				}
 				
 				// remote host not found 
-				if(remote_addr.equals(""))
+				if(remote_addr.equals("")) {
+					// TEST
+					System.out.println("remote addr not found, return back to terminal");
 					return;
+				}	
 				
 				// establish the new socket
-				Socket s = new Socket(InetAddress.getByAddress(remote_addr.getBytes()), port);		
+				
+				// TEST
+				//System.out.println(remote_addr);
+				
+				String[] addr = remote_addr.split("\\.");	
+				byte[] iaddr = {(byte)Integer.parseInt(addr[0]), (byte)Integer.parseInt(addr[1]), 
+						(byte)Integer.parseInt(addr[2]), (byte)Integer.parseInt(addr[3])};
+				InetAddress ia = InetAddress.getByAddress(iaddr);
+				
+				Socket s = new Socket(ia, port);	
+				System.out.println("we are here");
+
+		
 				conn = new ConnState(message.dest, s);
 				conn.setObjectOutputStream(new ObjectOutputStream(s.getOutputStream()));
 				conn.setObjectInputStream(new ObjectInputStream(s.getInputStream()));
 				this.connections.put(remote_name, conn);
+				
+				// TEST
+				
 			}
 			oos = this.connections.get(message.dest).getObjectOutputStream();
 
 
+			// check against the send rules, and follow the first rule matched
+			HashMap rule = this.matchRules("send", message);
+			
 			if(rule != null) {
+				
 				// 3 actions: duplicate, drop, and delay
 				String action = rule.get("action").toString();
 				
 				// action: drop -- simply return
-				if(action.equals("drop"))
+				if(action.equals("drop")) {
+					System.out.println("******************************************************************");
+					System.out.println("send: src=" + this.local_name + ", dest=" + message.dest);
+					System.out.println("rule: drop");
+					System.out.println("******************************************************************");
 					return;
+				}
 				// action: duplicate -- send two identical messages, but with different message id
 				else if(action.equals("duplicate")) {
 
 					// step 1: send two identical messages
 					message.set_id(this.message_id.getAndIncrement());
 					oos.writeObject(message);
+					
+					System.out.println("******************************************************************");
+					System.out.println("send: src=" + this.local_name + ", dest=" + message.dest);
+					System.out.println("rule: duplicate");
+					System.out.println("******************************************************************");
+					
 					conn.getAndIncrementOutMessageCounter();
 					message.set_id(this.message_id.getAndIncrement());
 					oos.writeObject(message);
+
+					System.out.println("******************************************************************");
+					System.out.println("send: src=" + this.local_name + ", dest=" + message.dest + ", id=" + message.id);
+					System.out.println("rule: n/a");
+					System.out.println("******************************************************************");
+					
 					conn.getAndIncrementOutMessageCounter();
 					
 					// step 2: flush send buffer
@@ -315,12 +343,22 @@ public class MessagePasser {
 						Message dl_message = delayed_messages.remove(0);
 						dl_message.set_id(this.message_id.getAndIncrement());
 						oos.writeObject(dl_message);
+						System.out.println("******************************************************************");
+						System.out.println("send: src=" + this.local_name + ", dest=" + dl_message.dest + ", id=" + dl_message.id);
+						System.out.println("rule: n/a");
+						System.out.println("******************************************************************");
 						conn.getAndIncrementOutMessageCounter();
 					}
 				}
 				// action: delay -- put the message in the send_buf
 				else {
+					
 					this.send_buf.nonblockingOffer(message);
+
+					System.out.println("******************************************************************");
+					System.out.println("send: src=" + this.local_name + ", dest=" + message.dest);
+					System.out.println("rule: delay");
+					System.out.println("******************************************************************");
 				}
 			}
 			// no rule matched
@@ -330,6 +368,12 @@ public class MessagePasser {
 					// step 1: write this object to the socket
 					message.set_id(this.message_id.getAndIncrement());
 					oos.writeObject(message);
+					
+					System.out.println("******************************************************************");
+					System.out.println("send: src=" + this.local_name + ", dest=" + message.dest + ", id=" + message.id);
+					System.out.println("rule: n/a");
+					System.out.println("******************************************************************");
+					
 					conn.getAndIncrementOutMessageCounter();
 					
 					// step 2: flush all delayed messages
@@ -338,6 +382,10 @@ public class MessagePasser {
 						Message dl_message = delayed_messages.remove(0);
 						dl_message.set_id(this.message_id.getAndIncrement());
 						oos.writeObject(dl_message);
+						System.out.println("******************************************************************");
+						System.out.println("send: src=" + this.local_name + ", dest=" + dl_message.dest + ", id=" + dl_message.id);
+						System.out.println("rule: n/a");
+						System.out.println("******************************************************************");
 						conn.getAndIncrementOutMessageCounter();
 					}
 					
@@ -375,12 +423,20 @@ public class MessagePasser {
 				// 1: drop -- drop the message and return null
 				if(action.equals("drop")) {
 					conn.getAndIncrementInMessageCounter();
+					System.out.println("******************************************************************");
+					System.out.println("receive: src=" + message.src + ", dest=" + local_name + ", id=" + message.id);
+					System.out.println("rule: drop");
+					System.out.println("******************************************************************");
 					return null;
 				}
 				// 2: duplicate 
 				else if(action.equals("duplicate")) {
 					// step 1: duplicate another message, and append it to the tail of the rcv_buf
 					this.rcv_buf.nonblockingOffer(message);
+					System.out.println("******************************************************************");
+					System.out.println("receive: src=" + message.src + ", dest=" + local_name + ", id=" + message.id);
+					System.out.println("rule: duplicate");
+					System.out.println("******************************************************************");
 					
 					// step 2: move all delayed messages in the rcv_delay_buf to the rcv_buf
 					ArrayList<Message> delayed_messages = this.rcv_delayed_buf.nonblockingTakeAll();
@@ -390,12 +446,20 @@ public class MessagePasser {
 					}
 					
 					// step 3: return message
-					conn.getAndIncrementInMessageCounter();
+					conn.getAndIncrementInMessageCounter();					
+					System.out.println("******************************************************************");
+					System.out.println("send: src=" + message.src + ", dest=" + this.local_name + ", id=" + message.id);
+					System.out.println("rule: n/a");
+					System.out.println("******************************************************************");
 					return message;
 				}
 				// 3: delay -- put it to the rcv_delay_buf and return null
 				else {
 					this.rcv_delayed_buf.nonblockingOffer(message);
+					System.out.println("******************************************************************");
+					System.out.println("send: src=" + message.src + ", dest=" + this.local_name + ", id=" + message.id);
+					System.out.println("rule: delay");
+					System.out.println("******************************************************************");
 					return null;
 				}
 			}
@@ -409,6 +473,10 @@ public class MessagePasser {
 				}
 				
 				// step 2: return message
+				System.out.println("******************************************************************");
+				System.out.println("send: src=" + message.src + ", dest=" + this.local_name + ", id=" + message.id);
+				System.out.println("rule: n/a");
+				System.out.println("******************************************************************");
 				return message;
 			}
 						
@@ -894,7 +962,10 @@ class ServerThread implements Runnable {
 		else 
 			try {
 				// Init the local listening socket
-				ServerSocket socket = new ServerSocket(Integer.parseInt(this.mmp.conf[i][2]));
+				ServerSocket socket = new ServerSocket(Integer.parseInt(this.mmp.conf[2][i]));
+				// TEST
+				System.out.println("we are listening at: " + this.mmp.conf[2][i]);
+				
 				while(true) {
 					Socket s = socket.accept();
 					
@@ -903,9 +974,9 @@ class ServerThread implements Runnable {
 					String ip = iaddr.getHostAddress();
 					String port = "" + s.getPort();
 					String remote_name = "";
-					for(i = 0; i < this.mmp.max_vals; i++) 
-						if(this.mmp.conf[i][1].equals(ip) && this.mmp.conf[i][2].equals(port)) {
-							remote_name = this.mmp.conf[i][0];
+					for(i = 0; i < 10; i++) 
+						if(this.mmp.conf[1][i].equals(ip) && this.mmp.conf[2][i].equals(port)) {
+							remote_name = this.mmp.conf[0][i];
 							break;
 						}
 					

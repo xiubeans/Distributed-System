@@ -67,7 +67,7 @@ public class TestHarness {
 				svr_conn.connect("unix.andrew.cmu.edu", "zhechen");
 		    	local_modification_time = svr_conn.getLastModificationTime(CONSTANTS.CONFIGFILE); // record the time-stamp of YAML file
 		    	// TEST !!!
-		    	System.out.println(local_modification_time);
+		    	// System.out.println(local_modification_time);
 		    	svr_conn.downloadFile(CONSTANTS.CONFIGFILE, CONSTANTS.LOCALPATH); // download the YAML file and put it where it's expected	    	
 				MessagePasser mp = MessagePasser.getInstance();		
 				
@@ -142,7 +142,7 @@ public class TestHarness {
 							break;
 						case 3: //quit the program
 							cmd_line_input.close();
-							svr_conn.disconnect(); // close the SFTP connection to AFS
+							svr_conn.disconnect();	// close the SFTP connection to AFS
 							System.exit(1);
 						default:
 							System.out.println("Unrecognized input "+user_action+".");
