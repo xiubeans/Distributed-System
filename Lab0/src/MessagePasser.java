@@ -1,3 +1,4 @@
+
 import java.io.*;
 import java.security.AccessControlException;
 import java.security.AccessController;
@@ -160,12 +161,15 @@ public class MessagePasser {
 					}
 					if(field_name.equals("nth"))
 					{
-						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
-							continue;
+						//get the out counters to check
+						int ctr = this.connections.get(message.getVal("dest", message)).getOutMessageCounter();
+						if(!rule.get(field_name).equals("*") || !rule.get(field_name).equals(ctr+""))
+							continue; //go to the next rule, because we failed a check
 					}
 					if(field_name.equals("everynth"))
 					{
-						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
+						int ctr = this.connections.get(message.getVal("dest", message)).getOutMessageCounter();
+						if(!rule.get(field_name).equals("*") || !rule.get(field_name).equals(ctr % Integer.parseInt((String) rule.get(field_name))))
 							continue;
 					}
 					else
@@ -209,12 +213,14 @@ public class MessagePasser {
 					}
 					if(field_name.equals("nth"))
 					{
-						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
-							continue;
+						int ctr = this.connections.get(message.getVal("dest", message)).getInMessageCounter();
+						if(!rule.get(field_name).equals("*") || !rule.get(field_name).equals(ctr+""))
+							continue; //go to the next rule, because we failed a check
 					}
 					if(field_name.equals("everynth"))
 					{
-						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
+						int ctr = this.connections.get(message.getVal("dest", message)).getInMessageCounter();
+						if(!rule.get(field_name).equals("*") || !rule.get(field_name).equals(ctr % Integer.parseInt((String) rule.get(field_name))))
 							continue;
 					}
 					else

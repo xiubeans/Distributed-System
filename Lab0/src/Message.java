@@ -39,9 +39,6 @@ public class Message implements Serializable {
 		return message;
 	}
 	
-	/*
-	 * Am not so sure !!!!!!!!!
-	 */
 	public String getVal(String field, Message message)
 	{
 		if(field.equals("id"))
@@ -60,7 +57,4 @@ public class Message implements Serializable {
 	public Object getPayload() {
 		return this.payload;
 	}
-	
-	// other accessors, toString, etc as needed
-	
 }
