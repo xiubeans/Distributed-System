@@ -253,10 +253,10 @@ public class MessagePasser {
 		try{
 			
 			// get the connection state information
-			ConnState conn_state = this.connections.get(message.dest);
+			ConnState conn = this.connections.get(message.dest);
 			
 			// if connection has not been established yet, setup it
-			if(conn_state == null) {
+			if(conn == null) {
 				// get the meta information of the remote host
 				String remote_addr = "";
 				int port = 0;
@@ -274,10 +274,10 @@ public class MessagePasser {
 				
 				// establish the new socket
 				Socket s = new Socket(InetAddress.getByAddress(remote_addr.getBytes()), port);		
-				conn_state = new ConnState(message.dest, s);
-				conn_state.setObjectOutputStream(new ObjectOutputStream(s.getOutputStream()));
-				conn_state.setObjectInputStream(new ObjectInputStream(s.getInputStream()));
-				this.connections.put(remote_name, conn_state);
+				conn = new ConnState(message.dest, s);
+				conn.setObjectOutputStream(new ObjectOutputStream(s.getOutputStream()));
+				conn.setObjectInputStream(new ObjectInputStream(s.getInputStream()));
+				this.connections.put(remote_name, conn);
 				
 			}
 
