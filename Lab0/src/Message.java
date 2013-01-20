@@ -44,9 +44,17 @@ public class Message implements Serializable {
 	 */
 	public String getVal(String field, Message message)
 	{
-		String val = "";
-		
-		return val;
+		if(field.equals("id"))
+			return "" + this.id;
+		else if(field.equals("src"))
+			return this.src;
+		else if(field.equals("kind"))
+			return this.kind;
+		else if(field.equals("dest"))
+			return this.dest;
+		else 
+			return "";
+			
 	}
 	
 	public Object getPayload() {

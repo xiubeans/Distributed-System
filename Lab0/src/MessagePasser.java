@@ -7,6 +7,7 @@ import java.util.regex.Pattern;
 import java.net.*;
 import java.util.concurrent.atomic.*;
 import java.util.concurrent.locks.*;
+import org.yaml.snakeyaml.*;
 
 /* The next three comments may all need to be handled in the MessagePasser class instead of here. */
 /*Check if a file has been modified since last time by storing an MD5 hash
@@ -244,20 +245,27 @@ public class MessagePasser {
 		// if one rule matched
 		// put code here !
 		try{
+			
+			// get the connection state information
+			ConnState conn = this.connections.get(message.dest);
+
 			if(rule != null) {
 				// 3 actions: duplicate, drop, and delay
-				// Get the action at first !!!!
-				String action = "";
+				String action = rule.get("action").toString();
+				
 				// action: drop -- simply return
 				if(action.equals("drop"))
 					return;
 				// action: duplicate -- send two identical messages, but with different message id
 				else if(action.equals("duplicate")) {
+
 					// step 1: send two identical messages
 					message.set_id(this.message_id.getAndIncrement());
 					oos.writeObject(message);
+					conn.getAndIncrementOutMessageCounter();
 					message.set_id(this.message_id.getAndIncrement());
 					oos.writeObject(message);
+					conn.getAndIncrementOutMessageCounter();
 					
 					// step 2: flush send buffer
 					ArrayList<Message> delayed_messages = this.send_buf.nonblockingTakeAll();
@@ -265,6 +273,7 @@ public class MessagePasser {
 						Message dl_message = delayed_messages.remove(0);
 						dl_message.set_id(this.message_id.getAndIncrement());
 						oos.writeObject(dl_message);
+						conn.getAndIncrementOutMessageCounter();
 					}
 				}
 				// action: delay -- put the message in the send_buf
@@ -279,6 +288,7 @@ public class MessagePasser {
 					// step 1: write this object to the socket
 					message.set_id(this.message_id.getAndIncrement());
 					oos.writeObject(message);
+					conn.getAndIncrementOutMessageCounter();
 					
 					// step 2: flush all delayed messages
 					ArrayList<Message> delayed_messages = this.send_buf.nonblockingTakeAll();
@@ -286,6 +296,7 @@ public class MessagePasser {
 						Message dl_message = delayed_messages.remove(0);
 						dl_message.set_id(this.message_id.getAndIncrement());
 						oos.writeObject(dl_message);
+						conn.getAndIncrementOutMessageCounter();
 					}
 					
 				} catch(Exception e) {
@@ -310,14 +321,20 @@ public class MessagePasser {
 		HashMap rule = this.matchRules("receive", message);
 		
 		try {
+			
+			// get the connection state information
+			ConnState conn = this.connections.get(message.src);
+
 			// single rule matched
 			if(rule != null) {
 				// 3 actions: duplicate, drop, and delay
 				// Get the action at first !!!!
-				String action = "";
+				String action = rule.get("action").toString();
 				// 1: drop -- drop the message and return null
-				if(action.equals("drop")) 
+				if(action.equals("drop")) {
+					conn.getAndIncrementInMessageCounter();
 					return null;
+				}
 				// 2: duplicate 
 				else if(action.equals("duplicate")) {
 					// step 1: duplicate another message, and append it to the tail of the rcv_buf
@@ -331,6 +348,7 @@ public class MessagePasser {
 					}
 					
 					// step 3: return message
+					conn.getAndIncrementInMessageCounter();
 					return message;
 				}
 				// 3: delay -- put it to the rcv_delay_buf and return null
