@@ -48,7 +48,7 @@ public class TestSuite {
 				 */
 				
 				//offer the user three choices, then from there give usage for the specific option chosen and wait for input.
-				System.out.println("Choose your action (1 for send, 2 for receive, 3 for quit) -- May need to remove receive stuff and change stuff...?");
+				System.out.println("Choose your action (1 for send, 2 for receive, 3 for quit)");
 				
 				user_input = cmd_line_input.nextLine(); //get the input and check it
 				user_action = mp.validOption(user_input);
