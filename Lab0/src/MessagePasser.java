@@ -304,11 +304,8 @@ public class MessagePasser {
 				oos.flush();
 				System.out.println("LOGIN message sent");
 				conn.setObjectInputStream(new ObjectInputStream(s.getInputStream()));
-				
-				// TEST
-				if(this.connections.contains(remote_name))
-					System.out.println("WE have connection with");
-				
+				// TEST 
+				System.out.println("We are happy !");
 
 			}
 			// else the connection is set up
@@ -557,8 +554,6 @@ public class MessagePasser {
 		return message;
 	}
 
-	
-	
 	void initSockets() {
 		/*Create (from the ArrayList class in Java) sockets for the nodes.
 		 *Using TCP sockets, so keep the connection alive for more than just the 
@@ -566,8 +561,7 @@ public class MessagePasser {
 		 */
 			
 	}
-	
-	
+		
 	void parseConfig(String fname) {
 		/*Parses the configuration file and stores all of the sections into
 		 *their own hash maps. Any field not present is stored as "*" to 
@@ -1074,15 +1068,16 @@ class ServerThread implements Runnable {
 					// Put the new socket into mmp's ConnState
 					ConnState conn_state = new ConnState(remote_name, s);
 					conn_state.setObjectOutputStream(new ObjectOutputStream(s.getOutputStream()));
-					conn_state.setObjectInputStream(new ObjectInputStream(s.getInputStream()));
 					this.mmp.connections.put(remote_name, conn_state);
-					
+					// conn_state.setObjectInputStream(new ObjectInputStream(s.getInputStream()));
+
 					// create a new thread to get input stream from this connection
 					Runnable receiveRunnable = new ReceiveThread(remote_name);
-					
+					conn_state.setObjectInputStream(new ObjectInputStream(s.getInputStream()));
+
 					// TEST
-					System.out.println("we are here");
-					Thread.sleep(5000);
+					//System.out.println("we are here");
+					//Thread.sleep(5000);
 					Thread receiveThread = new Thread(receiveRunnable);
 					receiveThread.start();
 									
