@@ -22,8 +22,6 @@ public class SFTPConnection {
 	        
 	        UserInfo ui=new MyUserInfo();
 	        session.setUserInfo(ui);
-	        
-	        //session.setPassword(password);
 	        session.connect();        	
     	} catch (JSchException e) {
             e.printStackTrace();  

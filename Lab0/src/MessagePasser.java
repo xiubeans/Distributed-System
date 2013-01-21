@@ -9,33 +9,25 @@ import java.util.concurrent.atomic.*;
 import java.util.concurrent.locks.*;
 import org.yaml.snakeyaml.*;
 
-/* The next three comments may all need to be handled in the MessagePasser class instead of here. */
-/*Check if a file has been modified since last time by storing an MD5 hash
-of the file and checking before each send and receive method...*/
-
-/* Setup sockets for each of the nodes identified in the config file here. */
-
-/* Whenever we call receive, we should get the frontmost msg in the recv queue. */
-
-
 /* MessagePasser is responsible for keeping track of all IDs assigned and for
  * ensuring monotonicity and uniqueness. The source:ID pair must be unique, but
  * IDs can be reused across different nodes. */
 
 public class MessagePasser {
-	int max_vals = 8;
-	String[][] conf = new String[max_vals][10]; //temporary holders -- FIX THESE!
-	String[][] send_rules = new String[max_vals][10]; //temporary holders
-	String[][] recv_rules = new String[max_vals][10]; //temporary holders
+	int max_vals = 7; //max number of fields in config file for a rule
+	int max_config_items = 100; //this is an arbitrary number to take place of hard-coded values
+	String[][] conf = new String[max_vals][max_config_items];
+	String[][] send_rules = new String[max_vals][max_config_items]; 
+	String[][] recv_rules = new String[max_vals][max_config_items]; 
 	
 	// IMPORTANT !!!
 	// new fields from Jasper: 
 	private static MessagePasser uniqInstance = null;
-	static ReentrantLock globalLock = new ReentrantLock();	// may be used to synchronize 
+	static ReentrantLock globalLock = new ReentrantLock(); // may be used to synchronize 
 	String config_file;
 	String local_name;
-	AtomicInteger message_id = new AtomicInteger(0);	// atomic message id counter
-	Hashtable<String, ConnState> connections = new Hashtable<String, ConnState>();	// maintain all connection state information
+	AtomicInteger message_id = new AtomicInteger(0); // atomic message id counter
+	Hashtable<String, ConnState> connections = new Hashtable<String, ConnState>(); // maintain all connection state information
 	MessageBuffer send_buf;
 	MessageBuffer rcv_buf;
 	MessageBuffer rcv_delayed_buf;
@@ -51,7 +43,6 @@ public class MessagePasser {
 		this.send_buf = new MessageBuffer(1000);
 		this.rcv_buf = new MessageBuffer(1000);
 		this.rcv_delayed_buf = new MessageBuffer(1000);
-		
 	}
 	
 	/*
@@ -60,10 +51,8 @@ public class MessagePasser {
 	public static synchronized MessagePasser getInstance() {
 		if (uniqInstance == null) {
 			uniqInstance = new MessagePasser();
-			// System.out.println("Create the singleton instance !");
 		}
 		
-//		System.out.println("Create the singleton instance !");
 //		try {
 //			Thread.sleep(1000);
 //		} catch(Exception e) {
@@ -90,7 +79,8 @@ public class MessagePasser {
 	public void buildRule(HashMap rule, int ctr, String type)
 	{
 		/* Builds the rule in an easy to use format for user
-		 * examination. */
+		 * examination.
+		 * Return: void */
 		
 		int header = 0;
 		
@@ -118,118 +108,116 @@ public class MessagePasser {
 	public HashMap matchRules(String type, Message message)
 	{
 		/*Returns the first rule matched so appropriate actions
-		 *can be taken. */
+		 *can be taken. 
+		 *Return: HashMap 
+		 */
 		
 		int header = 0;
 		String field_name = "";
 		HashMap rule = new HashMap();
 		
+		String[][] tmp = null;
+		
 		if(type.equals("send"))
 		{
-			for(int i=0; i<send_rules.length; i++)
-			{
-				for(int j=1; j<send_rules[i].length; j++)
-				{
-					buildRule(rule, j, type); //builds the current rule
-					//System.out.println(rule.keySet()+" "+rule.values());
-					//System.out.println(send_rules[i][header]);
-					field_name = send_rules[i][header].toLowerCase();
-					if(field_name.equals("src"))
-					{
-						//if we have the right field, let's check if the rule value (or *) matches the user input src
-						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
-							continue; //it didn't match, so go on to the next rule
-					}
-					if(field_name.equals("dest")) //continual IFs because we want to make sure all fields listed in rule match
-					{
-						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
-							continue;
-					}	
-					if(field_name.equals("kind"))
-					{
-						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
-							continue;
-					}
-					if(field_name.equals("id"))
-					{
-						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
-							continue;
-					}
-					if(field_name.equals("nth"))
-					{
-						//get the out counters to check
-						int ctr = this.connections.get(message.getVal("dest", message)).getOutMessageCounter();
-						if(!rule.get(field_name).equals("*") || !rule.get(field_name).equals(ctr+""))
-							continue; //go to the next rule, because we failed a check
-					}
-					if(field_name.equals("everynth"))
-					{
-						int ctr = this.connections.get(message.getVal("dest", message)).getOutMessageCounter();
-						if(!rule.get(field_name).equals("*") || !rule.get(field_name).equals(ctr % Integer.parseInt((String) rule.get(field_name))))
-							continue;
-					}
-					else
-					{
-						System.out.println("Don't forget to add a check for "+field_name+"!");
-						continue;	
-					}
-				}
-			}
-		}
+			tmp = new String[send_rules.length][];
+			for (int i = 0; i < send_rules.length; i++) 
+				tmp[i] = Arrays.copyOf(send_rules[i], send_rules[i].length);
+	    }
 		else if(type.equals("receive"))
 		{
-			for(int i=0; i<recv_rules.length; i++)
+			tmp = new String[recv_rules.length][];
+			for (int i = 0; i < recv_rules.length; i++) 
+				tmp[i] = Arrays.copyOf(recv_rules[i], recv_rules[i].length);
+	    }
+		
+		for(int i=0; i<tmp.length; i++)
+		{
+			rule = new HashMap();
+			buildRule(rule, i, type); //builds the current rule
+			field_name = tmp[i][header].toLowerCase();
+
+			if(rule.get(field_name) == null)
 			{
-				for(int j=1; j<recv_rules[i].length; j++)
+				if(i<tmp.length-1) //we're not at the end of the fields
+					continue;
+				else
 				{
-					buildRule(rule, j, type); //builds the current rule
-					//System.out.println(rule.keySet()+" "+rule.values());
-					//System.out.println(send_rules[i][header]);
-					field_name = recv_rules[i][header].toLowerCase();
-					if(field_name.equals("src"))
+					rule = null; //at end of fields, so rule obviously failed
+					break;
+				}
+			}
+			else
+			{   //if one of the fields matches
+				if(rule.get(field_name).toString().equalsIgnoreCase(message.getVal(field_name, message)) || rule.get(field_name).toString().equals("*"))
+				{
+					for(int k=0; k<tmp[k].length; k++) //go through all of the fields in the rule to see if each matches
 					{
-						//if we have the right field, let's check if the rule value (or *) matches the user input src
-						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
-							continue; //it didn't match, so go on to the next rule
-					}
-					if(field_name.equals("dest")) //continual IFs because we want to make sure all fields listed in rule match
-					{
-						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
+						field_name = tmp[k][header].toLowerCase();
+
+						if(field_name.equals("*")) //gone through all fields
+						{
+							if(k == rule.values().size())
+							{							
+								String vals = rule.values().toString().replaceAll("[\\[,\\] ]", "");
+								
+								if(vals.matches("^\\**$")) //and all fields were wildcards
+									rule = null; //reset rule, because it's not valid
+								return rule; //already done with the rule and we matched everything
+							}
+							break; 
+						}
+						int ctr; //for (every)nth fields
+
+						if(rule.get(field_name) == null)
 							continue;
-					}	
-					if(field_name.equals("kind"))
-					{
-						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
+						if(field_name.equalsIgnoreCase("action")) //we don't act on this here
 							continue;
+						if(field_name.equalsIgnoreCase("id")) //check for ID match
+						{
+							ctr = this.message_id.get();
+							if(!rule.get(field_name).equals(ctr+"") && !rule.get(field_name).equals("*"))
+								break; //it didn't match
+						}
+						if(field_name.equalsIgnoreCase("nth")) //check out Nth field
+						{
+							if(type.equals("send"))
+								ctr = this.connections.get(message.getVal("dest", message)).getOutMessageCounter();
+							else //receive 
+								ctr = this.connections.get(message.getVal("dest", message)).getInMessageCounter();
+
+							if(!rule.get(field_name).equals("*") && !rule.get(field_name).equals(ctr+""))
+								break; //it didn't match
+						}
+						if(field_name.equalsIgnoreCase("everynth")) //check out EveryNth field
+						{
+							if(type.equals("send"))
+								ctr = this.connections.get(message.getVal("dest", message)).getOutMessageCounter();
+							else//receive
+								ctr = this.connections.get(message.getVal("dest", message)).getInMessageCounter();
+							
+							if(!rule.get(field_name).equals("*") && !rule.get(field_name).equals(ctr % Integer.parseInt((String) rule.get(field_name))))
+								break; //it didn't match
+						}
+						if(!rule.get(field_name).toString().equalsIgnoreCase(message.getVal(field_name, message))) //if remaining fields don't match
+						{
+							if(!rule.get(field_name).toString().equals("*")) //and the field's value is not a wildcard
+							{
+								rule = null; //clear rule, because it didn't match
+								break;
+							}
+						}
 					}
-					if(field_name.equals("id"))
-					{
-						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
-							continue;
-					}
-					if(field_name.equals("nth"))
-					{
-						int ctr = this.connections.get(message.getVal("dest", message)).getInMessageCounter();
-						if(!rule.get(field_name).equals("*") || !rule.get(field_name).equals(ctr+""))
-							continue; //go to the next rule, because we failed a check
-					}
-					if(field_name.equals("everynth"))
-					{
-						int ctr = this.connections.get(message.getVal("dest", message)).getInMessageCounter();
-						if(!rule.get(field_name).equals("*") || !rule.get(field_name).equals(ctr % Integer.parseInt((String) rule.get(field_name))))
-							continue;
-					}
-					else
-					{
-						System.out.println("Don't forget to add a check for "+field_name+"!");
-						continue;	
-					}
+				}
+				else //the original field checked didn't match
+				{
+					rule = null; //clear the rule, because it didn't match
 				}
 			}
 		}
-		return rule; //return the representation of the rule matched to use for handling
+		return rule; //at this point, we can safely return based on the above declarations of rule
 	}
-	
+
 	
 	/*
 	 * Send
@@ -255,25 +243,19 @@ public class MessagePasser {
 				String remote_addr = "";
 				int port = 0;
 				String remote_name = message.dest;
-				System.out.println("remote name is " + remote_name);
+
 				for(int i = 1; i < 10; i++) {
-					//System.out.println("we have " + this.conf[0][i]);
 					if(this.conf[0][i].equals(remote_name)) {
 						remote_addr = conf[1][i];
 						port = Integer.parseInt(conf[2][i]);
-						// TEST
-						System.out.println(remote_addr + ":" + port);
 						break;
 					}
 				}
 				
 				
 				// remote host not found 
-				if(remote_addr.equals("")) {
-					// TEST
-					System.out.println("remote addr not found, return back to terminal");
+				if(remote_addr.equals(""))
 					return;
-				}	
 				
 				// prepare remote ip_addr and port number
 				String[] addr = remote_addr.split("\\.");	
@@ -282,12 +264,7 @@ public class MessagePasser {
 				InetAddress ia = InetAddress.getByAddress(iaddr);
 				
 				// create the socket, and connect to the other side
-				// TEST
-				System.out.println("we are connecting " + ia.getAddress().toString() + ":" + port);
 				Socket s = new Socket(ia, port);	
-				
-				// TEST
-				System.out.println("Successfully connected: returned from Socket()");
 				
 				// after connected init the connection state information				
 				conn = new ConnState(message.dest, s);
@@ -298,15 +275,9 @@ public class MessagePasser {
 				// send a LOGIN message immediately to notify the other side who am I
 				oos = this.connections.get(remote_name).getObjectOutputStream();
 				
-				// TEST
-				System.out.println("I am sending th LOGIN message");
 				oos.writeObject(new Message(this.local_name, "", "LOGIN", null));
 				oos.flush();
-				System.out.println("LOGIN message sent");
 				conn.setObjectInputStream(new ObjectInputStream(s.getInputStream()));
-				// TEST 
-				System.out.println("We are happy !");
-
 			}
 			// else the connection is set up
 			else
@@ -490,14 +461,7 @@ public class MessagePasser {
 					System.out.println("receive: src=" + message.src + ", dest=" + local_name + ", id=" + message.id);
 					System.out.println("rule: duplicate");
 					System.out.println("******************************************************************");
-					
-//					// step 2: move all delayed messages in the rcv_delay_buf to the rcv_buf
-//					ArrayList<Message> delayed_messages = this.rcv_delayed_buf.nonblockingTakeAll();
-//					while(!delayed_messages.isEmpty()) {
-//						Message dl_message = delayed_messages.remove(0);
-//						this.rcv_buf.nonblockingOffer(dl_message);
-//					}
-					
+
 					// step 3: return message
 					System.out.println("******************************************************************");
 					System.out.println("receive: src=" + message.src + ", dest=" + this.local_name + ", id=" + message.id);
@@ -526,14 +490,7 @@ public class MessagePasser {
 			
 			// no rule matched
 			else {
-				
-//				// step 1: move all delayed messages in the rcv_delay_buf to the rcv_buf
-//				ArrayList<Message> delayed_messages = this.rcv_delayed_buf.nonblockingTakeAll();
-//				while(!delayed_messages.isEmpty()) {
-//					Message dl_message = delayed_messages.remove(0);
-//					this.rcv_buf.nonblockingOffer(dl_message);
-//				}
-				
+			
 				// step 2: return message
 				System.out.println("******************************************************************");
 				System.out.println("receive: src=" + message.src + ", dest=" + this.local_name + ", id=" + message.id);
@@ -553,33 +510,35 @@ public class MessagePasser {
 		
 		return message;
 	}
-
-	void initSockets() {
-		/*Create (from the ArrayList class in Java) sockets for the nodes.
-		 *Using TCP sockets, so keep the connection alive for more than just the 
-		 *send/receive of a message.
-		 */
-			
-	}
+	
+	
+	void initHeaders()
+	{
+		/* Statically defines the headers for each of the arrays */
 		
+		String[] conf_headers = {"name", "ip", "port"};
+		String[] send_recv_headers = {"action", "src", "dest", "kind", "id", "nth", "everynth"};
+		
+		for(int i=0; i<conf_headers.length; i++)
+			conf[i][0] = conf_headers[i];
+		
+		for(int j=0; j<send_recv_headers.length; j++)
+		{
+			send_rules[j][0] = send_recv_headers[j];
+			recv_rules[j][0] = send_recv_headers[j];
+		}
+	}
+	
+	
 	void parseConfig(String fname) {
 		/*Parses the configuration file and stores all of the sections into
-		 *their own hash maps. Any field not present is stored as "*" to 
+		 *their own 2D arrays. Any field not present is stored as "*" to 
 		 *denote a wildcard functionality. 
 		 */
 		
 		InputStream yamlInput = null;
 		Yaml yaml = new Yaml();
 		String config = "";
-		FilePermission perm = null;
-		
-		/*perm = new FilePermission(fname, "read"); //Currently not working correctly...
-		try {
-			AccessController.checkPermission(perm);	
-		} catch (AccessControlException e) {
-			System.out.println("File "+fname+" is not readable.\n");
-			System.exit(-1); //probably want to just return -1
-		}*/
 		
 		try {
 			yamlInput = new FileInputStream(new File(fname));			
@@ -595,12 +554,11 @@ public class MessagePasser {
 		String whole = "";
 		String[] elements = new String[10]; //figure out appropriate size for these
 		String[] pairs = new String[10];
-		String[] choices = new String[10];
 		String file_part = "";	
 		
 		for(int ctr=0; ctr<max_vals; ctr++) //quickly initialize all elements
 		{
-			for(int j=0; j<10; j++)
+			for(int j=1; j<10; j++) //because the headers are already initialized by initHeaders
 			{
 				conf[ctr][j] = "*";
 				send_rules[ctr][j] = "*";
@@ -616,53 +574,27 @@ public class MessagePasser {
 		{
 			Map.Entry me = (Map.Entry)i.next();
 			file_part = me.getKey().toString().toLowerCase();
-			//System.out.print("\nRaw parsed data --> "+file_part + ": ");
-			//System.out.println(me.getValue());
+			System.out.println("\nRaw parsed data --> "+file_part+": ");
+			System.out.println(me.getValue());
 			ArrayList<String> inner = new ArrayList<String>();
 			inner.add(me.getValue().toString());
 			whole = inner.toString();
 			whole = whole.replaceAll("[\\[\\]\\{]", "");
 			elements = whole.split("\\},?");
 			
-			for(j=0; j<elements.length; j++)
-			{
-				int key = 0;
-				int val = 1;
-				
-				pairs = elements[j].split(", ");
+			for(j=0; j<elements.length; j++) //the number of rules in this section of the config (here 3)
+			{				
+				pairs = elements[j].split(", "); //the number of elements in a particular rule (here 5, 2, and 4)
 				
 				if(file_part.equals("sendrules"))
-				{					
-					for(int k=0; k<pairs.length; k++)
-					{
-						choices = pairs[k].split("=");
-						choices[key] = choices[key].trim().toLowerCase();
-						fillLoop(send_rules, choices, k, val, choices[key]);
-					}
-				}
+					fillLoop(send_rules, pairs, j+1); //pass in 2D array, all of rule's elements in key-val form, and rule number
 				else if(file_part.equals("receiverules"))
-				{
-					for(int k=0; k<pairs.length; k++)
-					{
-						choices = pairs[k].split("=");
-						choices[key] = choices[key].trim().toLowerCase();
-						fillLoop(recv_rules, choices, k, val, choices[key]);
-					}
-				}
+					fillLoop(recv_rules, pairs, j+1);
 				else if(file_part.equals("configuration")) //handle config third because it happens only once
-				{
-					//System.out.println("inner: "+elements[j]);
-					//System.out.println(pairs.length+" pairs are: "+pairs[0]+" "+pairs[1]+" "+pairs[2]);
-					for(int k=0; k<pairs.length; k++)
-					{
-						choices = pairs[k].split("=");
-						choices[key] = choices[key].trim();
-						fillLoop(conf, choices, k, val, choices[key]);
-					}
-				}
+					fillLoop(conf, pairs, j+1);
 				else
 				{
-					System.out.println("Error!");
+					System.out.println("Error parsing configuration file");
 					break;
 				}
 			}
@@ -673,33 +605,30 @@ public class MessagePasser {
 		} catch (IOException e) {
 			System.out.println("Could not close configuration file\n");
 		}
-		
-		//TODO: Check to see if localName was found in the NAMES section of the config file; if not, return -1 ?
 	}
 	
-	
-	void fillLoop(String[][] arr, String[] choices, int k, int val, String field)
+	//pass in 2D array, all of rule's elements in key-val form, and rule number
+	void fillLoop(String[][] arr, String[] pairs, int rule_num)//, int val, String field)
 	{
 		/* Populates all of the configuration file options into a 2D array. */
+		//System.out.println("have pairs of "+pairs.length+" like"+pairs[0].toString());
+		int key=0;
+		int val=1;
 		
-		if(arr[k][0].equals("*"))
-			arr[k][0] = field;
-		else //because the config fields in the YAML file can be in any order, must align to correct array index
+		for(int i=0; i<pairs.length; i++)
 		{
-			while(!arr[k][0].equals(field))
+			String[] choices = pairs[i].split("=");
+			choices[key] = choices[key].trim().toString().toLowerCase();	//grab heading
+			//System.out.println("have "+choices[key]);
+			for(int j=0; j<arr.length; j++) //loop through 2D array's headers and put the values where they belong
 			{
-				k++;
-				if(k == arr.length)
-					return;
-			}
-		}
-				
-		for(int f=1; f<arr[k].length; f++)
-		{
-			if(arr[k][f].equals("*"))
-			{
-				arr[k][f] = choices[val];
-				break;
+				//System.out.println("arr["+j+"]["+key+"] is "+arr[j][key]);
+				if(arr[j][key].equals(choices[key])) //we found the correct heading
+				{
+					System.out.println("Stored "+choices[val]+" in arr"+j+" "+rule_num);
+					arr[j][rule_num] = choices[val]; //only set the ones with real values; all the rest stay as a wildcard
+					break; //go to next pair instead of continuing through loop needlessly
+				}
 			}
 		}
 	}
@@ -777,19 +706,18 @@ public class MessagePasser {
 				all_fields[ctr][j] = "";
 		}
 		
-		System.out.println("User input: "+user_input);
 		for (ctr = 0; ctr<max_fields; ctr++) 
 		{
 			switch(ctr)
 			{
 				case 0: //type of message
-					all_fields[ctr][0] = "send";
-					all_fields[ctr][1] = "receive";
+					all_fields[ctr][1] = "send";
+					all_fields[ctr][2] = "receive";
 					break;
 				case 1:
 					String[] names = mp.getField("name");
 					int i;
-					for(i=1; i<names.length; i++)
+					for(i=0; i<names.length; i++)
 					{
 						if(!names[i].equals("*"))
 							all_fields[ctr][i] = names[i];
@@ -798,7 +726,7 @@ public class MessagePasser {
 					break;
 				case 2: //what kind of message
 					String[] kind = mp.getField("kind");
-					for(i=1; i<kind.length; i++)
+					for(i=0; i<kind.length; i++)
 					{
 						if(!kind[i].equals("*"))
 							all_fields[ctr][i] = kind[i];
@@ -816,9 +744,10 @@ public class MessagePasser {
 	public boolean validateUserRequests(String user_input, MessagePasser mp, String local_name)
 	{
 		/* Determines whether the user has followed the usage
-		 * guidelines. A send or receive rule can have up to
-		 * nine elements:
-		 * <receive | send> <action> <src> <dest> <kind> <ID> <Nth> <EveryNth> <data>
+		 * guidelines. A send rule can have three elements:
+		 * send <dest> <kind>
+		 * A receive rule can have one element:
+		 * receive
 		 * 
 		 * Return: false (no) or true (yes)
 		 *  */
@@ -854,25 +783,21 @@ public class MessagePasser {
 		
 		all_fields = populateOptions(mp, user_input, max_fields, max_options);	
 		
-		/*System.out.println("All fields:");
-		for(ctr=0; ctr<max_fields; ctr++)
-		{
-			for(int a=0; a<max_options; a++)
-				System.out.println(all_fields[ctr][a]);
-		}*/
-		
 		for (ctr = 0; ctr<max_fields; ctr++) //verify user entered valid options 
 		{
-			for(int j=0; j<max_options; j++)
+			for(int j=1; j<max_options; j++)
 			{
-				//System.out.println("Currently checking "+all_fields[ctr][j]+" against "+user_options[ctr].toString());
 				if((all_fields[ctr][j].equalsIgnoreCase((user_options[ctr].toString()))))
 					break; //found a match for that field
+				else if(all_fields[ctr][0].equalsIgnoreCase("kind") && all_fields[ctr][j].equals("*")) //because it can be anything really
+				{
+					break;
+				}
 				else
 				{
 					if(j == max_options-1)
 					{
-						if(all_fields[ctr][j].equals("")) //need to figure this stuff out nowwwww!
+						if(all_fields[ctr][j].equals(""))
 							return false;
 					}
 					else
@@ -910,21 +835,30 @@ public class MessagePasser {
 		// get the YAML file at first
 		if(!svr_conn.isConnected())
 			svr_conn.connect(CONSTANTS.HOST, CONSTANTS.USER);
-		clearCounters(); //GET RID OF THIS specific instance of the function...just so we don't forget to do this (such as for below)
     	global_modification_time = svr_conn.getLastModificationTime(CONSTANTS.CONFIGFILE); // record the time-stamp of YAML file
+    
     	if(global_modification_time != local_modification_time)
     	{
     		svr_conn.downloadFile(CONSTANTS.CONFIGFILE, CONSTANTS.LOCALPATH); // download the YAML file
     		clearCounters(); //get rid of the Nth and EveryNth counters upon new config file, as per lab specs.
-    		return true;
+    		return false;
     	}
-    	return false;
+    	return true;
 	}
 	
 	
 	public void clearCounters()
 	{
-		System.out.println("MUST WRITE THE FUNCTION TO CLEAR NTH AND EVERYNTH COUNTERS!!!");
+		Set<String> keys = this.connections.keySet();
+		Iterator<String> itr = keys.iterator();
+		
+		// reset all the in/out message counters 
+		if(itr.hasNext()) {
+			String key = itr.next();
+			ConnState conn = this.connections.get(key);
+			conn.in_messsage_counter.set(0);
+			conn.out_message_counter.set(0);
+		}
 	}
 }
 
@@ -1011,15 +945,12 @@ class ServerThread implements Runnable {
 		// Get the configuration of local server
 		int i;
 		for(i = 0; i < 10; i++) {
-			// TEST !!!
-			// System.out.println("we have: " + this.mmp.conf[0][i]);
 			if(this.mmp.conf[0][i].equals(mmp.local_name))
 				break;
 		}
 		
 		// if no such local name, terminate the application
 		if(i == this.mmp.max_vals) {
-			// TEST !!!
 			System.out.println("No such name: " + mmp.local_name);
 			System.exit(0);
 		} 
@@ -1031,22 +962,14 @@ class ServerThread implements Runnable {
 				// Init the local listening socket
 				ServerSocket socket = new ServerSocket(Integer.parseInt(this.mmp.conf[2][i]));
 				
-				// TEST
-				System.out.println("we are listening at: " + this.mmp.conf[2][i]);
-				
 				// keep listening on the WELL-KNOWN port
 				while(true) {
 					Socket s = socket.accept();
-					
-					// TEST
-					System.out.println("Accept the connection, and wait for LOGIN");
 					
 					ObjectInputStream ois_tmp = new ObjectInputStream(s.getInputStream());
 					
 					Message login_msg = (Message)ois_tmp.readObject();
 					String remote_name = login_msg.src;
-					// TEST
-					System.out.println("Got the LOGIN message from " + remote_name);
 					
 //					// find the remote end's name
 //					InetAddress iaddr = s.getInetAddress();
@@ -1076,7 +999,6 @@ class ServerThread implements Runnable {
 					conn_state.setObjectInputStream(new ObjectInputStream(s.getInputStream()));
 
 					// TEST
-					//System.out.println("we are here");
 					//Thread.sleep(5000);
 					Thread receiveThread = new Thread(receiveRunnable);
 					receiveThread.start();

@@ -30,19 +30,14 @@ public class TestSuite {
 			
 			/* get a local copy of the config from AFS */
 			SFTPConnection svr_conn = new SFTPConnection();
-			svr_conn.connect("unix.andrew.cmu.edu", "zhechen");
+			svr_conn.connect("unix.andrew.cmu.edu", "dpearson");
 	    	local_modification_time = svr_conn.getLastModificationTime(CONSTANTS.CONFIGFILE); // record the time-stamp of YAML file
-	    	// TEST !!!
-	    	// System.out.println(local_modification_time);
 	    	svr_conn.downloadFile(CONSTANTS.CONFIGFILE, CONSTANTS.LOCALPATH); // download the YAML file and put it where it's expected	    	
 			MessagePasser mp = MessagePasser.getInstance();		
 			
-			// TEST !!!
-			// System.out.println("Created");
-			
 			mp.setConfigAndName(config_file, local_name);
+			mp.initHeaders();
 			mp.parseConfig(config_file); //parse the config file
-			mp.initSockets(); //setup sockets for all user connections from config file
 			
 			while(true)
 			{
@@ -66,10 +61,9 @@ public class TestSuite {
 				{
 					case 1: //send request
 						System.out.println("Usage: send <dest> <kind>");
-						//System.out.println("Usage: send <action> <src> <dest> <kind> <id> <Nth> <EveryNth> <data> (* is wildcard)");
 						user_input = cmd_line_input.nextLine(); //get the input and check it (pass back out to user if garbage input)
 						
-						if(!mp.isNewestConfig(local_modification_time, global_modification_time, svr_conn)) //MAKE THIS transparent to user!
+						if(!mp.isNewestConfig(local_modification_time, global_modification_time, svr_conn))
 							mp.parseConfig(config_file);
 						
 						if(!mp.validateUserRequests(user_input, mp, local_name)) //check user input
@@ -89,7 +83,6 @@ public class TestSuite {
 						break;
 					case 2: //receive request
 						System.out.println("Usage: receive");
-						//System.out.println("Usage: receive <action> <src> <dest> <kind> <id> <Nth> <EveryNth> <data> (* is wildcard)");
 						user_input = cmd_line_input.nextLine(); //get the input and check it (pass back out to user if garbage input)
 						
 						if(!mp.isNewestConfig(local_modification_time, global_modification_time, svr_conn)) //MAKE THIS transparent to user!
@@ -101,7 +94,6 @@ public class TestSuite {
 							continue;
 						}
 						mp.receive();
-						System.out.println("Message is <something goes here?>"); //FIGURE THIS OUT!
 						break;
 					case 3: //quit the program
 						cmd_line_input.close();
