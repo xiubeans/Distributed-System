@@ -34,11 +34,12 @@ public class MessagePasser {
 	static ReentrantLock globalLock = new ReentrantLock();	// may be used to synchronize 
 	String config_file;
 	String local_name;
-	AtomicInteger message_id = new AtomicInteger(1);	// atomic message id counter
+	AtomicInteger message_id = new AtomicInteger(0);	// atomic message id counter
 	Hashtable<String, ConnState> connections = new Hashtable<String, ConnState>();	// maintain all connection state information
 	MessageBuffer send_buf;
 	MessageBuffer rcv_buf;
 	MessageBuffer rcv_delayed_buf;
+	AtomicInteger rcv_delay_buf_ready = new AtomicInteger(0);
 	
 	/*
 	 * Constructor: private
@@ -235,13 +236,12 @@ public class MessagePasser {
 	 */
 	public void send(Message message) {
 		
-		
 		// return if message is null
 		if(message == null) 
 			return;
 		
 		// get the output stream
-		ObjectOutputStream oos;
+		ObjectOutputStream oos = null;
 		
 		try{
 			
@@ -262,7 +262,7 @@ public class MessagePasser {
 						remote_addr = conf[1][i];
 						port = Integer.parseInt(conf[2][i]);
 						// TEST
-						System.out.println(remote_addr + ": " + port);
+						System.out.println(remote_addr + ":" + port);
 					}
 				}
 				
@@ -273,34 +273,35 @@ public class MessagePasser {
 					return;
 				}	
 				
-				// establish the new socket
-				
-				// TEST
-				//System.out.println(remote_addr);
-				
+				// prepare remote ip_addr and port number
 				String[] addr = remote_addr.split("\\.");	
 				byte[] iaddr = {(byte)Integer.parseInt(addr[0]), (byte)Integer.parseInt(addr[1]), 
 						(byte)Integer.parseInt(addr[2]), (byte)Integer.parseInt(addr[3])};
 				InetAddress ia = InetAddress.getByAddress(iaddr);
 				
+				// create the socket, and connect to the other side
 				Socket s = new Socket(ia, port);	
-				System.out.println("we are here");
-
-		
+				
+				// after connected init the connection state information				
 				conn = new ConnState(message.dest, s);
 				conn.setObjectOutputStream(new ObjectOutputStream(s.getOutputStream()));
 				conn.setObjectInputStream(new ObjectInputStream(s.getInputStream()));
 				this.connections.put(remote_name, conn);
 				
-				// TEST
+				// send a LOGIN message immediately to notify the other side who am I
+				oos = this.connections.get(remote_name).getObjectOutputStream();
+				oos.writeObject(new Message(this.local_name, "", "LOGIN", null));
+				oos.flush();
 				
 			}
-			oos = this.connections.get(message.dest).getObjectOutputStream();
+			// else the connection is set up
+			else
+				oos = this.connections.get(message.dest).getObjectOutputStream();
 
-
-			// check against the send rules, and follow the first rule matched
+			// get the first rule matched against this outgoing message
 			HashMap rule = this.matchRules("send", message);
 			
+			// check against the send rules, and follow the first rule matched
 			if(rule != null) {
 				
 				// 3 actions: duplicate, drop, and delay
@@ -308,48 +309,60 @@ public class MessagePasser {
 				
 				// action: drop -- simply return
 				if(action.equals("drop")) {
-					System.out.println("******************************************************************");
+					
+					message.set_id(this.message_id.getAndIncrement());
+					
+					System.out.println("**************************************************************************");
 					System.out.println("send: src=" + this.local_name + ", dest=" + message.dest);
 					System.out.println("rule: drop");
-					System.out.println("******************************************************************");
+					System.out.println("**************************************************************************");
+					
 					return;
+					
 				}
+				
 				// action: duplicate -- send two identical messages, but with different message id
 				else if(action.equals("duplicate")) {
 
-					// step 1: send two identical messages
+					// step 1: send two identical messages, with same message_id
 					message.set_id(this.message_id.getAndIncrement());
 					oos.writeObject(message);
+					oos.flush();
+					conn.getAndIncrementOutMessageCounter();
 					
-					System.out.println("******************************************************************");
+					System.out.println("**************************************************************************");
 					System.out.println("send: src=" + this.local_name + ", dest=" + message.dest);
 					System.out.println("rule: duplicate");
-					System.out.println("******************************************************************");
+					System.out.println("**************************************************************************");
 					
-					conn.getAndIncrementOutMessageCounter();
-					message.set_id(this.message_id.getAndIncrement());
 					oos.writeObject(message);
-
-					System.out.println("******************************************************************");
-					System.out.println("send: src=" + this.local_name + ", dest=" + message.dest + ", id=" + message.id);
-					System.out.println("rule: n/a");
-					System.out.println("******************************************************************");
-					
+					oos.flush();
 					conn.getAndIncrementOutMessageCounter();
+
+					System.out.println("**************************************************************************");
+					System.out.println("send: src=" + this.local_name + ", dest=" + message.dest + ", id=" + message.id);
+					System.out.println("rule: duplicated message");
+					System.out.println("**************************************************************************");
+					
 					
 					// step 2: flush send buffer
 					ArrayList<Message> delayed_messages = this.send_buf.nonblockingTakeAll();
 					while(!delayed_messages.isEmpty()) {
+						
 						Message dl_message = delayed_messages.remove(0);
+						
 						dl_message.set_id(this.message_id.getAndIncrement());
 						oos.writeObject(dl_message);
+						oos.flush();
+						conn.getAndIncrementOutMessageCounter();
+
 						System.out.println("******************************************************************");
 						System.out.println("send: src=" + this.local_name + ", dest=" + dl_message.dest + ", id=" + dl_message.id);
-						System.out.println("rule: n/a");
+						System.out.println("rule: delayed message released");
 						System.out.println("******************************************************************");
-						conn.getAndIncrementOutMessageCounter();
 					}
 				}
+				
 				// action: delay -- put the message in the send_buf
 				else {
 					
@@ -361,32 +374,41 @@ public class MessagePasser {
 					System.out.println("******************************************************************");
 				}
 			}
+			
 			// no rule matched
 			else {
+				
 				try {
 					
 					// step 1: write this object to the socket
 					message.set_id(this.message_id.getAndIncrement());
 					oos.writeObject(message);
-					
-					System.out.println("******************************************************************");
-					System.out.println("send: src=" + this.local_name + ", dest=" + message.dest + ", id=" + message.id);
-					System.out.println("rule: n/a");
-					System.out.println("******************************************************************");
-					
+					oos.flush();
 					conn.getAndIncrementOutMessageCounter();
 					
-					// step 2: flush all delayed messages
+					System.out.println("**************************************************************************");
+					System.out.println("send: src=" + this.local_name + ", dest=" + message.dest + ", id=" + message.id);
+					System.out.println("rule: n/a");
+					System.out.println("**************************************************************************");
+										
+					// step 2: send all delayed messages
+					// TEST
+					System.out.println("There are " + this.send_buf.size() + " message in the send_buf");					
 					ArrayList<Message> delayed_messages = this.send_buf.nonblockingTakeAll();
 					while(!delayed_messages.isEmpty()) {
+						
+						// send single delayed message at once
 						Message dl_message = delayed_messages.remove(0);
 						dl_message.set_id(this.message_id.getAndIncrement());
 						oos.writeObject(dl_message);
-						System.out.println("******************************************************************");
-						System.out.println("send: src=" + this.local_name + ", dest=" + dl_message.dest + ", id=" + dl_message.id);
-						System.out.println("rule: n/a");
-						System.out.println("******************************************************************");
+						oos.flush();
 						conn.getAndIncrementOutMessageCounter();
+						
+						System.out.println("**************************************************************************");
+						System.out.println("send: src=" + this.local_name + ", dest=" + dl_message.dest + ", id=" + dl_message.id);
+						System.out.println("rule: delayed message released");
+						System.out.println("**************************************************************************");
+						
 					}
 					
 				} catch(Exception e) {
@@ -406,7 +428,18 @@ public class MessagePasser {
 	 * If it takes a message with "drop", it will return null
 	 */
 	public Message receive() {
+		
+		// retrieve from the rcv_delay_buf if it is ready
+		if(!this.rcv_delay_buf_ready.equals(0)) {
+			
+			this.rcv_delay_buf_ready.decrementAndGet();
+			return this.rcv_buf.blockingTake();
+			
+		}
+		
+		// get blocked here until one message comes
 		Message message = this.rcv_buf.blockingTake();
+		
 		// check against receive rules
 		HashMap rule = this.matchRules("receive", message);
 		
@@ -417,66 +450,86 @@ public class MessagePasser {
 
 			// single rule matched
 			if(rule != null) {
+				
 				// 3 actions: duplicate, drop, and delay
-				// Get the action at first !!!!
 				String action = rule.get("action").toString();
+				
 				// 1: drop -- drop the message and return null
 				if(action.equals("drop")) {
-					conn.getAndIncrementInMessageCounter();
+					
 					System.out.println("******************************************************************");
 					System.out.println("receive: src=" + message.src + ", dest=" + local_name + ", id=" + message.id);
 					System.out.println("rule: drop");
 					System.out.println("******************************************************************");
+					
+					// it will not increment the incoming message counter
 					return null;
 				}
+				
 				// 2: duplicate 
 				else if(action.equals("duplicate")) {
-					// step 1: duplicate another message, and append it to the tail of the rcv_buf
-					this.rcv_buf.nonblockingOffer(message);
+					
+					// step 1: duplicate another message, and append it to the tail of the rcv_delayed_buf
+					this.rcv_delayed_buf.nonblockingOffer(message);
+					
 					System.out.println("******************************************************************");
 					System.out.println("receive: src=" + message.src + ", dest=" + local_name + ", id=" + message.id);
 					System.out.println("rule: duplicate");
 					System.out.println("******************************************************************");
 					
-					// step 2: move all delayed messages in the rcv_delay_buf to the rcv_buf
-					ArrayList<Message> delayed_messages = this.rcv_delayed_buf.nonblockingTakeAll();
-					while(!delayed_messages.isEmpty()) {
-						Message dl_message = delayed_messages.remove(0);
-						this.rcv_buf.nonblockingOffer(dl_message);
-					}
+//					// step 2: move all delayed messages in the rcv_delay_buf to the rcv_buf
+//					ArrayList<Message> delayed_messages = this.rcv_delayed_buf.nonblockingTakeAll();
+//					while(!delayed_messages.isEmpty()) {
+//						Message dl_message = delayed_messages.remove(0);
+//						this.rcv_buf.nonblockingOffer(dl_message);
+//					}
 					
 					// step 3: return message
-					conn.getAndIncrementInMessageCounter();					
 					System.out.println("******************************************************************");
-					System.out.println("send: src=" + message.src + ", dest=" + this.local_name + ", id=" + message.id);
+					System.out.println("receive: src=" + message.src + ", dest=" + this.local_name + ", id=" + message.id);
 					System.out.println("rule: n/a");
 					System.out.println("******************************************************************");
+					
+					// set the delay buffer as ready
+					this.rcv_delay_buf_ready.set(this.rcv_delayed_buf.size());
+					
+					conn.getAndIncrementInMessageCounter();					
 					return message;
 				}
 				// 3: delay -- put it to the rcv_delay_buf and return null
 				else {
+					
 					this.rcv_delayed_buf.nonblockingOffer(message);
+					
 					System.out.println("******************************************************************");
-					System.out.println("send: src=" + message.src + ", dest=" + this.local_name + ", id=" + message.id);
+					System.out.println("receive: src=" + message.src + ", dest=" + this.local_name + ", id=" + message.id);
 					System.out.println("rule: delay");
 					System.out.println("******************************************************************");
+					
 					return null;
 				}
 			}
+			
 			// no rule matched
 			else {
-				// step 1: move all delayed messages in the rcv_delay_buf to the rcv_buf
-				ArrayList<Message> delayed_messages = this.rcv_delayed_buf.nonblockingTakeAll();
-				while(!delayed_messages.isEmpty()) {
-					Message dl_message = delayed_messages.remove(0);
-					this.rcv_buf.nonblockingOffer(dl_message);
-				}
+				
+//				// step 1: move all delayed messages in the rcv_delay_buf to the rcv_buf
+//				ArrayList<Message> delayed_messages = this.rcv_delayed_buf.nonblockingTakeAll();
+//				while(!delayed_messages.isEmpty()) {
+//					Message dl_message = delayed_messages.remove(0);
+//					this.rcv_buf.nonblockingOffer(dl_message);
+//				}
 				
 				// step 2: return message
 				System.out.println("******************************************************************");
-				System.out.println("send: src=" + message.src + ", dest=" + this.local_name + ", id=" + message.id);
+				System.out.println("receive: src=" + message.src + ", dest=" + this.local_name + ", id=" + message.id);
 				System.out.println("rule: n/a");
 				System.out.println("******************************************************************");
+				
+				// set delay buffer as ready
+				this.rcv_delay_buf_ready.set(this.rcv_delayed_buf.size());
+				
+				conn.getAndIncrementInMessageCounter();
 				return message;
 			}
 						
@@ -494,8 +547,7 @@ public class MessagePasser {
 		 *Using TCP sockets, so keep the connection alive for more than just the 
 		 *send/receive of a message.
 		 */
-		
-		
+			
 	}
 	
 	
@@ -865,6 +917,8 @@ public class MessagePasser {
 	}
 }
 
+
+
 /*
  * Describe the connection state with another remote end
  * The MessagePasser should keep a set of ConnStates
@@ -952,48 +1006,60 @@ class ServerThread implements Runnable {
 				break;
 		}
 		
-		// if no such name, terminate the application
+		// if no such local name, terminate the application
 		if(i == this.mmp.max_vals) {
 			// TEST !!!
 			System.out.println("No such name: " + mmp.local_name);
 			System.exit(0);
 		} 
+		
 		// local name found, setup the local server
 		else 
 			try {
+				
 				// Init the local listening socket
 				ServerSocket socket = new ServerSocket(Integer.parseInt(this.mmp.conf[2][i]));
+				
 				// TEST
 				System.out.println("we are listening at: " + this.mmp.conf[2][i]);
 				
+				// keep listening on the WELL-KNOWN port
 				while(true) {
 					Socket s = socket.accept();
 					
-					// find the remote end's name
-					InetAddress iaddr = s.getInetAddress();
-					String ip = iaddr.getHostAddress();
-					String port = "" + s.getPort();
-					String remote_name = "";
-					for(i = 0; i < 10; i++) 
-						if(this.mmp.conf[1][i].equals(ip) && this.mmp.conf[2][i].equals(port)) {
-							remote_name = this.mmp.conf[0][i];
-							break;
-						}
+					ObjectInputStream ois_tmp = new ObjectInputStream(s.getInputStream());
+					Message login_msg = (Message)ois_tmp.readObject();
+					String remote_name = login_msg.src;
 					
-					// if remote client not found, ignore and continue
-					if(remote_name.equals("")) {
-						System.out.println("Denied a connection from a anonymous client.");
-						continue;
-					}
+//					// find the remote end's name
+//					InetAddress iaddr = s.getInetAddress();
+//					String ip = iaddr.getHostAddress();
+//					String port = "" + s.getPort();
+//					String remote_name = "";
+//					for(i = 0; i < 10; i++) 
+//						if(this.mmp.conf[1][i].equals(ip)) { // && this.mmp.conf[2][i].equals(port)) {
+//							remote_name = this.mmp.conf[0][i];
+//							break;
+//						}
+//					
+//					// if remote client not found, ignore and continue
+//					if(remote_name.equals("")) {
+//						System.out.println("Denied a connection from an anonymous client.");
+//						continue;
+//					}
 					
 					// Put the new socket into mmp's ConnState
 					ConnState conn_state = new ConnState(remote_name, s);
 					conn_state.setObjectOutputStream(new ObjectOutputStream(s.getOutputStream()));
 					conn_state.setObjectInputStream(new ObjectInputStream(s.getInputStream()));
-					this.mmp.connections.put(remote_name, new ConnState(remote_name, s));
+					this.mmp.connections.put(remote_name, conn_state);
 					
 					// create a new thread to get input stream from this connection
 					Runnable receiveRunnable = new ReceiveThread(remote_name);
+					
+					// TEST
+					System.out.println("we are here");
+					Thread.sleep(5000);
 					Thread receiveThread = new Thread(receiveRunnable);
 					receiveThread.start();
 									
@@ -1038,6 +1104,11 @@ class ReceiveThread implements Runnable {
 		while(true) {
 			try {
 				// read one message from the socket at once 
+				// TEST
+				if(ois == null) {
+					System.out.println("Oh no NULL !");
+					Thread.sleep(2000);
+				}
 				Message message = (Message)ois.readObject(); 
 				
 				// put it into the MessagePasser's rcv_buf
