@@ -78,7 +78,6 @@ public class TestSuite {
 						kind = fields[2];
 						data = null;
 						Message newMsg = new Message(src, dest, kind, data);
-						newMsg = newMsg.build_message(newMsg);
 						mp.send(newMsg);
 						break;
 					case 2: //receive request

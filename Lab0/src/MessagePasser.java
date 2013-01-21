@@ -19,6 +19,8 @@ public class MessagePasser {
 	String[][] conf = new String[max_vals][max_config_items];
 	String[][] send_rules = new String[max_vals][max_config_items]; 
 	String[][] recv_rules = new String[max_vals][max_config_items]; 
+	String[] conf_headers = {"name", "ip", "port"};
+	String[] send_recv_headers = {"action", "src", "dest", "kind", "id", "nth", "everynth"};
 	
 	// IMPORTANT !!!
 	// new fields from Jasper: 
@@ -87,20 +89,12 @@ public class MessagePasser {
 		if(type.equals("send"))
 		{
 			for(int i=0; i<send_rules.length; i++)
-			{
-				if(send_rules[i][header].equals("*"))
-					continue;
 				rule.put(send_rules[i][header], send_rules[i][ctr]);
-			}
 		}
 		else if(type.equals("receive"))
 		{
 			for(int i=0; i<recv_rules.length; i++)
-			{
-				if(recv_rules[i][header].equals("*"))
-					continue;
 				rule.put(recv_rules[i][header], recv_rules[i][ctr]);
-			}
 		}
 	}
 	
@@ -113,7 +107,7 @@ public class MessagePasser {
 		 */
 		
 		int header = 0;
-		String field_name = "";
+		//String field_name = "";
 		HashMap rule = new HashMap();
 		
 		String[][] tmp = null;
@@ -135,83 +129,79 @@ public class MessagePasser {
 		{
 			rule = new HashMap();
 			buildRule(rule, i, type); //builds the current rule
-			field_name = tmp[i][header].toLowerCase();
-
-			if(rule.get(field_name) == null)
+			/* Grab each rule that we build and check its fields against those in the message */
+			
+			for(int j=0; j<send_recv_headers.length; j++)
 			{
-				if(i<tmp.length-1) //we're not at the end of the fields
-					continue;
+				//iterate through each of the fields and check if the rule value and the message vals match.
+				int ctr;
+				String field_name = send_recv_headers[j]; //the current field we're trying to check
+				String vals = rule.values().toString().replaceAll("[\\[,\\] ]", "");
+				
+				if(vals.matches("^\\**$")) //and all fields were wildcards, including action (thus not a real rule)
+				{					
+					rule = null;
+					System.out.println("Rule matching FAILED on "+field_name);
+					break; //it didn't match
+				}
+				else if(field_name.equals("action")) //we don't act on this here
+						continue;
+				else if(field_name.equals("id")) //we have to access this specially
+				{
+					ctr = this.message_id.get();
+					System.out.println("Trying to match "+field_name+" "+rule.get(field_name)+" with "+ctr);
+					if(!rule.get(field_name).equals(ctr+"") && !rule.get(field_name).equals("*"))
+					{
+						rule = null;
+						System.out.println("Rule matching FAILED on "+field_name);
+						break; //it didn't match
+					}
+					else
+						System.out.println("We matched "+field_name);
+				}
+				else if(field_name.equals("nth")) //we have to access this specially
+				{
+					if(type.equals("send"))
+						ctr = this.connections.get(message.getVal("dest", message)).getOutMessageCounter();
+					else //receive 
+						ctr = this.connections.get(message.getVal("dest", message)).getInMessageCounter();
+					System.out.println("Trying to match "+field_name+" "+rule.get(field_name)+" with "+ctr);
+					if(!rule.get(field_name).equals("*") && !rule.get(field_name).equals(ctr+""))
+					{
+						rule = null;
+						System.out.println("Rule matching FAILED on "+field_name);
+						break; //it didn't match
+					}
+					else
+						System.out.println("We matched "+field_name);
+				}
+				else if(field_name.equals("everynth")) //we have to access this specially
+				{
+					if(type.equals("send"))
+						ctr = this.connections.get(message.getVal("dest", message)).getOutMessageCounter();
+					else//receive
+						ctr = this.connections.get(message.getVal("dest", message)).getInMessageCounter();
+					System.out.println("Trying to match "+field_name+" "+rule.get(field_name)+" with "+ctr);
+					if(!rule.get(field_name).equals("*") && !rule.get(field_name).equals(ctr % Integer.parseInt((String) rule.get(field_name))))
+					{
+						rule = null;
+						System.out.println("Rule matching FAILED on "+field_name);
+						break; //it didn't match
+					}
+					else
+						System.out.println("We matched "+field_name);
+				}
 				else
 				{
-					rule = null; //at end of fields, so rule obviously failed
-					break;
-				}
-			}
-			else
-			{   //if one of the fields matches
-				if(rule.get(field_name).toString().equalsIgnoreCase(message.getVal(field_name, message)) || rule.get(field_name).toString().equals("*"))
-				{
-					for(int k=0; k<tmp[k].length; k++) //go through all of the fields in the rule to see if each matches
+					System.out.println("Trying to match "+field_name+" "+rule.get(field_name)+" with "+message.getVal(field_name, message));
+					if(!rule.get(field_name).toString().equalsIgnoreCase(message.getVal(field_name, message)) && !rule.get(field_name).equals("*"))
 					{
-						field_name = tmp[k][header].toLowerCase();
-
-						if(field_name.equals("*")) //gone through all fields
-						{
-							if(k == rule.values().size())
-							{							
-								String vals = rule.values().toString().replaceAll("[\\[,\\] ]", "");
-								
-								if(vals.matches("^\\**$")) //and all fields were wildcards
-									rule = null; //reset rule, because it's not valid
-								return rule; //already done with the rule and we matched everything
-							}
-							break; 
-						}
-						int ctr; //for (every)nth fields
-
-						if(rule.get(field_name) == null)
-							continue;
-						if(field_name.equalsIgnoreCase("action")) //we don't act on this here
-							continue;
-						if(field_name.equalsIgnoreCase("id")) //check for ID match
-						{
-							ctr = this.message_id.get();
-							if(!rule.get(field_name).equals(ctr+"") && !rule.get(field_name).equals("*"))
-								break; //it didn't match
-						}
-						if(field_name.equalsIgnoreCase("nth")) //check out Nth field
-						{
-							if(type.equals("send"))
-								ctr = this.connections.get(message.getVal("dest", message)).getOutMessageCounter();
-							else //receive 
-								ctr = this.connections.get(message.getVal("dest", message)).getInMessageCounter();
-
-							if(!rule.get(field_name).equals("*") && !rule.get(field_name).equals(ctr+""))
-								break; //it didn't match
-						}
-						if(field_name.equalsIgnoreCase("everynth")) //check out EveryNth field
-						{
-							if(type.equals("send"))
-								ctr = this.connections.get(message.getVal("dest", message)).getOutMessageCounter();
-							else//receive
-								ctr = this.connections.get(message.getVal("dest", message)).getInMessageCounter();
-							
-							if(!rule.get(field_name).equals("*") && !rule.get(field_name).equals(ctr % Integer.parseInt((String) rule.get(field_name))))
-								break; //it didn't match
-						}
-						if(!rule.get(field_name).toString().equalsIgnoreCase(message.getVal(field_name, message))) //if remaining fields don't match
-						{
-							if(!rule.get(field_name).toString().equals("*")) //and the field's value is not a wildcard
-							{
-								rule = null; //clear rule, because it didn't match
-								break;
-							}
-						}
+						rule = null;
+						System.out.println("Rule matching FAILED on "+field_name);
+						break; //it didn't match
 					}
-				}
-				else //the original field checked didn't match
-				{
-					rule = null; //clear the rule, because it didn't match
+					else
+						System.out.println("We matched "+field_name);
 				}
 			}
 		}
@@ -262,6 +252,10 @@ public class MessagePasser {
 				byte[] iaddr = {(byte)Integer.parseInt(addr[0]), (byte)Integer.parseInt(addr[1]), 
 						(byte)Integer.parseInt(addr[2]), (byte)Integer.parseInt(addr[3])};
 				InetAddress ia = InetAddress.getByAddress(iaddr);
+				
+				
+				//HashMap rule = this.matchRules("send", message); //TEMPORARILY MOVING UP FOR TESTING; delete after done
+				
 				
 				// create the socket, and connect to the other side
 				Socket s = new Socket(ia, port);	
@@ -516,9 +510,6 @@ public class MessagePasser {
 	{
 		/* Statically defines the headers for each of the arrays */
 		
-		String[] conf_headers = {"name", "ip", "port"};
-		String[] send_recv_headers = {"action", "src", "dest", "kind", "id", "nth", "everynth"};
-		
 		for(int i=0; i<conf_headers.length; i++)
 			conf[i][0] = conf_headers[i];
 		
@@ -574,8 +565,8 @@ public class MessagePasser {
 		{
 			Map.Entry me = (Map.Entry)i.next();
 			file_part = me.getKey().toString().toLowerCase();
-			System.out.println("\nRaw parsed data --> "+file_part+": ");
-			System.out.println(me.getValue());
+			//System.out.println("\nRaw parsed data --> "+file_part+": ");
+			//System.out.println(me.getValue());
 			ArrayList<String> inner = new ArrayList<String>();
 			inner.add(me.getValue().toString());
 			whole = inner.toString();
@@ -625,7 +616,7 @@ public class MessagePasser {
 				//System.out.println("arr["+j+"]["+key+"] is "+arr[j][key]);
 				if(arr[j][key].equals(choices[key])) //we found the correct heading
 				{
-					System.out.println("Stored "+choices[val]+" in arr"+j+" "+rule_num);
+					//System.out.println("Stored "+choices[val]+" in arr"+j+" "+rule_num);
 					arr[j][rule_num] = choices[val]; //only set the ones with real values; all the rest stay as a wildcard
 					break; //go to next pair instead of continuing through loop needlessly
 				}

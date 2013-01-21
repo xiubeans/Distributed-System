@@ -10,5 +10,5 @@ public class CONSTANTS {
 	public static final String USER = "dpearson";						// Andrew ID
 	public static final String PWD = "";						// Andrew password
 	public static final String CONFIGFILE = "/afs/andrew.cmu.edu/usr4/dpearson/DS/test.yaml";					// Remote file path on AFS
-	public static final String LOCALPATH = "/Users/dpearso/Downloads";					// relative path where to put the download file
+	public static final String LOCALPATH = ""; // relative path where to put the download file
 }
