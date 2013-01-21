@@ -30,11 +30,17 @@ public class TestSuite {
 			
 			/* get a local copy of the config from AFS */
 			SFTPConnection svr_conn = new SFTPConnection();
-			svr_conn.connect("unix.andrew.cmu.edu", "dpearson");
+			svr_conn.connect("unix.andrew.cmu.edu", "zhechen");
 	    	local_modification_time = svr_conn.getLastModificationTime(CONSTANTS.CONFIGFILE); // record the time-stamp of YAML file
-	    	svr_conn.downloadFile(CONSTANTS.CONFIGFILE, CONSTANTS.LOCALPATH); // download the YAML file and put it where it's expected
+	    	// TEST !!!
+	    	// System.out.println(local_modification_time);
+	    	svr_conn.downloadFile(CONSTANTS.CONFIGFILE, CONSTANTS.LOCALPATH); // download the YAML file and put it where it's expected	    	
+			MessagePasser mp = MessagePasser.getInstance();		
 			
-			MessagePasser mp = new MessagePasser(config_file, local_name);
+			// TEST !!!
+			// System.out.println("Created");
+			
+			mp.setConfigAndName(config_file, local_name);
 			mp.parseConfig(config_file); //parse the config file
 			mp.initSockets(); //setup sockets for all user connections from config file
 			

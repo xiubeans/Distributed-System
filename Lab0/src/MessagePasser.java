@@ -93,6 +93,7 @@ public class MessagePasser {
 		 * examination. */
 		
 		int header = 0;
+		System.out.println("Building rule "+ctr);
 		
 		if(type.equals("send"))
 		{
@@ -128,107 +129,166 @@ public class MessagePasser {
 		{
 			for(int i=0; i<send_rules.length; i++)
 			{
-				for(int j=1; j<send_rules[i].length; j++)
+				rule = new HashMap();
+				buildRule(rule, i, type); //builds the current rule
+				//System.out.println(rule.keySet()+" "+rule.values());
+				//System.out.println(send_rules[i][header]);
+				field_name = send_rules[i][header].toLowerCase();
+				//System.out.println("Got value "+rule.get(field_name)+" for "+field_name);
+				if(rule.get(field_name) == null)
 				{
-					buildRule(rule, j, type); //builds the current rule
-					//System.out.println(rule.keySet()+" "+rule.values());
-					//System.out.println(send_rules[i][header]);
-					field_name = send_rules[i][header].toLowerCase();
-					if(field_name.equals("src"))
+					if(i<send_rules.length-1)
+						continue;
+					else
 					{
-						//if we have the right field, let's check if the rule value (or *) matches the user input src
-						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
-							continue; //it didn't match, so go on to the next rule
+						rule = null;
+						break;
 					}
-					if(field_name.equals("dest")) //continual IFs because we want to make sure all fields listed in rule match
+				}
+				else
+				{
+					if(rule.get(field_name).toString().equalsIgnoreCase(message.getVal(field_name, message)) || rule.get(field_name).toString().equals("*")) //if one of the fields matches
 					{
-						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
-							continue;
-					}	
-					if(field_name.equals("kind"))
-					{
-						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
-							continue;
-					}
-					if(field_name.equals("id"))
-					{
-						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
-							continue;
-					}
-					if(field_name.equals("nth"))
-					{
-						//get the out counters to check
-						int ctr = this.connections.get(message.getVal("dest", message)).getOutMessageCounter();
-						if(!rule.get(field_name).equals("*") || !rule.get(field_name).equals(ctr+""))
-							continue; //go to the next rule, because we failed a check
-					}
-					if(field_name.equals("everynth"))
-					{
-						int ctr = this.connections.get(message.getVal("dest", message)).getOutMessageCounter();
-						if(!rule.get(field_name).equals("*") || !rule.get(field_name).equals(ctr % Integer.parseInt((String) rule.get(field_name))))
-							continue;
+						//System.out.println("Send Rule fields: "+rule.keySet()+": "+rule.values());
+						//System.out.println("Message fields: ");
+						for(int k=0; k<send_rules[k].length; k++) //go through all of the fields in the rule to see if it matches
+						{
+							field_name = send_rules[k][header].toLowerCase();
+							//System.out.println(field_name+": "+message.getVal(field_name, message));
+							if(field_name.equals("*")) //gone through all fields
+							{
+								//System.out.println("K: "+k+" and num through rule vals: "+rule.values().size());
+								if(k == rule.values().size())
+								{
+									String vals = rule.values().toString().replaceAll("[\\[,\\] ]", "");
+									//System.out.println("Vals: "+vals);
+									if(vals.matches("^\\**$"))
+									{
+										rule = null; //reset rule, because it's not valid
+										//System.out.println(vals+" is only stars");
+									}
+									return rule; //already done with the rule and we matched everything
+								}
+								break;
+							}
+							if(rule.get(field_name) == null)
+								continue;
+							if(field_name.equalsIgnoreCase("action")) //we don't act on this here
+								continue;
+							if(!rule.get(field_name).toString().equalsIgnoreCase(message.getVal(field_name, message))) //if a field doesn't match
+							{
+								if(!rule.get(field_name).toString().equals("*")) //and it's not a wildcard
+								{
+									System.out.println(rule.get(field_name).toString()+" does not match "+message.getVal(field_name, message));
+									rule = null;
+									break;
+								}
+								else
+								{
+									System.out.println(rule.get(field_name).toString()+" matches "+message.getVal(field_name, message));
+									//return rule; 
+								}
+							}
+							else
+							{
+								System.out.println(rule.get(field_name).toString()+" MATCHES "+message.getVal(field_name, message));
+								//return rule; 
+							}
+						}
 					}
 					else
 					{
-						System.out.println("Don't forget to add a check for "+field_name+"!");
-						continue;	
+						//System.out.println("Setting rule to null");
+						rule = null;
 					}
 				}
 			}
+			return rule; //we matched everything, so go ahead and return...?
 		}
 		else if(type.equals("receive"))
 		{
 			for(int i=0; i<recv_rules.length; i++)
 			{
-				for(int j=1; j<recv_rules[i].length; j++)
+				rule = new HashMap();
+				buildRule(rule, i, type); //builds the current rule
+				//System.out.println(rule.keySet()+" "+rule.values());
+				//System.out.println(recv_rules[i][header]);
+				field_name = recv_rules[i][header].toLowerCase();
+				//System.out.println("Got value "+rule.get(field_name)+" for "+field_name);
+				if(rule.get(field_name) == null)
 				{
-					buildRule(rule, j, type); //builds the current rule
-					//System.out.println(rule.keySet()+" "+rule.values());
-					//System.out.println(send_rules[i][header]);
-					field_name = recv_rules[i][header].toLowerCase();
-					if(field_name.equals("src"))
+					if(i<recv_rules.length-1)
+						continue;
+					else
 					{
-						//if we have the right field, let's check if the rule value (or *) matches the user input src
-						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
-							continue; //it didn't match, so go on to the next rule
+						rule = null;
+						break;
 					}
-					if(field_name.equals("dest")) //continual IFs because we want to make sure all fields listed in rule match
+				}
+				else
+				{
+					if(rule.get(field_name).toString().equalsIgnoreCase(message.getVal(field_name, message)) || rule.get(field_name).toString().equals("*")) //if one of the fields matches
 					{
-						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
-							continue;
-					}	
-					if(field_name.equals("kind"))
-					{
-						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
-							continue;
-					}
-					if(field_name.equals("id"))
-					{
-						if(!rule.get(field_name).equals(message.getVal(field_name, message)) || !rule.get(field_name).equals("*"))
-							continue;
-					}
-					if(field_name.equals("nth"))
-					{
-						int ctr = this.connections.get(message.getVal("dest", message)).getInMessageCounter();
-						if(!rule.get(field_name).equals("*") || !rule.get(field_name).equals(ctr+""))
-							continue; //go to the next rule, because we failed a check
-					}
-					if(field_name.equals("everynth"))
-					{
-						int ctr = this.connections.get(message.getVal("dest", message)).getInMessageCounter();
-						if(!rule.get(field_name).equals("*") || !rule.get(field_name).equals(ctr % Integer.parseInt((String) rule.get(field_name))))
-							continue;
+						//System.out.println("Send Rule fields: "+rule.keySet()+": "+rule.values());
+						//System.out.println("Message fields: ");
+						for(int k=0; k<recv_rules[k].length; k++) //go through all of the fields in the rule to see if it matches
+						{
+							field_name = recv_rules[k][header].toLowerCase();
+							//System.out.println(field_name+": "+message.getVal(field_name, message));
+							if(field_name.equals("*")) //gone through all fields
+							{
+								//System.out.println("K: "+k+" and num through rule vals: "+rule.values().size());
+								if(k == rule.values().size())
+								{
+									String vals = rule.values().toString().replaceAll("[\\[,\\] ]", "");
+									//System.out.println("Vals: "+vals);
+									if(vals.matches("^\\**$"))
+									{
+										rule = null; //reset rule, because it's not valid
+										//System.out.println(vals+" is only stars");
+									}
+									return rule; //already done with the rule and we matched everything
+								}
+								break;
+							}
+							if(rule.get(field_name) == null)
+								continue;
+							if(field_name.equalsIgnoreCase("action")) //we don't act on this here
+								continue;
+							if(!rule.get(field_name).toString().equalsIgnoreCase(message.getVal(field_name, message))) //if a field doesn't match
+							{
+								if(!rule.get(field_name).toString().equals("*")) //and it's not a wildcard
+								{
+									System.out.println(rule.get(field_name).toString()+" does not match "+message.getVal(field_name, message));
+									rule = null;
+									break;
+								}
+								else
+								{
+									System.out.println(rule.get(field_name).toString()+" matches "+message.getVal(field_name, message));
+									//return rule; 
+								}
+							}
+							else
+							{
+								System.out.println(rule.get(field_name).toString()+" MATCHES "+message.getVal(field_name, message));
+								//return rule; 
+							}
+						}
 					}
 					else
 					{
-						System.out.println("Don't forget to add a check for "+field_name+"!");
-						continue;	
+						//System.out.println("Setting rule to null");
+						rule = null;
 					}
 				}
 			}
+			return rule; //return the representation of the rule matched to use for handling
 		}
-		return rule; //return the representation of the rule matched to use for handling
+		System.out.println("Got to wayyy outside return of rule "+rule.keySet());
+		return rule;
 	}
+
 	
 	
 	/*
@@ -901,6 +961,7 @@ public class MessagePasser {
 			svr_conn.connect(CONSTANTS.HOST, CONSTANTS.USER);
 		clearCounters(); //GET RID OF THIS specific instance of the function...just so we don't forget to do this (such as for below)
     	global_modification_time = svr_conn.getLastModificationTime(CONSTANTS.CONFIGFILE); // record the time-stamp of YAML file
+    	System.out.println("Global time: "+global_modification_time+" and\nLocal time : "+local_modification_time);
     	if(global_modification_time != local_modification_time)
     	{
     		svr_conn.downloadFile(CONSTANTS.CONFIGFILE, CONSTANTS.LOCALPATH); // download the YAML file
