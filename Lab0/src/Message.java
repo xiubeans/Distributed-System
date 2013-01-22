@@ -23,7 +23,6 @@ public class Message implements Serializable {
 	public void set_id(int id) 
 	{ 
 		// used by MessagePasser.send, not your app
-		//set original values???
 		this.id = id;
 		
 	}

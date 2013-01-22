@@ -15,7 +15,7 @@ public class MessageBuffer {
 	/*
 	 * Constructor
 	 * Parameter:
-	 * 	max_size: the max numbder of Message the buffer can hold
+	 * 	max_size: the max number of Message the buffer can hold
 	 */
 	public MessageBuffer(int max_size) {
 		this.max_size = max_size;
