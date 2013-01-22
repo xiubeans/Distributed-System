@@ -38,6 +38,7 @@ public class TestSuite {
 			mp.setConfigAndName(config_file, local_name);
 			mp.initHeaders();
 			mp.parseConfig(config_file); //parse the config file
+			mp.runServer();
 			
 			while(true)
 			{

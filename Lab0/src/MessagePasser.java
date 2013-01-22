@@ -256,14 +256,15 @@ public class MessagePasser {
 				
 				//HashMap rule = this.matchRules("send", message); //TEMPORARILY MOVING UP FOR TESTING; delete after done
 				
-				
+				System.out.println("Sending to"+ia.getHostAddress()+":"+port);
 				// create the socket, and connect to the other side
 				Socket s = new Socket(ia, port);	
-				
+				System.out.println("Connected");
 				// after connected init the connection state information				
 				conn = new ConnState(message.dest, s);
 				//conn.setObjectInputStream(new ObjectInputStream(s.getInputStream()));
 				conn.setObjectOutputStream(new ObjectOutputStream(s.getOutputStream()));
+				conn.setObjectInputStream(new ObjectInputStream(s.getInputStream()));
 				this.connections.put(remote_name, conn);
 				
 				// send a LOGIN message immediately to notify the other side who am I
@@ -271,7 +272,7 @@ public class MessagePasser {
 				
 				oos.writeObject(new Message(this.local_name, "", "LOGIN", null));
 				oos.flush();
-				conn.setObjectInputStream(new ObjectInputStream(s.getInputStream()));
+				//conn.setObjectInputStream(new ObjectInputStream(s.getInputStream()));
 			}
 			// else the connection is set up
 			else
@@ -407,18 +408,18 @@ public class MessagePasser {
 	 * If it takes a message with "drop", it will return null
 	 */
 	public Message receive() {
-		
+		System.out.println("Got to receive!");
 		// retrieve from the rcv_delay_buf if it is ready
 		if(!this.rcv_delay_buf_ready.equals(0)) {
-			
+			System.out.println("The buffer is ready to take from");
 			this.rcv_delay_buf_ready.decrementAndGet();
 			return this.rcv_buf.blockingTake();
 			
 		}
-		
+		System.out.println("at blocking");
 		// get blocked here until one message comes
 		Message message = this.rcv_buf.blockingTake();
-		
+		System.out.println("Got to message matching");
 		// check against receive rules
 		HashMap rule = this.matchRules("receive", message);
 		
@@ -949,14 +950,15 @@ class ServerThread implements Runnable {
 		// local name found, setup the local server
 		else 
 			try {
-				
+				System.out.println("We're TRYING TO listen on port "+this.mmp.conf[2][i]);
 				// Init the local listening socket
 				ServerSocket socket = new ServerSocket(Integer.parseInt(this.mmp.conf[2][i]));
-				
+				System.out.println("We do listen here");
 				// keep listening on the WELL-KNOWN port
 				while(true) {
 					Socket s = socket.accept();
-					
+					System.out.println("We're listening on port "+this.mmp.conf[2][i]);
+					ObjectOutputStream oos_tmp = new ObjectOutputStream(s.getOutputStream()); //my code
 					ObjectInputStream ois_tmp = new ObjectInputStream(s.getInputStream());
 					
 					Message login_msg = (Message)ois_tmp.readObject();
@@ -978,16 +980,19 @@ class ServerThread implements Runnable {
 //						System.out.println("Denied a connection from an anonymous client.");
 //						continue;
 //					}
-					
+					System.out.println("Got a connection from "+remote_name);
 					// Put the new socket into mmp's ConnState
 					ConnState conn_state = new ConnState(remote_name, s);
-					conn_state.setObjectOutputStream(new ObjectOutputStream(s.getOutputStream()));
+					System.out.println("Still good");
+					conn_state.setObjectOutputStream(oos_tmp);//new ObjectOutputStream(s.getOutputStream()));
+					conn_state.setObjectInputStream(ois_tmp);
 					this.mmp.connections.put(remote_name, conn_state);
 					// conn_state.setObjectInputStream(new ObjectInputStream(s.getInputStream()));
-
+					System.out.println("connections: "+this.mmp.connections.keys().toString());
 					// create a new thread to get input stream from this connection
 					Runnable receiveRunnable = new ReceiveThread(remote_name);
-					conn_state.setObjectInputStream(new ObjectInputStream(s.getInputStream()));
+					System.out.println("And now we explode after this line"); //maybe close ois_tmp?
+					//conn_state.setObjectInputStream(new ObjectInputStream(s.getInputStream()));
 
 					// TEST
 					//Thread.sleep(5000);
