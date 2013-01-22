@@ -269,8 +269,14 @@ public class MessagePasser {
 //				System.out.println("Nth/EveryNth msg val is: "+times);
 				//have to be careful here...if both Nth/Ev are *, keep the rule.
 				//if only one is a number, that number HAS TO MATCH (otherwise rule is null)
-				if((!(nth).equals("*") || !(everynth).equals("*")) && (!(nth).equals(times+"") && !everynth.equals(times+""))) //if neither is a * and none match
-					rule = null;
+				try{ //everyNth is a number
+					int eNth = Integer.parseInt(everynth);
+					if((!(nth).equals("*") || !(everynth).equals("*")) && (!(nth).equals(times+"") && !((times % eNth) == 0))) //if neither is a * and none match
+						rule = null;
+				} catch (NumberFormatException e) { //everyNth is not a number
+					if((!(nth).equals("*") || !(everynth).equals("*")) && (!(nth).equals(times+"") && !everynth.equals(times+"")))
+						rule = null;
+				}
 			}
 			
 			// check against the send rules, and follow the first rule matched
