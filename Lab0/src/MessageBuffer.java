@@ -24,8 +24,8 @@ public class MessageBuffer {
 	}
 	
 	/*
-	 * Insert the element into the buffer
-	 * Return: false if full; true upon success
+	 * Insert the element at the tail of the buffer
+	 * Return: false if full; true if success
 	 */
 	public boolean nonblockingOffer(Message message) {
 		boolean done = true;
@@ -45,6 +45,42 @@ public class MessageBuffer {
 		}
 		
 		return done;
+	}
+	
+	/*
+	 * Insert the elements at the head of the buffer
+	 * Return: false if full; true if success
+	 */
+	public boolean nonblockingOfferAtHead(Message message) {
+		
+		boolean done = true;
+		
+		// lock the buffer
+		this.buf_lock.lock();
+		try {
+			
+			// return false when hitting the upper bound
+			if(this.max_size == this.buf.size())
+				done = false;
+			// return true if success; otherwise return false
+			else {
+				
+				// dump all existing messages into the arraylist
+				ArrayList<Message> existing_messages = new ArrayList<Message>();;				
+				this.buf.drainTo(existing_messages);
+				
+				// add the message to the head of the list, and put all the list back to the buffer
+				existing_messages.add(0, message);
+				done = this.buf.addAll(existing_messages);
+				
+			}
+		} finally {
+			// unlock the buffer
+			this.buf_lock.unlock();
+		}
+		
+		return done;
+		
 	}
 	
 	/*
@@ -119,6 +155,7 @@ public class MessageBuffer {
 		
 		return buf_string;
 	}
+	
 	
 	public void print() {
 		System.out.print(this.toString());
