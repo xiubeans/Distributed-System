@@ -105,4 +105,23 @@ public class MessageBuffer {
 		return this.buf.size();
 	}
 	
+	@Override
+	public String toString() {
+		
+		String buf_string = "--> The message buffer has " + this.size() + " messages:\n";
+		
+		Iterator<Message> itr = this.buf.iterator();
+		// print all messages in the buffer
+		while(itr.hasNext()) {
+			Message one_msg = (Message)itr.next();
+			buf_string += "\t" + one_msg.toString() + "\n";
+		}
+		
+		return buf_string;
+	}
+	
+	public void print() {
+		System.out.print(this.toString());
+	}
+	
 }

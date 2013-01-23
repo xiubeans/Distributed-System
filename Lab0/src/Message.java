@@ -56,4 +56,15 @@ public class Message implements Serializable {
 	public Object getPayload() {
 		return this.payload;
 	}
+	
+
+	
+	@Override
+	public String toString() {
+		return "@ " + "Message: src = " + this.src + ", id = " + this.id + ", dest = " + this.dest + ", kind = " + this.kind;
+	}
+	
+	public void print() {
+		System.out.println(this.toString());
+	}
 }
