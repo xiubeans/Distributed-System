@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Scanner;
 
 public class TestSuite {	
+	static int local_modification_time = -1;	// record the latest time we download the YAML file
 	
 	/* If the src and dest match, kick it out as invalid input. Put this somewhere. */
 	public static void main(String[] args)
@@ -18,7 +19,6 @@ public class TestSuite {
 		String dest = "";
 		String kind = "";
 		int user_action = 0;
-		int local_modification_time = -1;	// record the latest time we download the YAML file
 		int global_modification_time = -1;  // record the latest time on servers
 		int expectedNumArgs = 2;
 		
@@ -31,7 +31,8 @@ public class TestSuite {
 			/* get a local copy of the config from AFS */
 			SFTPConnection svr_conn = new SFTPConnection();
 			svr_conn.connect("unix.andrew.cmu.edu", "dpearson");
-	    	local_modification_time = svr_conn.getLastModificationTime(CONSTANTS.CONFIGFILE); // record the time-stamp of YAML file
+	    	TestSuite.local_modification_time = svr_conn.getLastModificationTime(CONSTANTS.CONFIGFILE); // record the time-stamp of YAML file
+	    	System.out.println("At beginning, remote time: "+TestSuite.local_modification_time+" and local time: "+global_modification_time);
 	    	svr_conn.downloadFile(CONSTANTS.CONFIGFILE, CONSTANTS.LOCALPATH); // download the YAML file and put it where it's expected	    	
 			MessagePasser mp = MessagePasser.getInstance();		
 			
@@ -63,9 +64,11 @@ public class TestSuite {
 					case 1: //send request
 						System.out.println("Usage: send <dest> <kind>");
 						user_input = cmd_line_input.nextLine(); //get the input and check it (pass back out to user if garbage input)
-						
-						if(!mp.isNewestConfig(local_modification_time, global_modification_time, svr_conn))
+						System.out.println("BEFORE isNewestConfig Return:\nLocal: "+TestSuite.local_modification_time+"\nGlobal: "+global_modification_time);
+						if(!mp.isNewestConfig(svr_conn))
 							mp.parseConfig(config_file);
+					
+						System.out.println("AFTER isNewestConfig Return:\nLocal: "+TestSuite.local_modification_time+"\nGlobal: "+global_modification_time);
 						
 						if(!mp.validateUserRequests(user_input, mp, local_name)) //check user input
 						{	
@@ -84,16 +87,17 @@ public class TestSuite {
 					case 2: //receive request
 						System.out.println("Usage: receive");
 						user_input = cmd_line_input.nextLine(); //get the input and check it (pass back out to user if garbage input)
-						
-						if(!mp.isNewestConfig(local_modification_time, global_modification_time, svr_conn)) //MAKE THIS transparent to user!
+						System.out.println("BEFORE isNewestConfig Return:\nLocal: "+TestSuite.local_modification_time+"\nGlobal: "+global_modification_time);
+						if(!mp.isNewestConfig(svr_conn)) //MAKE THIS transparent to user!
 							mp.parseConfig(config_file);
-						
+						System.out.println("AFTER isNewestConfig Return:\nLocal: "+TestSuite.local_modification_time+"\nGlobal: "+global_modification_time);
 						if(!mp.validateUserRequests(user_input, mp, local_name)) //check user input and create our message from within it --but this is a receive message....?
 						{	
 							System.out.println("Error: format of message not recognized.");
 							continue;
 						}
 						mp.receive();
+						mp.print();
 						break;
 					case 3: //quit the program
 						cmd_line_input.close();
