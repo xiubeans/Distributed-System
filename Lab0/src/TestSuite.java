@@ -32,7 +32,6 @@ public class TestSuite {
 			SFTPConnection svr_conn = new SFTPConnection();
 			svr_conn.connect("unix.andrew.cmu.edu", "dpearson");
 	    	TestSuite.local_modification_time = svr_conn.getLastModificationTime(CONSTANTS.CONFIGFILE); // record the time-stamp of YAML file
-	    	System.out.println("At beginning, remote time: "+TestSuite.local_modification_time+" and local time: "+global_modification_time);
 	    	svr_conn.downloadFile(CONSTANTS.CONFIGFILE, CONSTANTS.LOCALPATH); // download the YAML file and put it where it's expected	    	
 			MessagePasser mp = MessagePasser.getInstance();		
 			
@@ -64,12 +63,10 @@ public class TestSuite {
 					case 1: //send request
 						System.out.println("Usage: send <dest> <kind>");
 						user_input = cmd_line_input.nextLine(); //get the input and check it (pass back out to user if garbage input)
-						System.out.println("BEFORE isNewestConfig Return:\nLocal: "+TestSuite.local_modification_time+"\nGlobal: "+global_modification_time);
+
 						if(!mp.isNewestConfig(svr_conn))
 							mp.parseConfig(config_file);
-					
-						System.out.println("AFTER isNewestConfig Return:\nLocal: "+TestSuite.local_modification_time+"\nGlobal: "+global_modification_time);
-						
+											
 						if(!mp.validateUserRequests(user_input, mp, local_name)) //check user input
 						{	
 							System.out.println("Error: format of message not recognized.");
@@ -87,10 +84,10 @@ public class TestSuite {
 					case 2: //receive request
 						System.out.println("Usage: receive");
 						user_input = cmd_line_input.nextLine(); //get the input and check it (pass back out to user if garbage input)
-						System.out.println("BEFORE isNewestConfig Return:\nLocal: "+TestSuite.local_modification_time+"\nGlobal: "+global_modification_time);
+
 						if(!mp.isNewestConfig(svr_conn)) //MAKE THIS transparent to user!
 							mp.parseConfig(config_file);
-						System.out.println("AFTER isNewestConfig Return:\nLocal: "+TestSuite.local_modification_time+"\nGlobal: "+global_modification_time);
+
 						if(!mp.validateUserRequests(user_input, mp, local_name)) //check user input and create our message from within it --but this is a receive message....?
 						{	
 							System.out.println("Error: format of message not recognized.");

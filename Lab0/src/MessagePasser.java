@@ -62,12 +62,14 @@ public class MessagePasser {
 		this.local_name = local_name;		
 	}
 	
+	
 	public void runServer() {
 		// Init the local server which waits for incoming connection
 		Runnable runnableServer = new ServerThread();
 		Thread threadServer = new Thread(runnableServer);
 		threadServer.start();
 	}
+	
 	
 	public void buildRule(HashMap rule, int ctr, String type)
 	{
@@ -80,20 +82,16 @@ public class MessagePasser {
 		if(type.equals("send"))
 		{
 			for(int i=0; i<send_rules.length; i++)
-				rule.put(send_rules[i][header], send_rules[i][ctr]);
-			//System.out.println("Added send rule to rules lookup with value "+(ctr));
-			
+				rule.put(send_rules[i][header], send_rules[i][ctr]);			
 			rule.put("rule_num", ctr); //add a field stating which rule number a rule is
 		}
 		else if(type.equals("receive"))
 		{
 			for(int i=0; i<recv_rules.length; i++)
 				rule.put(recv_rules[i][header], recv_rules[i][ctr]);
-			//System.out.println("Added receive rule to rules lookup with value "+(ctr+send_rules.length));
 			rule.put("rule_num", ctr+send_rules.length); //add a field stating which rule number a rule is
 			//needs to take into account the send rules so as to not overwrite the value of a send rule in the hashmap
 		}
-		//System.out.println("Rule --> keys: "+rule.keySet()+"\nvals: "+rule.values());
 	}
 	
 	
@@ -127,9 +125,8 @@ public class MessagePasser {
 		{
 			rule = new HashMap();
 			buildRule(rule, i, type); //builds the current rule
-			//System.out.println("Just built rule "+i+" with keys "+rule.keySet()+"\nand values"+rule.values());
-			/* Grab each rule that we build and check its fields against those in the message */
 			
+			/* Grab each rule that we build and check its fields against those in the message */
 			for(int j=0; j<send_recv_headers.length; j++)
 			{
 				//iterate through each of the fields and check if the rule value and the message vals match.
@@ -139,7 +136,7 @@ public class MessagePasser {
 				rule.put("rule_num", "*"); //overwrite it for the check
 				
 				String vals = rule.values().toString().replaceAll("[\\[,\\] ]", "");
-				//System.out.println("Vals are "+vals);
+
 				if(vals.matches("^\\**$")) //and all fields were wildcards, including action (thus not a real rule)
 				{					
 					rule = null;
@@ -158,27 +155,19 @@ public class MessagePasser {
 				else if(field_name.equals("id")) //we have to access this specially
 				{
 					ctr = this.message_id.get();
-					//System.out.println("Trying to match "+field_name+" "+rule.get(field_name)+" with "+ctr);
 					if(!rule.get(field_name).equals(ctr+"") && !rule.get(field_name).equals("*"))
 					{
 						rule = null;
-						//System.out.println("Rule matching FAILED on "+field_name);
 						break; //it didn't match
 					}
-//					else
-//						System.out.println("We matched "+field_name);
 				}
 				else
 				{
-					//System.out.println("Trying to match "+field_name+" "+rule.get(field_name)+" with "+message.getVal(field_name, message));
 					if(!rule.get(field_name).toString().equalsIgnoreCase(message.getVal(field_name, message)) && !rule.get(field_name).equals("*"))
 					{
 						rule = null;
-						//System.out.println("Rule matching FAILED on "+field_name);
 						break; //it didn't match
 					}
-//					else
-//						System.out.println("We matched "+field_name);
 				}
 			}
 			if(rule != null) //we've successfully matched a rule
@@ -191,18 +180,14 @@ public class MessagePasser {
 					i = i+send_rules.length; //so we don't erroneously overwrite vals of the send rules
 					direction = "src"; //for the receive side rules
 				}
-				//System.out.println("Thing: "+this.connections.get(message.getVal(direction, message)).toString());
-				//System.out.println("Current rules seen dict: "+this.connections.get(message.getVal(direction, message)).special_rules.keySet()+"\n"+this.connections.get(message.getVal(direction, message)).special_rules.values());
 				if(this.connections.get(message.getVal(direction, message)).special_rules.containsKey(i)) //it has already been initialized
 						times = this.connections.get(message.getVal(direction, message)).getTimesRuleSeen(i); //get value 
 				this.connections.get(message.getVal(direction, message)).setTimesRuleSeen(i, times+1); //update it OR initialize it
-				//System.out.println("We have NOW seen rule #"+rule.get("rule_num")+"("+rule.values()+") "+(times+1)+" times.");
 				i = tmp_i; //reset just in case
 			
 				return rule;
 			}
 		}
-		//if(rule != null) {System.out.println("Rule being returned is not null and not in nth stuff");}
 		return rule; //at this point, we can safely return based on the above declarations of rule
 	}
 
@@ -250,13 +235,11 @@ public class MessagePasser {
 						(byte)Integer.parseInt(addr[2]), (byte)Integer.parseInt(addr[3])};
 				InetAddress ia = InetAddress.getByAddress(iaddr);
 				
-				//System.out.println("Sending to"+ia.getHostAddress()+":"+port);
 				// create the socket, and connect to the other side
 				Socket s = new Socket(ia, port);	
-				//System.out.println("Connected");
+				
 				// after connected init the connection state information				
 				conn = new ConnState(message.dest, s);
-				//conn.setObjectInputStream(new ObjectInputStream(s.getInputStream()));
 				conn.setObjectOutputStream(new ObjectOutputStream(s.getOutputStream()));
 				conn.setObjectInputStream(new ObjectInputStream(s.getInputStream()));
 				this.connections.put(remote_name, conn);
@@ -266,7 +249,6 @@ public class MessagePasser {
 				
 				oos.writeObject(new Message(this.local_name, "", "LOGIN", null));
 				oos.flush();
-				//conn.setObjectInputStream(new ObjectInputStream(s.getInputStream()));
 				
 				// also setup the receiveThread on this connection
 				Runnable receiveR = new ReceiveThread(remote_name);
@@ -274,21 +256,11 @@ public class MessagePasser {
 				receiveThread.start();
 			}
 			// else the connection is set up
-			else {
-				
+			else
 				oos = this.connections.get(message.dest).getObjectOutputStream();
-				
-//				if(oos == null) 
-//					System.out.println("Main Thread $$ the connection has not been established !");
-			}
-
 
 			// get the first rule matched against this outgoing message
-			// TEST: should get rule from matchRules
 			HashMap rule = this.matchRules("send", message);
-						
-//			// TEST: should delete this line
-//			rule = null;
 			
 			if(rule != null && (rule.containsKey("nth") || rule.containsKey("everynth"))) //figure out if it has an Nth/EveryNth field in it
 			{
@@ -298,10 +270,8 @@ public class MessagePasser {
 
 				String everynth = rule.get("everynth").toString();
 				String nth = rule.get("nth").toString();
-				//System.out.println("Nth/EveryNth rule val is: "+nth+" or "+everynth);
-				//System.out.println("Nth/EveryNth msg val is: "+times);
+
 				//have to be careful here...if both Nth/Ev are *, keep the rule.
-				//if only one is a number, that number HAS TO MATCH (otherwise rule is null)
 				try{ //everyNth is a number
 					int eNth = Integer.parseInt(everynth);
 					if((!(nth).equals("*") || !(everynth).equals("*")) && (!(nth).equals(times+"") && !((times % eNth) == 0))) //if neither is a * and none match
@@ -362,7 +332,6 @@ public class MessagePasser {
 						
 						Message dl_message = delayed_messages.remove(0);
 						
-						//dl_message.set_id(this.message_id.getAndIncrement());
 						oos.writeObject(dl_message);
 						oos.flush();
 						conn.getAndIncrementOutMessageCounter();
@@ -393,12 +362,9 @@ public class MessagePasser {
 					
 					// step 1: write this object to the socket
 					message.set_id(this.message_id.getAndIncrement());
-//					// TEST
-//					System.out.println("I am writing the object now");
 					oos.writeObject(message);
 					oos.flush();
-//					// TEST
-//					System.out.println("I have written the object");
+
 					conn.getAndIncrementOutMessageCounter();
 					
 					System.out.println("**************************************************************************");
@@ -412,7 +378,6 @@ public class MessagePasser {
 						
 						// send single delayed message at once
 						Message dl_message = delayed_messages.remove(0);
-						//dl_message.set_id(this.message_id.getAndIncrement());
 						oos.writeObject(dl_message);
 						oos.flush();
 						conn.getAndIncrementOutMessageCounter();
@@ -432,26 +397,22 @@ public class MessagePasser {
 			e.printStackTrace();
 		}
 	}
+
 	
-	/*
-	 * Receive
-	 * Get single message once called; 
-	 * Receiving any non-delayed message will append all delayed message in the rcv_delay_buf to the tail of rcv_buf
-	 * Blocking mode
-	 * If it takes a message with "drop", it will return null
-	 */
 	public Message receive() {
+		/*
+		 * Receive
+		 * Get single message once called; 
+		 * Receiving any non-delayed message will append all delayed message in the rcv_delay_buf to the tail of rcv_buf
+		 * Blocking mode
+		 * If it takes a message with "drop", it will return null
+		 */		
 		
-		// System.out.println("Got to receive!");
 		// retrieve from the rcv_delay_buf if it is ready
-		// System.out.println("Is the buffer ready to take from? value: "+this.rcv_delay_buf_ready.get());
-		
 		// take care of the rcv_delayed_buf at first, if it is ready
 		if(this.rcv_delay_buf_ready.get() != 0) {
-			
-			//System.out.println("The buffer is ready to take from, value: "+this.rcv_delay_buf_ready.get());
 			this.rcv_delay_buf_ready.decrementAndGet();
-			//System.out.println("After decrement, value: "+this.rcv_delay_buf_ready.get());
+
 			Message message = this.rcv_delayed_buf.blockingTake();	
 			ConnState conn = this.connections.get(message.src);
 			conn.getAndIncrementInMessageCounter();
@@ -465,15 +426,10 @@ public class MessagePasser {
 			return message;
 			
 		}
-		
-		//System.out.println("Main Thread $$ I am blocking at receive() for waiting for a message");
 		// get blocked here until one message comes
 		Message message = this.rcv_buf.blockingTake();
-		//System.out.println("Main Thread $$ receive() got a message from rcv_buf: " + message.toString());
 		
 		// check against receive rules
-		// TEST: should get rule from matchRules()\
-		//HashMap rule = matchRules("receive", message);
 		message.print();
 		HashMap rule = this.matchRules("receive", message);
 		
@@ -485,10 +441,8 @@ public class MessagePasser {
 
 			String everynth = rule.get("everynth").toString();
 			String nth = rule.get("nth").toString();
-//			System.out.println("Nth/EveryNth rule val is: "+nth+" or "+everynth);
-//			System.out.println("Nth/EveryNth msg val is: "+times);
+
 			//have to be careful here...if both Nth/Ev are *, keep the rule.
-			//if only one is a number, that number HAS TO MATCH (otherwise rule is null)
 			try{ //everyNth is a number
 				int eNth = Integer.parseInt(everynth);
 				if((!(nth).equals("*") || !(everynth).equals("*")) && (!(nth).equals(times+"") && !((times % eNth) == 0))) //if neither is a * and none match
@@ -510,12 +464,11 @@ public class MessagePasser {
 			
 			// get the connection state information
 			ConnState conn = this.connections.get(message.src);
-			//System.out.println("In RECEIVE, action is "+action);
+
 			// single rule matched
-			if(!action.equals("")){ // && !action.equals("*")) { //added to catch null rules
-				
-				// 3 actions: duplicate, drop, and delay
-				//action = rule.get("action").toString();
+			if(!action.equals(""))
+			{
+				/* 3 actions: duplicate, drop, and delay */
 				
 				// 1: drop -- drop the message and return null
 				if(action.equals("drop")) {
@@ -540,12 +493,6 @@ public class MessagePasser {
 					System.out.println("rule: duplicate");
 					System.out.println("******************************************************************");
 
-//					// step 3: return message
-//					System.out.println("******************************************************************");
-//					System.out.println("Main Thread: in receive(): " + message.toString());
-//					System.out.println("rule: n/a");
-//					System.out.println("******************************************************************");
-					
 					// set the delay buffer as ready
 					System.out.println("size of delay buf: "+this.rcv_delayed_buf.size());
 				
@@ -578,7 +525,6 @@ public class MessagePasser {
 				System.out.println("******************************************************************");
 				
 				// set delay buffer as ready
-				// System.out.println("size of delay buf: "+this.rcv_delayed_buf.size());
 				this.rcv_delay_buf_ready.set(this.rcv_delayed_buf.size());
 				
 				conn.getAndIncrementInMessageCounter();
@@ -652,17 +598,15 @@ public class MessagePasser {
 		{
 			Map.Entry me = (Map.Entry)i.next();
 			file_part = me.getKey().toString().toLowerCase();
-			//System.out.println("\nRaw parsed data --> "+file_part+": ");
-			//System.out.println(me.getValue());
 			ArrayList<String> inner = new ArrayList<String>();
 			inner.add(me.getValue().toString());
 			whole = inner.toString();
 			whole = whole.replaceAll("[\\[\\]\\{]", "");
 			elements = whole.split("\\},?");
 			
-			for(j=0; j<elements.length; j++) //the number of rules in this section of the config (here 3)
+			for(j=0; j<elements.length; j++) //the number of rules in this section of the config
 			{				
-				pairs = elements[j].split(", "); //the number of elements in a particular rule (here 5, 2, and 4)
+				pairs = elements[j].split(", "); //the number of elements in a particular rule
 				
 				if(file_part.equals("sendrules"))
 					fillLoop(send_rules, pairs, j+1); //pass in 2D array, all of rule's elements in key-val form, and rule number
@@ -685,7 +629,7 @@ public class MessagePasser {
 		}
 	}
 	
-	//pass in 2D array, all of rule's elements in key-val form, and rule number
+	
 	void fillLoop(String[][] arr, String[] pairs, int rule_num)
 	{
 		/* Populates all of the configuration file options into a 2D array. */
@@ -698,13 +642,11 @@ public class MessagePasser {
 		{
 			String[] choices = pairs[i].split("=");
 			choices[key] = choices[key].trim().toString().toLowerCase();	//grab heading
-			//System.out.println("have "+choices[key]);
+
 			for(int j=0; j<arr.length; j++) //loop through 2D array's headers and put the values where they belong
 			{
-				//System.out.println("arr["+j+"]["+key+"] is "+arr[j][key]);
 				if(arr[j][key].equals(choices[key])) //we found the correct heading
 				{
-					//System.out.println("Stored "+choices[val]+" in arr"+j+" "+rule_num);
 					arr[j][rule_num] = choices[val]; //only set the ones with real values; all the rest stay as a wildcard
 					break; //go to next pair instead of continuing through loop needlessly
 				}
@@ -751,7 +693,6 @@ public class MessagePasser {
 		
 		for(i=0; i<conf.length; i++)
 		{
-			//System.out.println("currently looking at "+conf[i][0]);
 			for(j=0; j<conf[i].length; j++)
 			{
 				if(conf[i][j].equals("*"))
@@ -916,14 +857,12 @@ public class MessagePasser {
 			svr_conn.connect(CONSTANTS.HOST, CONSTANTS.USER);
 		
     	int global_modification_time = svr_conn.getLastModificationTime(CONSTANTS.CONFIGFILE); // record the time-stamp of YAML file
-    	//System.out.println("Before:\nLocal: "+TestSuite.local_modification_time+"\nGlobal: "+global_modification_time);
+    	
     	if(global_modification_time != TestSuite.local_modification_time)
     	{
     		svr_conn.downloadFile(CONSTANTS.CONFIGFILE, CONSTANTS.LOCALPATH); // download the YAML file
     		TestSuite.local_modification_time = global_modification_time;
     		clearCounters(); //get rid of the Nth and EveryNth counters upon new config file, as per lab specs.
-    		//System.out.println("Global and local mod times do not match, so I've updated");
-    		//System.out.println("Local: "+TestSuite.local_modification_time+"\nGlobal: "+global_modification_time);
     		return false;
     	}
     	return true;
@@ -954,8 +893,6 @@ public class MessagePasser {
 		while(itr.hasNext()) {
 			String next_conn = itr.next();
 			ConnState conn = connections.get(next_conn);
-			//if(conn == null)
-				//System.out.println("Oh shit !");
 			conns += "\t" + next_conn + ": in-message-counter = " + conn.in_messsage_counter
 					+ ", out-message-counter = " + conn.out_message_counter + "\n";
 		}
@@ -964,7 +901,7 @@ public class MessagePasser {
 
 	public void print() {
 		
-		// print all connectsions
+		// print all connections
 		this.printConnectsions();
 		
 		// print all buffers
@@ -1092,72 +1029,23 @@ class ServerThread implements Runnable {
 				
 				// Init the local listening socket
 				ServerSocket socket = new ServerSocket(Integer.parseInt(this.mmp.conf[2][i]));
-				//System.out.println("We're listening on " + this.mmp.conf[1][i] + ":" + this.mmp.conf[2][i]);
 
 				// keep listening on the WELL-KNOWN port
 				while(true) {
-					//System.out.println("Server Thread $$ I am blocked at accept()");
 					Socket s = socket.accept();
-					ObjectOutputStream oos_tmp = new ObjectOutputStream(s.getOutputStream()); //my code
+					ObjectOutputStream oos_tmp = new ObjectOutputStream(s.getOutputStream());
 					ObjectInputStream ois_tmp = new ObjectInputStream(s.getInputStream());
-					//System.out.println("Server Thread $$ I am out of accept()");
 	
 					Message login_msg = (Message)ois_tmp.readObject();
 					String remote_name = login_msg.src;
-					//System.out.println("Server Thread $$ We have incoming connection from " + remote_name);
-					
-//					// find the remote end's name
-//					InetAddress iaddr = s.getInetAddress();
-//					String ip = iaddr.getHostAddress();
-//					String port = "" + s.getPort();
-//					String remote_name = "";
-//					for(i = 0; i < 10; i++) 
-//						if(this.mmp.conf[1][i].equals(ip)) { // && this.mmp.conf[2][i].equals(port)) {
-//							remote_name = this.mmp.conf[0][i];
-//							break;
-//						}
-//					
-//					// if remote client not found, ignore and continue
-//					if(remote_name.equals("")) {
-//						System.out.println("Denied a connection from an anonymous client.");
-//						continue;
-//					}
-					
+
 					// Put the new socket into mmp's connections
 					ConnState conn_state = new ConnState(remote_name, s);					
-					conn_state.setObjectOutputStream(oos_tmp);//new ObjectOutputStream(s.getOutputStream()));
+					conn_state.setObjectOutputStream(oos_tmp);
 					conn_state.setObjectInputStream(ois_tmp);
-
-//					if(conn_state == null)
-//						System.out.println("Go to hell !");
 					
-					// TEST: print all conn_state in connections
-					Iterator<ConnState> cooooo = this.mmp.connections.values().iterator();
-					//System.out.println("before put: " + this.mmp.connections.size());
-//					while(cooooo.hasNext()) {
-//						System.out.println("Shit has " + cooooo.next().remote_name);
-//					}
-					
-					this.mmp.connections.put(remote_name, conn_state);
-					
-					// TEST
-					//System.out.println("after put: " + this.mmp.connections.size());
-					Iterator<ConnState> dooooo = this.mmp.connections.values().iterator();
-//					while(dooooo.hasNext()) {
-//						System.out.println("Shit has " + dooooo.next().remote_name);
-//					}
-					
-					// TEST
-					ConnState shit_conn = this.mmp.connections.get(remote_name);
-//					if(shit_conn == null) 
-//						System.out.println("Why you are not there ??!!");
-					
-					// TEST: print connections
-					this.mmp.printConnectsions();
-					
-					// TEST
-//					if(this.mmp.connections.get(remote_name) == null)
-//						System.out.println("@@@@@@@@@@@@@@@@@@@@ dies ");
+					this.mmp.connections.put(remote_name, conn_state);					
+					//this.mmp.printConnectsions();
 					
 					// create and run the ReceiveThread
 					Runnable receiveRunnable = new ReceiveThread(remote_name);
@@ -1206,33 +1094,20 @@ class ReceiveThread implements Runnable {
 			
 			try {
 				while(true) {
-					
-		
-						// TEST
-						//System.out.println("Receive Thread $$ I am blocked at readObject()");
 						Message message = (Message)ois.readObject(); 
-						// TEST
-						//System.out.println("Receive Thread $$ I got one message from readObject()");
-						// TEST: should delete these two lines
-						// System.out.println("Receive Thread $$ We just get the message: " + message.toString());
 						
 						// put it into the MessagePasser's rcv_buf
 						// drop the message if the buffer is full
-						// TEST: should enable these two line
 						if(!this.mmp.rcv_buf.nonblockingOffer(message)) {
 							continue;
 						}
 				}
-		
-				
 			} finally {
 				
 				conn_state.getObjectInputStream().close();
 				conn_state.getObjectOutputStream().close();
 				conn_state.local_socket.close();
 				this.mmp.connections.remove(remote_name);
-				
-				
 			}
 		} catch (Exception e){
 			if(e instanceof EOFException) {
