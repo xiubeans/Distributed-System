@@ -87,13 +87,15 @@ public class MessagePasser {
 		{
 			for(int i=0; i<send_rules.length; i++)
 				rule.put(send_rules[i][header], send_rules[i][ctr]);
+			rule.put("rule_num", ctr); //add a field stating which rule number a rule is
 		}
 		else if(type.equals("receive"))
 		{
 			for(int i=0; i<recv_rules.length; i++)
 				rule.put(recv_rules[i][header], recv_rules[i][ctr]);
+			rule.put("rule_num", ctr+send_rules.length); //add a field stating which rule number a rule is
+			//needs to take into account the send rules so as to not overwrite the value of a send rule in the hashmap
 		}
-		rule.put("rule_num", ctr); //add a field stating which rule number a rule is
 		// System.out.println("Rule --> keys: "+rule.keySet()+"\nvals: "+rule.values());
 	}
 	
@@ -178,10 +180,16 @@ public class MessagePasser {
 			if(rule != null) //we've successfully matched a rule
 			{
 				int times = 0;
+				int tmp_i= i; //save a copy of i in case we need it again
+				
+				if(type.equals("receive"))
+					i = i+send_rules.length; //so we don't erroneously overwrite vals of the send rules
+
 				if(this.connections.get(message.getVal("dest", message)).special_rules.containsKey(i)) //it has already been initialized
 						times = this.connections.get(message.getVal("dest", message)).getTimesRuleSeen(i); //get value 
 				this.connections.get(message.getVal("dest", message)).setTimesRuleSeen(i, times+1); //update it OR initialize it
-				//System.out.println("We have NOW seen rule #"+rule.get("rule_num")+" "+times+1+" times.");
+				i = tmp_i; //reset just in case
+				System.out.println("We have NOW seen rule #"+rule.get("rule_num")+" "+times+1+" times.");
 				return rule;
 			}
 		}
@@ -448,8 +456,31 @@ public class MessagePasser {
 		
 		// check against receive rules
 		// TEST: should get rule from matchRules()\
-		HashMap rule = matchRules("receive", message);
-		// HashMap rule = this.matchRules("receive", message);
+		//HashMap rule = matchRules("receive", message);
+		HashMap rule = this.matchRules("receive", message);
+		
+		if(rule != null && (rule.containsKey("nth") || rule.containsKey("everynth"))) //figure out if it has an Nth/EveryNth field in it
+		{
+			int rule_num = (Integer)rule.get("rule_num");
+			int times=0;
+			times = this.connections.get(message.getVal("dest", message)).getTimesRuleSeen(rule_num); //get value, since it's already initialized if we're here
+
+			String everynth = rule.get("everynth").toString();
+			String nth = rule.get("nth").toString();
+//			System.out.println("Nth/EveryNth rule val is: "+nth+" or "+everynth);
+//			System.out.println("Nth/EveryNth msg val is: "+times);
+			//have to be careful here...if both Nth/Ev are *, keep the rule.
+			//if only one is a number, that number HAS TO MATCH (otherwise rule is null)
+			try{ //everyNth is a number
+				int eNth = Integer.parseInt(everynth);
+				if((!(nth).equals("*") || !(everynth).equals("*")) && (!(nth).equals(times+"") && !((times % eNth) == 0))) //if neither is a * and none match
+					rule = null;
+			} catch (NumberFormatException e) { //everyNth is not a number
+				if((!(nth).equals("*") || !(everynth).equals("*")) && (!(nth).equals(times+"") && !everynth.equals(times+"")))
+					rule = null;
+			}
+		}
+		
 		String action = (String)rule.get("action");
 		
 		try {
