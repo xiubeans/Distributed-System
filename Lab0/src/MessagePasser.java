@@ -140,7 +140,6 @@ public class MessagePasser {
 				if(vals.matches("^\\**$")) //and all fields were wildcards, including action (thus not a real rule)
 				{					
 					rule = null;
-					System.out.println("Rule matching FAILED on "+field_name);
 					break; //it didn't match
 				}
 				else
@@ -154,7 +153,11 @@ public class MessagePasser {
 					continue;
 				else if(field_name.equals("id")) //we have to access this specially
 				{
-					ctr = this.message_id.get();
+					if(type.equals("receive"))
+						ctr = message.get_id();
+					else
+						ctr = this.message_id.get();
+					
 					if(!rule.get(field_name).equals(ctr+"") && !rule.get(field_name).equals("*"))
 					{
 						rule = null;
