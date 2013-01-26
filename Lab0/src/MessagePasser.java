@@ -63,6 +63,18 @@ public class MessagePasser {
 	}
 	
 	
+	public int getVectorSize()
+	{
+		/* Returns how large a vector clock should be made. */
+		
+		int numNames = 0;
+		String[] names = this.getField("name");
+		for(int i=0; i<names.length; i++)
+			System.out.println("Name "+i+" is "+names[i]);
+		return names.length-1; //because we store the heading names as the first name
+	}
+	
+	
 	public void runServer() {
 		// Init the local server which waits for incoming connection
 		Runnable runnableServer = new ServerThread();

@@ -15,18 +15,23 @@ public class TestSuite {
 		String config_file = "";
 		String local_name = "";
 		String user_input = ""; //reusable temp var
+		String clock_type = ""; //holds user input for logical or vector clock
 		String src = "";
 		String dest = "";
 		String kind = "";
 		int user_action = 0;
 		int global_modification_time = -1;  // record the latest time on servers
-		int expectedNumArgs = 2;
+		int expectedNumArgs = 3;
 		
 		//check cmdLine input
 		if (args.length == expectedNumArgs)
 		{
 			config_file = args[0];
 			local_name = args[1];
+			clock_type = args[2].toString().toLowerCase();
+			
+			ClockService clock = ClockService.getInstance(clock_type); //here is where we will instantiate the clock via the object factory
+			
 			
 			/* get a local copy of the config from AFS */
 			SFTPConnection svr_conn = new SFTPConnection();
