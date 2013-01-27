@@ -3,7 +3,7 @@ import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
-public final class VectorTimeStamp extends TimeStamp  {
+public final class VectorTimeStamp extends TimeStamp<ArrayList>  {
 	
 	/* fields */
 	ArrayList<AtomicInteger> ts;

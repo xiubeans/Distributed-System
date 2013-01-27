@@ -1,19 +1,32 @@
 
-public abstract class ClockService {
+public class ClockService {
 
-	public static ClockService getInstance(String clock_type)
-	{		
-		if(clock_type.equals("logical"))
-			return new Logical();
-		else if (clock_type.equals("vector"))
-			return new Vector();
+	TimeStamp ts;
+	private static ClockService uniqInstance = null; 	
+	
+	protected ClockService(String clock_type) {
+		if(clock_type.equals("logical")){
+			if(uniqInstance == null)
+				uniqInstance = new Logical();
+		}
+		else if(clock_type.equals("vector")){
+			if(uniqInstance == null)
+				uniqInstance = new Vector();	
+		}
 		else
 		{
 			System.out.println("Unrecognized clock type "+clock_type+". Defaulting to vector.");
-			return new Vector();
+			if(uniqInstance == null)
+				uniqInstance = new Vector();
 		}
 	}
 	
+	public static synchronized ClockService getInstance(String clock_type)
+	{
+		if(uniqInstance == null)
+			uniqInstance = new ClockService(clock_type);
+		return uniqInstance;
+	}
 	
 	/* method */
 	// this method get and increment the clock; be careful about concurrency issue
@@ -21,7 +34,7 @@ public abstract class ClockService {
 	// case 2: given a non-empty ts
 	public TimeStamp getTimestamp(TimeStamp ts)
 	{
-		return ts; //no idea here
+		return this.ts;
 	}
 
 	

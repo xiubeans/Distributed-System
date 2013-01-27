@@ -9,7 +9,8 @@ public final class Logical extends ClockService {
 
 	protected Logical()
 	{
-		this.timestamp = new AtomicInteger(); //is this right?
+		super("logical");
+		this.timestamp = new AtomicInteger();
 	}
 	
 	@Override

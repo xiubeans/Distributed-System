@@ -1,7 +1,7 @@
 import java.util.concurrent.atomic.AtomicInteger;
 
 
-public final class LogicalTimeStamp extends TimeStamp {
+public final class LogicalTimeStamp extends TimeStamp<AtomicInteger> {
 
 	/* fields */
 	AtomicInteger ts;

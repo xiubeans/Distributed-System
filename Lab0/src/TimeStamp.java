@@ -1,22 +1,32 @@
 import java.util.ArrayList;
 
 
-public abstract class TimeStamp {
+public abstract class TimeStamp<T>{	
+	/* methods */
+	// a. constructor
+	// b. getter and setter
+	public ArrayList getTimeStamp()
+	{
+		ArrayList tmp = new ArrayList();
+		return tmp; 
+	}
 	
-	private static TimeStamp uniqInstance = null; 
+	public void setTimeStamp(ArrayList in_ts)
+	{
+		; 
+	}
 	
-//	public static synchronized TimeStamp getInstance()
-//	{
-//		if (uniqInstance == null) {
-//			uniqInstance = new TimeStamp();
-//		}
-//		return uniqInstance;
-//	}
+	public String toString()
+	{
+		String buf_string = "";
+		return buf_string;
+	}		
+	
 	
 	/* - Timestamps will need to be able to be inspected and compared.  Your application code 
 	needs to be able to determine from timestamps if an event “happened before” or is 
 	“concurrent with” some other event.  Note carefully the limits on Logical clocks in this 
-	regard.*/
+	regard.*/		
 	
 	public void compareTimeStamps()
 	{

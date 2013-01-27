@@ -9,6 +9,7 @@ public final class Vector extends ClockService {
 
 	public Vector()
 	{
+		super("vector");
 		this.vector = new ArrayList(); //is this right?
 	}
 
