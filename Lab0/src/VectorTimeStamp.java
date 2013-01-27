@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
@@ -24,5 +25,14 @@ public final class VectorTimeStamp extends TimeStamp  {
 	{
 		this.ts = in_ts; 
 	}
+	
+	public String toString()
+	{
+		String buf_string = "";
 		
+		// print all messages in the buffer
+		for(int i=0; i<this.ts.size(); i++)
+			buf_string += "\t" + this.ts.get(i).toString() + "\n";
+		return buf_string;
+	}		
 }

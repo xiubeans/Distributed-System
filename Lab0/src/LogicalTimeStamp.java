@@ -24,4 +24,9 @@ public final class LogicalTimeStamp extends TimeStamp {
 	{
 		this.ts = t_stamp;
 	}
+	
+	public String toString()
+	{
+		return this.ts.toString();
+	}
 }

@@ -1,3 +1,5 @@
+import java.util.Iterator;
+
 
 public final class TimeStampedMessage extends Message {
 	
@@ -21,4 +23,9 @@ public final class TimeStampedMessage extends Message {
 		return this.ts;
 	}
 
+	public String toString() 
+	{
+		return this.ts.toString();
+	}
+	
 }
