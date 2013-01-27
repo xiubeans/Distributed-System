@@ -614,7 +614,7 @@ public class Logger {
 			System.out.println("\t" + remote_name + ": ");
 			ArrayList<TimeStampedMessage> queue = this.queues.get(remote_name);
 			for(int i = 0; i < queue.size(); i++) {
-				System.out.println(queue.get(i).toString());
+				System.out.println("\t\t" + queue.get(i).toString());
 			}
 		}
 		
@@ -625,15 +625,13 @@ public class Logger {
 }
 
 
-
-
 /*
  * This class will be created as a new thread, to wait for incoming connections
  */
 class LoggerServerThread implements Runnable {
 	
 	// get the singleton
-	private static Logger logger = null;
+	private Logger logger = null;
 	
 	/*
 	 * Constructor: just get the singleton
@@ -679,13 +677,13 @@ class LoggerServerThread implements Runnable {
 					TimeStampedMessage login_msg = (TimeStampedMessage)ois_tmp.readObject();
 					String remote_name = login_msg.src;
 
-					// Put the new socket into mmp's connections
+					// Put the new socket into mmp's connections, and initialize the message queue
 					ConnState conn_state = new ConnState(remote_name, s);					
 					conn_state.setObjectOutputStream(oos_tmp);
 					conn_state.setObjectInputStream(ois_tmp);
 					
 					this.logger.connections.put(remote_name, conn_state);					
-					//this.mmp.printConnectsions();
+					this.logger.queues.put(remote_name, new ArrayList<TimeStampedMessage>());
 					
 					// create and run the LoggerReceiveThread
 					Runnable receiveRunnable = new LoggerReceiveThread(remote_name);
@@ -751,6 +749,10 @@ class LoggerReceiveThread implements Runnable {
 				conn_state.getObjectOutputStream().close();
 				conn_state.local_socket.close();
 				this.logger.connections.remove(remote_name);
+				this.logger.queues.remove(remote_name);
+				
+				int i = 0;
+				i++;
 			}
 		} catch (Exception e){
 			if(e instanceof EOFException) {
