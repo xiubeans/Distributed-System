@@ -598,7 +598,7 @@ public class Logger {
 		System.out.println(conns);
 	}
 	
-	public void print() {
+	public void printBasic() {
 		
 		// print all connections
 		this.printConnectsions();
@@ -620,6 +620,88 @@ public class Logger {
 		
 		// unlock the Logger's locker
 		this.globalLock.unlock();
+		
+	}
+	
+	public void printOrder() {
+		
+		Set<String> remote_names = this.queues.keySet();
+		
+		/* if empty just return */
+		if(remote_names == null)
+			return;
+		
+		TimeStampedMessage test_message = 
+				this.queues.get(remote_names.iterator().next()).get(0);	// used to test type of timestamp
+		/* if logical order */
+		if (test_message.ts instanceof LogicalTimeStamp) {
+			// uncertain here
+			System.out.println("We are using logical timestamps");
+		}
+		
+		/* else vector order */
+		else {
+			System.out.println("We are using vector timestamps");
+			// undone here, but will use and only use VectorTimeStamp's happenBefore() method
+			Hashtable<ArrayList<TimeStampedMessage>, Iterator> ht = new Hashtable<ArrayList<TimeStampedMessage>, Iterator>();
+			Iterator itr = remote_names.iterator();
+			while(itr.hasNext()) {
+				String remote_name = (String)itr.next();
+				ht.put(this.queues.get(remote_name), this.queues.get(remote_name).iterator());
+			}
+			
+			// print the order
+			boolean done = false;
+			while(done == false) {
+				
+				// get next message in the order
+				
+				// if all iterator goes over, set done = true
+				
+			}
+			
+		}
+		
+	}
+	
+	public void printRelation() {
+		
+		Set<String> remote_names = this.queues.keySet();
+		
+		/* if empty just return */
+		if(remote_names == null)
+			return;
+		
+		TimeStampedMessage test_message = 
+				this.queues.get(remote_names.iterator().next()).get(0);	// used to test type of timestamp
+		
+		/* if logical order */
+		if (test_message.ts instanceof LogicalTimeStamp) {
+			// uncertain here
+		}
+		
+		/* else vector order */
+		else {
+			
+			ArrayList<TimeStampedMessage> all = new ArrayList<TimeStampedMessage>();
+			
+			// put all messages together
+			Iterator itr = remote_names.iterator();
+			while(itr.hasNext()) 
+				all.addAll(this.queues.get(itr.next()));
+			
+			// print all relationship
+			for(int i = 0; i < all.size() - 1; i++) {
+				for(int j = i + 1; j < all.size(); j++) {
+					if(all.get(i).happenBefore(all.get(j)))
+						;// print something
+					else if(all.get(j).happenBefore(all.get(i)))
+						;//print something
+					else
+						;// print concurrent
+				}
+			}
+		}
 		
 	}
 }

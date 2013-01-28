@@ -207,10 +207,26 @@ public class MessagePasser {
 	}
 
 	
+	public TimeStampedMessage affixTimestamp(ClockService clock, TimeStampedMessage message)
+	{
+		/* Every time a message is sent or received, 
+		 * this should be called.
+		 */
+		
+		//in here, use the clock service timestamp to set the timestamp in TSMsg
+		
+		clock.incrementTimeStamp(); //our way of updating the timestamp once a new event happens...
+		message.ts = new TimeStamp(); //get a new timestamp instance for each message
+		message.ts.val.set(clock.getTimestamp()); 
+
+		return message;
+	}
+		
+	
 	/*
 	 * Send
 	 */
-	public void send(Message message) {
+	public void send(Message message, ClockService clock) {
 		
 		// return if message is null
 		if(message == null) 
@@ -218,6 +234,7 @@ public class MessagePasser {
 		
 		// get the output stream
 		ObjectOutputStream oos = null;
+		//ObjectOutputStream logout = null; //so we can contact the logger
 		
 		try{
 			
@@ -252,6 +269,7 @@ public class MessagePasser {
 				
 				// create the socket, and connect to the other side
 				Socket s = new Socket(ia, port);	
+				//Socket logg_socket = new Socket(log_ip, log_port);
 				
 				// after connected init the connection state information				
 				conn = new ConnState(message.dest, s);
@@ -263,6 +281,7 @@ public class MessagePasser {
 				oos = this.connections.get(remote_name).getObjectOutputStream();
 				
 				oos.writeObject(new Message(this.local_name, "", "LOGIN", null));
+				
 				oos.flush();
 				
 				// also setup the receiveThread on this connection
@@ -297,6 +316,8 @@ public class MessagePasser {
 				}
 			}
 			
+			this.affixTimestamp(clock, (TimeStampedMessage)message); //get a timestamp for the message
+			
 			// check against the send rules, and follow the first rule matched
 			if(rule != null) {
 				
@@ -307,9 +328,11 @@ public class MessagePasser {
 				if(action.equals("drop")) {
 					
 					message.set_id(this.message_id.getAndIncrement());
+					((TimeStampedMessage)message).ts.val.set(clock.getTimestamp()); //give the current timestamp value to the message's ts
 					
 					System.out.println("**************************************************************************");
-					System.out.println("Main Thread $$ send: " + message.toString());
+					System.out.println("Main Thread $$ send: src: " + message.src + " dest: " + message.dest + " ID: " + message.id + 
+							   " kind: " + message.kind + " timestamp: " + ((TimeStampedMessage)message).ts.val);
 					System.out.println("rule: drop");
 					System.out.println("**************************************************************************");
 					
@@ -322,21 +345,31 @@ public class MessagePasser {
 
 					// step 1: send two identical messages, with same message_id
 					message.set_id(this.message_id.getAndIncrement());
-					oos.writeObject(message);
+					((TimeStampedMessage)message).ts.val.set(clock.getTimestamp());
+
+					oos.writeObject((TimeStampedMessage)message);
+					//logout.writeObject((TimeStampedMessage)message);
+					//logout.flush();
 					oos.flush();
 					conn.getAndIncrementOutMessageCounter();
 					
 					System.out.println("**************************************************************************");
-					System.out.println("Main Thread $$ send: " + message.toString());
+					System.out.println("Main Thread $$ send: src: " + message.src + " dest: " + message.dest + " ID: " + message.id + 
+							   " kind: " + message.kind + " timestamp: " + ((TimeStampedMessage)message).ts.val);
 					System.out.println("rule: duplicate");
 					System.out.println("**************************************************************************");
 					
-					oos.writeObject(message);
+					 //because duplicated messages should have different timestamps
+					clock.incrementTimeStamp();
+					((TimeStampedMessage)message).ts.val.set(clock.getTimestamp()); //give the current timestamp value to the message's ts.
+					
+					oos.writeObject((TimeStampedMessage)message);
 					oos.flush();
 					conn.getAndIncrementOutMessageCounter();
 
 					System.out.println("**************************************************************************");
-					System.out.println("Main Thread $$ send: " + message.toString());
+					System.out.println("Main Thread $$ send: src: " + message.src + " dest: " + message.dest + " ID: " + message.id + 
+							   " kind: " + message.kind + " timestamp: " + ((TimeStampedMessage)message).ts.val);
 					System.out.println("rule: duplicated message");
 					System.out.println("**************************************************************************");
 					
@@ -345,14 +378,15 @@ public class MessagePasser {
 					ArrayList<Message> delayed_messages = this.send_buf.nonblockingTakeAll();
 					while(!delayed_messages.isEmpty()) {
 						
-						Message dl_message = delayed_messages.remove(0);
+						TimeStampedMessage dl_message = (TimeStampedMessage)delayed_messages.remove(0);
 						
 						oos.writeObject(dl_message);
 						oos.flush();
 						conn.getAndIncrementOutMessageCounter();
 
 						System.out.println("******************************************************************");
-						System.out.println("Main Thread $$ send: " + message.toString());
+						System.out.println("Main Thread $$ send: src: " + dl_message.src + " dest: " + dl_message.dest + " ID: " + dl_message.id + 
+								   " kind: " + dl_message.kind + " timestamp: " + dl_message.ts.val);
 						System.out.println("rule: delayed message released");
 						System.out.println("******************************************************************");
 					}
@@ -361,10 +395,13 @@ public class MessagePasser {
 				// action: delay -- put the message in the send_buf
 				else {
 					message.set_id(this.message_id.getAndIncrement());
-					this.send_buf.nonblockingOffer(message);
+					((TimeStampedMessage)message).ts.val.set(clock.getTimestamp()); //because we are being rules agnostic on timestamp values
+					
+					this.send_buf.nonblockingOffer((TimeStampedMessage)message);
 					
 					System.out.println("******************************************************************");
-					System.out.println("Main Thread $$ send: " + message.toString());
+					System.out.println("Main Thread $$ send: src: " + message.src + " dest: " + message.dest + " ID: " + message.id + 
+							   " kind: " + message.kind + " timestamp: " + ((TimeStampedMessage)message).ts.val);
 					System.out.println("rule: delay");
 					System.out.println("******************************************************************");
 				}
@@ -377,13 +414,16 @@ public class MessagePasser {
 					
 					// step 1: write this object to the socket
 					message.set_id(this.message_id.getAndIncrement());
-					oos.writeObject(message);
+					((TimeStampedMessage)message).ts.val.set(clock.getTimestamp());
+
+					oos.writeObject((TimeStampedMessage)message);
 					oos.flush();
 
 					conn.getAndIncrementOutMessageCounter();
 					
 					System.out.println("**************************************************************************");
-					System.out.println("Main Thread $$ send: " + message.toString());
+					System.out.println("Main Thread $$ send: src: " + message.src + " dest: " + message.dest + " ID: " + message.id + 
+									   " kind: " + message.kind + " timestamp: " + ((TimeStampedMessage)message).ts.val);
 					System.out.println("rule: n/a");
 					System.out.println("**************************************************************************");
 										
@@ -392,13 +432,15 @@ public class MessagePasser {
 					while(!delayed_messages.isEmpty()) {
 						
 						// send single delayed message at once
-						Message dl_message = delayed_messages.remove(0);
+						TimeStampedMessage dl_message = (TimeStampedMessage)delayed_messages.remove(0);
+
 						oos.writeObject(dl_message);
 						oos.flush();
 						conn.getAndIncrementOutMessageCounter();
 						
 						System.out.println("**************************************************************************");
-						System.out.println("Main Thread $$ send: " + dl_message.toString());
+						System.out.println("Main Thread $$ send: src: " + dl_message.src + " dest: " + dl_message.dest + " ID: " + dl_message.id + 
+								   " kind: " + dl_message.kind + " timestamp: " + dl_message.ts.val);
 						System.out.println("rule: delayed message released");
 						System.out.println("**************************************************************************");
 						
@@ -414,7 +456,7 @@ public class MessagePasser {
 	}
 
 	
-	public Message receive() {
+	public Message receive(ClockService clock) { /* NEEDS TO CHECK FOR MAX OF INCOMING VS. CURRENT TIMESTAMPS */
 		/*
 		 * Receive
 		 * Get single message once called; 
@@ -431,9 +473,13 @@ public class MessagePasser {
 			Message message = this.rcv_delayed_buf.blockingTake();	
 			ConnState conn = this.connections.get(message.src);
 			conn.getAndIncrementInMessageCounter();
+			clock.incrementTimeStamp(); //need to update each time regardless
+			
+			clock.updateTimestamp((TimeStampedMessage) message);
 			
 			System.out.println("******************************************************************");
-			System.out.println("Main Thread: in receive(): " + message.toString());
+			System.out.println("Main Thread: in receive(): src: " + message.src + " dest: " + message.dest + " ID: " + message.id + 
+									   " kind: " + message.kind + " timestamp: " + ((TimeStampedMessage)message).ts.val);
 			System.out.println("rule: n/a");
 			System.out.println("******************************************************************");
 
@@ -442,11 +488,13 @@ public class MessagePasser {
 			
 		}
 		// get blocked here until one message comes
-		Message message = this.rcv_buf.blockingTake();
+		TimeStampedMessage message = (TimeStampedMessage)this.rcv_buf.blockingTake();
+
+		clock.updateTimestamp((TimeStampedMessage) message);
 		
 		// check against receive rules
 		message.print();
-		HashMap rule = this.matchRules("receive", message);
+		HashMap rule = this.matchRules("receive", (Message)message);
 		
 		if(rule != null && (rule.containsKey("nth") || rule.containsKey("everynth"))) //figure out if it has an Nth/EveryNth field in it
 		{
@@ -489,7 +537,8 @@ public class MessagePasser {
 				if(action.equals("drop")) {
 					
 					System.out.println("******************************************************************");
-					System.out.println("Main Thread: in receive(): " + message.toString());
+					System.out.println("Main Thread: in receive(): src: " + message.src + " dest: " + message.dest + " ID: " + message.id + 
+									   " kind: " + message.kind + " timestamp: " + ((TimeStampedMessage)message).ts.val);
 					System.out.println("rule: drop");
 					System.out.println("******************************************************************");
 					
@@ -504,7 +553,8 @@ public class MessagePasser {
 					this.rcv_delayed_buf.nonblockingOfferAtHead(message);
 					
 					System.out.println("******************************************************************");
-					System.out.println("Main Thread: in receive(): " + message.toString());
+					System.out.println("Main Thread: in receive(): src: " + message.src + " dest: " + message.dest + " ID: " + message.id + 
+									   " kind: " + message.kind + " timestamp: " + ((TimeStampedMessage)message).ts.val);
 					System.out.println("rule: duplicate");
 					System.out.println("******************************************************************");
 
@@ -513,6 +563,7 @@ public class MessagePasser {
 				
 					this.rcv_delay_buf_ready.set(this.rcv_delayed_buf.size());
 					
+					clock.incrementTimeStamp(); //need to update each time regardless
 					conn.getAndIncrementInMessageCounter();					
 					return message;
 				}
@@ -522,9 +573,12 @@ public class MessagePasser {
 					this.rcv_delayed_buf.nonblockingOffer(message);
 					
 					System.out.println("******************************************************************");
-					System.out.println("Main Thread: in receive(): " + message.toString());
+					System.out.println("Main Thread: in receive(): src: " + message.src + " dest: " + message.dest + " ID: " + message.id + 
+									   " kind: " + message.kind + " timestamp: " + ((TimeStampedMessage)message).ts.val);
 					System.out.println("rule: delay");
 					System.out.println("******************************************************************");
+					
+					/* NOT SURE IF WE NEED TO INCREMENT TIMESTAMP HERE */
 					
 					return null;
 				}
@@ -535,13 +589,15 @@ public class MessagePasser {
 			
 				// step 2: return message
 				System.out.println("******************************************************************");
-				System.out.println("Main Thread $$ in receive(): " + message.toString());
+				System.out.println("Main Thread $$ in receive(): src: " + message.src + " dest: " + message.dest + " ID: " + message.id + 
+									   " kind: " + message.kind + " timestamp: " + ((TimeStampedMessage)message).ts.val);
 				System.out.println("rule: n/a");
 				System.out.println("******************************************************************");
 				
 				// set delay buffer as ready
 				this.rcv_delay_buf_ready.set(this.rcv_delayed_buf.size());
 				
+				clock.incrementTimeStamp(); //need to update each time regardless
 				conn.getAndIncrementInMessageCounter();
 				return message;
 			}
@@ -881,6 +937,18 @@ public class MessagePasser {
     		return false;
     	}
     	return true;
+	}
+	
+	
+	public void setClock(ClockService clock)
+	{
+		/* Sets up the clock for the message passer. */
+		clock.initTimestamp();
+//		if(clock instanceof Vector)
+//			clock.initTimestamp();
+//		else
+//			clock.initTimestamp(); //need to figure out how to handle ArrayList vs. Int
+		return;
 	}
 	
 	

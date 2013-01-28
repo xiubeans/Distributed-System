@@ -1,4 +1,5 @@
 import java.util.Iterator;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 public final class TimeStampedMessage extends Message {
@@ -12,20 +13,27 @@ public final class TimeStampedMessage extends Message {
 		this.ts = t_stamp;
 	}
 	
-	/* methods */
-	public void setTimestamp(TimeStamp t_stamp)
-	{
-		this.ts = t_stamp;
-	}
+//	/* methods */
+//	public void setTimestamp(AtomicInteger val)
+//	{
+//		this.ts.val = val;
+//	}
 	
-	public TimeStamp getTimestamp()
-	{
-		return this.ts;
-	}
+//	public TimeStamp getTimestamp()
+//	{
+//		return this.ts;
+//	}
 
 	public String toString() 
 	{
 		return this.ts.toString();
+	}
+
+	
+	public boolean happenBefore(TimeStampedMessage timeStampedMessage) {
+		// TODO Auto-generated method stub
+		System.out.println("In happenedBefore with timestamp value of "+timeStampedMessage.ts.toString());
+		return false;
 	}
 	
 }

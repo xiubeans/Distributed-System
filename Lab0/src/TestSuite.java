@@ -11,6 +11,7 @@ public class TestSuite {
 	public static void main(String[] args)
 	{
 		Object data = null;
+		TimeStamp tstmp = null; //new TimeStamp();
 		Scanner cmd_line_input = new Scanner(System.in);
 		String config_file = "";
 		String local_name = "";
@@ -30,8 +31,7 @@ public class TestSuite {
 			local_name = args[1];
 			clock_type = args[2].toString().toLowerCase();
 			
-			ClockService clock = ClockService.getInstance(clock_type); //here is where we will instantiate the clock via the object factory
-			
+			ClockService clock = ClockService.getInstance(clock_type); //here is where we will instantiate the clock via the object factory			
 			
 			/* get a local copy of the config from AFS */
 			SFTPConnection svr_conn = new SFTPConnection();
@@ -43,6 +43,7 @@ public class TestSuite {
 			mp.setConfigAndName(config_file, local_name);
 			mp.initHeaders();
 			mp.parseConfig(config_file); //parse the config file
+			//mp.setClock(clock); //set up the timestamping
 			mp.runServer();
 			
 			while(true)
@@ -83,8 +84,8 @@ public class TestSuite {
 						dest = fields[1];
 						kind = fields[2];
 						data = null;
-						Message newMsg = new Message(src, dest, kind, data);
-						mp.send(newMsg);
+						TimeStampedMessage newMsg = new TimeStampedMessage(tstmp, src, dest, kind, data);
+						mp.send(newMsg, clock);
 						break;
 					case 2: //receive request
 						System.out.println("Usage: receive");
@@ -98,7 +99,7 @@ public class TestSuite {
 							System.out.println("Error: format of message not recognized.");
 							continue;
 						}
-						mp.receive();
+						mp.receive(clock);
 						mp.print();
 						break;
 					case 3: //quit the program

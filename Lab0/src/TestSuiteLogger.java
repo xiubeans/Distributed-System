@@ -62,6 +62,7 @@ public class TestSuiteLogger {
 				{
 					case 1: // print request
 						// put code here
+						System.out.println("Have a print request, but it currently does nothing...");
 						break;
 					case 2: // clear messages request
 						logger.clearAllQueues();

@@ -38,7 +38,7 @@ public class MessageBuffer {
 				done = false;
 			// return true if success; otherwise return false
 			else 
-				done = this.buf.offer(message);
+				done = this.buf.offer((TimeStampedMessage)message);
 		} finally {
 			// unlock the buffer
 			this.buf_lock.unlock();
@@ -70,7 +70,7 @@ public class MessageBuffer {
 				this.buf.drainTo(existing_messages);
 				
 				// add the message to the head of the list, and put all the list back to the buffer
-				existing_messages.add(0, message);
+				existing_messages.add(0, (TimeStampedMessage)message);
 				done = this.buf.addAll(existing_messages);
 				
 			}
@@ -92,7 +92,7 @@ public class MessageBuffer {
 		
 		// get blocked here until the buffer is not empty
 		try {
-			message = this.buf.take();
+			message = (TimeStampedMessage)this.buf.take();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -108,7 +108,7 @@ public class MessageBuffer {
 		ArrayList<Message> messages = new ArrayList<Message>();
 		
 		// System.out.println("Sys Now: " + this.buf.size());
-		
+
 		// lock the buffer 
 		this.buf_lock.lock();
 		try {

@@ -17,7 +17,6 @@ public class Message implements Serializable {
 		this.dest = dest;
 		this.kind = kind;
 		this.payload = payload;
-		
 	}
 
 	public void set_id(int id) 
