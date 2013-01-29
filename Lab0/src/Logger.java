@@ -18,6 +18,7 @@ import org.yaml.snakeyaml.*;
 public class Logger {
 	
 	/* fields of configuration */
+	int i = 0;
 	int max_vals = 7; //max number of fields in config file for a rule
 	int max_config_items = 100; //this is an arbitrary number to take place of hard-coded values
 	String[][] conf = new String[max_vals][max_config_items];
