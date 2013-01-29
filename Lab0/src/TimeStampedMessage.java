@@ -2,35 +2,31 @@ import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
-public final class TimeStampedMessage extends Message {
-	
-	/* field */
-	TimeStamp ts;
+public final class TimeStampedMessage extends Message 
+{
+	  TimeStamp ts;
 
-	public TimeStampedMessage(TimeStamp t_stamp, String src, String dest, String kind, Object payload)
-	{		
-		super(src, dest, kind, payload);
-		this.ts = t_stamp;
-	}
-	
-//	/* methods */
-//	public void setTimestamp(AtomicInteger val)
-//	{
-//		this.ts.val = val;
-//	}
-	
-//	public TimeStamp getTimestamp()
-//	{
-//		return this.ts;
-//	}
+	  public TimeStampedMessage(TimeStamp t_stamp, String src, String dest, String kind, Object payload)
+	  {
+	    super(src, dest, kind, payload);
+	    this.ts = t_stamp;
+	  }
 
-	public String toString() 
-	{
-		return this.ts.toString();
-	}
+	  public String toString()
+	  {
+	    return this.ts.toString();
+	  }
 
-	public TimeStamp getTimeStamp() {
-		return this.ts;
-	}
-	
+	  public boolean happenBefore(TimeStampedMessage timeStampedMessage)
+	  {
+	    System.out.println("In happenedBefore with timestamp value of " + timeStampedMessage.ts.toString());
+	    return false;
+	  }
+
+	  public int compareOrder(TimeStampedMessage msg)
+	  {
+	    int order = 0;
+
+	    return order;
+	  }
 }

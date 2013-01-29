@@ -31,8 +31,6 @@ public class TestSuite {
 			local_name = args[1];
 			clock_type = args[2].toString().toLowerCase();
 			
-			ClockService clock = ClockService.getInstance(clock_type); //here is where we will instantiate the clock via the object factory			
-			
 			/* get a local copy of the config from AFS */
 			SFTPConnection svr_conn = new SFTPConnection();
 			svr_conn.connect("unix.andrew.cmu.edu", "dpearson");
@@ -43,9 +41,10 @@ public class TestSuite {
 			mp.setConfigAndName(config_file, local_name);
 			mp.initHeaders();
 			mp.parseConfig(config_file); //parse the config file
-			//mp.setClock(clock); //set up the timestamping
 			mp.runServer();
-			
+			mp.listNodes();
+			ClockService clock = ClockService.getInstance(clock_type, mp.getVectorSize()); //here is where we will instantiate the clock via the object factory			
+						
 			while(true)
 			{
 				/* In the interactive portion of this program, the user needs to follow a specific format

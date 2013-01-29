@@ -9,30 +9,14 @@ public final class Logical extends ClockService {
 
 	protected Logical()
 	{
-		//super("logical");
-		this.ts.val.set(0);
-		//this.timestamp_val = new AtomicInteger();
+		this.ts = new TimeStamp(1);
 	}
 	
-//	@Override
-//	public TimeStamp getTimestamp(TimeStamp ts) {		
-//		return null;
-//	}
-
-//	public void setTimestamp(TimeStamp ts, AtomicInteger val){
-//		this.ts.val.incrementAndGet();
-////		this.timestamp = val;
-//	}
-//	
-//	public void incrementTimeStamp(){
-//		;
-//	}
 	
 	public void initTimestamp(){
 		
 		AtomicInteger init_val = new AtomicInteger();
 		init_val.set(0);
 		System.out.println("Setting up logical timestamp");
-		//this.timestamp_val = init_val;
 	}
 }
