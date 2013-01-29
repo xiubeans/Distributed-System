@@ -29,11 +29,8 @@ public final class TimeStampedMessage extends Message {
 		return this.ts.toString();
 	}
 
-	
-	public boolean happenBefore(TimeStampedMessage timeStampedMessage) {
-		// TODO Auto-generated method stub
-		System.out.println("In happenedBefore with timestamp value of "+timeStampedMessage.ts.toString());
-		return false;
+	public TimeStamp getTimeStamp() {
+		return this.ts;
 	}
 	
 }

@@ -53,4 +53,19 @@ public class TimeStamp implements Serializable {
 		return;
 	}
 	
+	/*
+	 * These three methods are just for overriding them in the VectorTimeStamp
+	 */
+	public boolean isEqual(TimeStamp ts) {
+		return true;
+	}
+	
+	public boolean isLessOrEqual(TimeStamp ts) {
+		return true;
+	}
+	
+	public boolean isLess(TimeStamp ts) {
+		return true;
+	}
+	
 }

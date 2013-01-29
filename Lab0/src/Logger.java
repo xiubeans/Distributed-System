@@ -18,7 +18,6 @@ import org.yaml.snakeyaml.*;
 public class Logger {
 	
 	/* fields of configuration */
-	int i = 0;
 	int max_vals = 7; //max number of fields in config file for a rule
 	int max_config_items = 100; //this is an arbitrary number to take place of hard-coded values
 	String[][] conf = new String[max_vals][max_config_items];
@@ -33,7 +32,7 @@ public class Logger {
 	String config_file;
 	String local_name;
 	Hashtable<String, ConnState> connections; 					// maintain all connection state information
-	Hashtable<String, ArrayList<TimeStampedMessage>> queues;	// maintain all incoming timestamped messages
+	ArrayList<TimeStampedMessage> queue;	// maintain all incoming timestamped messages
 	
 	
 	/*
@@ -44,7 +43,7 @@ public class Logger {
 		// Smart part
 		this.globalLock = new ReentrantLock();
 		this.connections = new Hashtable<String, ConnState>();
-		this.queues = new Hashtable<String, ArrayList<TimeStampedMessage>>();
+		this.queue = new ArrayList<TimeStampedMessage>();
 	}
 	
 	/*
@@ -65,6 +64,13 @@ public class Logger {
 		this.local_name = local_name;		
 	}
 	
+	public void runServer() {
+		// Init the local server which waits for incoming connection
+		Runnable runnableServer = new LoggerServerThread();
+		Thread threadServer = new Thread(runnableServer);
+		threadServer.start();
+	}
+	
 	
 	public int getVectorSize()
 	{
@@ -76,15 +82,7 @@ public class Logger {
 			System.out.println("Name "+i+" is "+names[i]);
 		return names.length-1; //because we store the heading names as the first name
 	}
-	
-	
-	public void runServer() {
-		// Init the local server which waits for incoming connection
-		Runnable runnableServer = new LoggerServerThread();
-		Thread threadServer = new Thread(runnableServer);
-		threadServer.start();
-	}
-	
+
 	
 	public void buildRule(HashMap rule, int ctr, String type)
 	{
@@ -555,39 +553,24 @@ public class Logger {
 	/*
 	 * Clear one message queue
 	 */
-	public void clearQueue(String remote_name) {
+	public void clearQueue() {
 		
 		// lock this logger at first
 		this.globalLock.lock();
 		
-		ArrayList<TimeStampedMessage> queue = this.queues.get(remote_name);
-		if(queue == null)
-			return;
-		else
-			queue.clear();
+		this.queue.clear();
 		
 		// unlock this logger
 		this.globalLock.unlock();
 	}
 
-	public void clearAllQueues() {
-		
-		// lock this logger 
-		this.globalLock.lock();
-		
-		// clear all queues
-		Iterator<String> itr = this.queues.keySet().iterator();
-		while(itr.hasNext())
-			this.queues.get(itr.next()).clear();
-		
-		// unlock this logger
-		this.globalLock.unlock();
-	}
 	
 	public void printConnectsions() {
 		
+		// lock the logger
+		this.globalLock.lock();
+		
 		// print all connections
-		System.out.println("#############################  MessagePasser Status  ###############################");
 		String conns = "--> We have connections: \n";
 		Iterator<String> itr = this.connections.keySet().iterator();
 		while(itr.hasNext()) {
@@ -597,114 +580,98 @@ public class Logger {
 					+ ", out-message-counter = " + conn.out_message_counter + "\n";
 		}
 		System.out.println(conns);
+		
+		// unlock the logger
+		this.globalLock.unlock();
 	}
 	
-	public void printBasic() {
+	public void printMessageQueue() {
 		
-		// print all connections
-		this.printConnectsions();
+		// lock the logger
+		this.globalLock.lock();
+		
+		// simply print all messages in the queue in the receiving order
+		String printout = "--> We have messages: \n";
+		for(int i = 0; i < this.queue.size(); i++) {
+			printout += "\t" + this.queue.get(i).toString() + "\n";
+		}
+		System.out.println(printout);
+		
+		// unlock the logger
+		this.globalLock.unlock();
+		
+	}
+	
+	public void printBasicInfo() {
 		
 		// lock the Logger for now
 		this.globalLock.lock();
 		
-		// print all queues
-		System.out.println("We have these message queues: \n");
-		Iterator<String> itr = this.queues.keySet().iterator();
-		while(itr.hasNext()) {
-			String remote_name = itr.next();
-			System.out.println("\t" + remote_name + ": ");
-			ArrayList<TimeStampedMessage> queue = this.queues.get(remote_name);
-			for(int i = 0; i < queue.size(); i++) {
-				System.out.println("\t\t" + queue.get(i).toString());
-			}
-		}
-		
+		// print all connections and all messages
+		System.out.println("#############################  Logger Status  ###############################\n");
+		this.printConnectsions();
+		this.printMessageQueue();
+		System.out.println("#############################################################################\n");
+	
 		// unlock the Logger's locker
 		this.globalLock.unlock();
 		
 	}
 	
-	public void printOrder() {
+	public void printVectorOrder() {
+
+		/* lock the logger at first */
+		this.globalLock.lock();
 		
-		Set<String> remote_names = this.queues.keySet();
+		/* copy the queue at first */
+		ArrayList<TimeStampedMessage> queue = new ArrayList<TimeStampedMessage>();
+		for(int i = 0 ; i < this.queue.size(); i++)
+			queue.add(this.queue.get(i));
+
+		/* unlock the logger */
+		this.globalLock.unlock();
 		
-		/* if empty just return */
-		if(remote_names == null)
-			return;
+		/* use bubble sorting to figure out the order */
+	    boolean swapped = true;
+	    int j = 0;
+	    int tmp;
+	    while (swapped) {
+	    	
+	    	swapped = false;
+	        j++;
+	        
+	        for (int i = 0; i < queue.size() - j; i++) {
+	        	
+	        	boolean swap_needed = false;
+	        	
+	        	/* determine whether should swap the neighbor */
+	        	int order = queue.get(i).compareOrder(queue.get(i + 1));
+	        	if(order == 1)
+	        		swap_needed = true;
+	        	else if(order == 0) {
+	        		if(queue.get(i).src.compareTo(queue.get(i + 1).src) != 0)
+	        				swap_needed  = true;
+	        	}
+	        	else
+	        		;	// do nothing
+	        	
+	        	if (swap_needed) { 
+	        		Collections.swap(queue, i, i + 1);
+		            swapped = true;
+	        	}
+	         }
+	    }		
 		
-		TimeStampedMessage test_message = 
-				this.queues.get(remote_names.iterator().next()).get(0);	// used to test type of timestamp
-		/* if logical order */
-		if (test_message.ts instanceof LogicalTimeStamp) {
-			// uncertain here
-			System.out.println("We are using logical timestamps");
-		}
-		
-		/* else vector order */
-		else {
-			System.out.println("We are using vector timestamps");
-			// undone here, but will use and only use VectorTimeStamp's happenBefore() method
-			Hashtable<ArrayList<TimeStampedMessage>, Iterator> ht = new Hashtable<ArrayList<TimeStampedMessage>, Iterator>();
-			Iterator itr = remote_names.iterator();
-			while(itr.hasNext()) {
-				String remote_name = (String)itr.next();
-				ht.put(this.queues.get(remote_name), this.queues.get(remote_name).iterator());
-			}
-			
-			// print the order
-			boolean done = false;
-			while(done == false) {
-				
-				// get next message in the order
-				
-				// if all iterator goes over, set done = true
-				
-			}
-			
-		}
-		
+		/* print out the ordered messages */
+	    System.out.println("#####################  The Ordering  #####################");
+	    for(int i = 0; i < queue.size(); i++) {
+	    	System.out.println(queue.get(i).toString());
+	    }
+	    System.out.println("##########################################################");
+
 	}
 	
-	public void printRelation() {
-		
-		Set<String> remote_names = this.queues.keySet();
-		
-		/* if empty just return */
-		if(remote_names == null)
-			return;
-		
-		TimeStampedMessage test_message = 
-				this.queues.get(remote_names.iterator().next()).get(0);	// used to test type of timestamp
-		
-		/* if logical order */
-		if (test_message.ts instanceof LogicalTimeStamp) {
-			// uncertain here
-		}
-		
-		/* else vector order */
-		else {
-			
-			ArrayList<TimeStampedMessage> all = new ArrayList<TimeStampedMessage>();
-			
-			// put all messages together
-			Iterator itr = remote_names.iterator();
-			while(itr.hasNext()) 
-				all.addAll(this.queues.get(itr.next()));
-			
-			// print all relationship
-			for(int i = 0; i < all.size() - 1; i++) {
-				for(int j = i + 1; j < all.size(); j++) {
-					if(all.get(i).happenBefore(all.get(j)))
-						;// print something
-					else if(all.get(j).happenBefore(all.get(i)))
-						;//print something
-					else
-						;// print concurrent
-				}
-			}
-		}
-		
-	}
+	
 }
 
 
@@ -766,7 +733,6 @@ class LoggerServerThread implements Runnable {
 					conn_state.setObjectInputStream(ois_tmp);
 					
 					this.logger.connections.put(remote_name, conn_state);					
-					this.logger.queues.put(remote_name, new ArrayList<TimeStampedMessage>());
 					
 					// create and run the LoggerReceiveThread
 					Runnable receiveRunnable = new LoggerReceiveThread(remote_name);
@@ -818,24 +784,17 @@ class LoggerReceiveThread implements Runnable {
 				while(true) {
 						// block here until one message comes in
 						TimeStampedMessage message = (TimeStampedMessage)ois.readObject(); 
-						
-						// put the message to the specific message queue
-						ArrayList<TimeStampedMessage> queue = this.logger.queues.get(message.src);
-						if(queue == null)
-							continue;
-						else
-							queue.add(message);
+						logger.queue.add(message);
 				}
 			} finally {
 				
 				conn_state.getObjectInputStream().close();
 				conn_state.getObjectOutputStream().close();
 				conn_state.local_socket.close();
-				this.logger.connections.remove(remote_name);
-				this.logger.queues.remove(remote_name);
-				
+				this.logger.connections.remove(remote_name);				
 				int i = 0;
 				i++;
+				
 			}
 		} catch (Exception e){
 			if(e instanceof EOFException) {
