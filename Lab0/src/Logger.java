@@ -28,11 +28,11 @@ public class Logger {
 
 	/* fields of the object */
 	private static Logger uniqInstance = null;
-	ReentrantLock globalLock;							 // may be used to synchronize 
+	ReentrantLock globalLock;							// used to synchronize, avoid race condition about message queue 
 	String config_file;
 	String local_name;
-	Hashtable<String, ConnState> connections; 					// maintain all connection state information
-	ArrayList<TimeStampedMessage> queue;	// maintain all incoming timestamped messages
+	Hashtable<String, ConnState> connections; 			// maintain all connection state information
+	ArrayList<TimeStampedMessage> queue;				// maintain all incoming timestamped messages
 	
 	
 	/*
@@ -40,35 +40,43 @@ public class Logger {
 	 * IMPORTANT: make it singleton
 	 */
 	private Logger() {		
-		// Smart part
+		
 		this.globalLock = new ReentrantLock();
 		this.connections = new Hashtable<String, ConnState>();
 		this.queue = new ArrayList<TimeStampedMessage>();
+		
 	}
 	
 	/*
 	 * The way how other can get the singleton instance of this class
 	 */
 	public static synchronized Logger getInstance() {
+		
 		if (uniqInstance == null) {
 			uniqInstance = new Logger();
 		}
+		
 		return uniqInstance;
+		
 	}
 	
 	/*
 	 * Remember to call it after we firstly getInstance() in our application
 	 */
 	public void setConfigAndName(String configuration_filename, String local_name) {
+		
 		this.config_file = configuration_filename;
 		this.local_name = local_name;		
+		
 	}
 	
 	public void runServer() {
+		
 		// Init the local server which waits for incoming connection
 		Runnable runnableServer = new LoggerServerThread();
 		Thread threadServer = new Thread(runnableServer);
 		threadServer.start();
+		
 	}
 	
 	
@@ -556,80 +564,107 @@ public class Logger {
 	public void clearQueue() {
 		
 		// lock this logger at first
-		this.globalLock.lock();
+		//this.globalLock.lock();
 		
+		// clear the message queue
 		this.queue.clear();
 		
 		// unlock this logger
-		this.globalLock.unlock();
+		//this.globalLock.unlock();
 	}
 
-	
+	/*
+	 * Print all established connections
+	 */
 	public void printConnectsions() {
 		
 		// lock the logger
-		this.globalLock.lock();
+		//this.globalLock.lock();
 		
 		// print all connections
 		String conns = "--> We have connections: \n";
 		Iterator<String> itr = this.connections.keySet().iterator();
 		while(itr.hasNext()) {
 			String next_conn = itr.next();
-			ConnState conn = connections.get(next_conn);
-			conns += "\t" + next_conn + ": in-message-counter = " + conn.in_messsage_counter
-					+ ", out-message-counter = " + conn.out_message_counter + "\n";
+			conns += "\t" + next_conn + "\n";
 		}
 		System.out.println(conns);
 		
 		// unlock the logger
-		this.globalLock.unlock();
+		//this.globalLock.unlock();
 	}
 	
+	/*
+	 * Print all messages in the queue
+	 */
 	public void printMessageQueue() {
 		
 		// lock the logger
-		this.globalLock.lock();
+		//this.globalLock.lock();
 		
 		// simply print all messages in the queue in the receiving order
 		String printout = "--> We have messages: \n";
 		for(int i = 0; i < this.queue.size(); i++) {
-			printout += "\t" + this.queue.get(i).toString() + "\n";
+			printout += "\t" + i + ": " + this.queue.get(i).toString() + "\n";
 		}
 		System.out.println(printout);
 		
 		// unlock the logger
-		this.globalLock.unlock();
+		//this.globalLock.unlock();
 		
 	}
 	
-	public void printBasicInfo() {
-		
-		// lock the Logger for now
-		this.globalLock.lock();
+	
+	/*
+	 * Print connection status and the message queue
+	 */
+	public void printEverything() {
 		
 		// print all connections and all messages
 		System.out.println("#############################  Logger Status  ###############################\n");
 		this.printConnectsions();
 		this.printMessageQueue();
 		System.out.println("#############################################################################\n");
-	
-		// unlock the Logger's locker
-		this.globalLock.unlock();
 		
 	}
 	
+	/*
+	 * Compare two messages
+	 */
+	public void compareTwoMessages(int i, int j) {
+		
+		// validate message index
+		if(i >= this.queue.size() || i >= this.queue.size()) {
+			System.out.println("Invalid message index..");
+			return;
+		}
+		
+		// compare them two
+		int order = this.queue.get(i).compareOrder(this.queue.get(j));
+		if(order == -1) 
+			System.out.println("Message " + i + " happens before message " + j);
+		else if(order == 0) 
+			System.out.println("Message " + i + " and message " + j + " are concurrent");
+		else
+			System.out.println("Message " + j + " happens before message " + i);
+
+	}
+	
+	/*
+	 * Print the messages in Vector timestamp order
+	 */
 	public void printVectorOrder() {
 
 		/* lock the logger at first */
-		this.globalLock.lock();
+		//this.globalLock.lock();
 		
 		/* copy the queue at first */
 		ArrayList<TimeStampedMessage> queue = new ArrayList<TimeStampedMessage>();
 		for(int i = 0 ; i < this.queue.size(); i++)
-			queue.add(this.queue.get(i));
+			queue.add((TimeStampedMessage)this.queue.get(i).clone());
 
 		/* unlock the logger */
-		this.globalLock.unlock();
+		//this.globalLock.unlock();
 		
 		/* use bubble sorting to figure out the order */
 	    boolean swapped = true;
@@ -649,7 +684,7 @@ public class Logger {
 	        	if(order == 1)
 	        		swap_needed = true;
 	        	else if(order == 0) {
-	        		if(queue.get(i).src.compareTo(queue.get(i + 1).src) != 0)
+	        		if(queue.get(i).src.compareTo(queue.get(i + 1).src) < 0)
 	        				swap_needed  = true;
 	        	}
 	        	else
@@ -659,6 +694,7 @@ public class Logger {
 	        		Collections.swap(queue, i, i + 1);
 		            swapped = true;
 	        	}
+	        	
 	         }
 	    }		
 		
@@ -687,7 +723,9 @@ class LoggerServerThread implements Runnable {
 	 * Constructor: just get the singleton
 	 */
 	public LoggerServerThread() {
+		
 		logger = Logger.getInstance();
+		
 	}
 	
 	
@@ -701,7 +739,6 @@ class LoggerServerThread implements Runnable {
 		}
 		
 		// if no such local name, terminate the application
-		// actually useless here, I guess ...
 		if(i == this.logger.max_vals) {
 			System.out.println("No such name: " + logger.local_name);
 			System.exit(0);
@@ -717,21 +754,22 @@ class LoggerServerThread implements Runnable {
 				System.out.println(this.logger.conf[2][i]);
 
 				ServerSocket socket = new ServerSocket(Integer.parseInt(this.logger.conf[2][i]));
-
+				
 				// keep listening on the WELL-KNOWN port
 				while(true) {
+					
 					Socket s = socket.accept();
 					ObjectOutputStream oos_tmp = new ObjectOutputStream(s.getOutputStream());
 					ObjectInputStream ois_tmp = new ObjectInputStream(s.getInputStream());
 	
+					// get the login message to identify the other end
 					TimeStampedMessage login_msg = (TimeStampedMessage)ois_tmp.readObject();
 					String remote_name = login_msg.src;
 
 					// Put the new socket into mmp's connections, and initialize the message queue
 					ConnState conn_state = new ConnState(remote_name, s);					
 					conn_state.setObjectOutputStream(oos_tmp);
-					conn_state.setObjectInputStream(ois_tmp);
-					
+					conn_state.setObjectInputStream(ois_tmp);				
 					this.logger.connections.put(remote_name, conn_state);					
 					
 					// create and run the LoggerReceiveThread
@@ -778,29 +816,31 @@ class LoggerReceiveThread implements Runnable {
 		ObjectInputStream ois = conn_state.getObjectInputStream();
 		
 		// Infinite loop: listen for input
-		try {
-			
-			try {
+		try {			
+			try {				
 				while(true) {
+					
 						// block here until one message comes in
 						TimeStampedMessage message = (TimeStampedMessage)ois.readObject(); 
 						logger.queue.add(message);
+						
 				}
+				
 			} finally {
 				
 				conn_state.getObjectInputStream().close();
 				conn_state.getObjectOutputStream().close();
 				conn_state.local_socket.close();
 				this.logger.connections.remove(remote_name);				
-				int i = 0;
-				i++;
 				
 			}
 		} catch (Exception e){
+			
 			if(e instanceof EOFException) {
 				System.out.println("Connection to " + remote_name + " is disconnected");
 			}
 			return;
+			
 		}
 	}
 }

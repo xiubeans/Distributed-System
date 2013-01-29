@@ -23,10 +23,36 @@ public final class TimeStampedMessage extends Message
 	    return false;
 	  }
 
+	  /*
+	   * Compare the relationship between two messages
+	   * Return:
+	   * 	-1 : this happens before msg
+	   * 	 0 : they are concurrent
+	   *     1 : msg happens before this
+	   */
 	  public int compareOrder(TimeStampedMessage msg)
 	  {
 	    int order = 0;
 
+	    if(this.ts.isLess(msg.ts))
+	    	order = -1;
+	    else if(msg.ts.isLess(this.ts))
+	    	order = 1;
+	    else
+	    	order = 0;
+	    
 	    return order;
+	  }
+	  
+	  /*
+	   * Deep clone a TimeStampedMessage
+	   */
+	  public TimeStampedMessage clone() {
+		  
+		  // Attention: we don't deep clone the playload here !!!
+		  TimeStampedMessage new_tsmsg = new TimeStampedMessage(
+				  (TimeStamp)this.ts.clone(), this.src, this.dest, this.kind, this.payload);
+		  
+		  return new_tsmsg;
 	  }
 }

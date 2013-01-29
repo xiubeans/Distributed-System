@@ -17,63 +17,11 @@ public class TimeStamp implements Serializable {
 	    System.out.println("Size of arraylist is " + this.val.size());
 	  }
 
-	  public TimeStamp clone()
-	  {
-	    TimeStamp vts = new TimeStamp(this.val.size());
-
-	    for (int i = 0; i < this.val.size(); i++) {
-	      vts.val.add((AtomicInteger)this.val.get(i));
-	    }
-	    return vts;
-	  }
-
 	  public void set(ArrayList<AtomicInteger> vector_vals)
 	  {
 	    System.out.println("Need to do comparisons here");
 	    for (int i = 0; i < this.val.size(); i++)
 	      this.val.set(i, (AtomicInteger)vector_vals.get(i));
-	  }
-
-	  public boolean isEqual(TimeStamp ts)
-	  {
-	    boolean equal = true;
-
-	    for (int i = 0; i < this.val.size(); i++)
-	    {
-	      if (((AtomicInteger)this.val.get(i)).get() != ((AtomicInteger)ts.val.get(i)).get())
-	      {
-	        equal = false;
-	        break;
-	      }
-
-	    }
-
-	    return equal;
-	  }
-
-	  public boolean isLessOrEqual(TimeStamp ts)
-	  {
-	    boolean less_or_equal = true;
-
-	    for (int i = 0; i < this.val.size(); i++)
-	    {
-	      if (((AtomicInteger)this.val.get(i)).get() > ((AtomicInteger)ts.val.get(i)).get())
-	      {
-	        less_or_equal = false;
-	        break;
-	      }
-
-	    }
-
-	    return less_or_equal;
-	  }
-
-	  public boolean isLess(TimeStamp ts)
-	  {
-	    if ((isLessOrEqual(ts)) && (!isEqual(ts))) {
-	      return true;
-	    }
-	    return false;
 	  }
 
 	  public String toString()
@@ -83,5 +31,50 @@ public class TimeStamp implements Serializable {
 	    for (int i = 0; i < this.val.size(); i++)
 	      buf_string = buf_string + "\t" + ((AtomicInteger)this.val.get(i)).toString();
 	    return buf_string;
+	    
 	  }
+	  
+	  /*
+	   * The following three methods are added by Jaz
+	   * They only apply to Vector timestamp
+	   */
+	  public boolean isEqual(TimeStamp ts) {
+		  
+		  boolean is_equal = true;
+		  
+		  for(int i = 0; i < this.val.size(); i++) {
+			  if(this.val.get(i).get() != ts.val.get(i).get()) {
+				  is_equal = false;
+				  break;
+			  }
+		  }
+		  
+		  return is_equal;
+		  
+	  }
+	  public boolean isLessOrEqual(TimeStamp ts) {
+		  
+		  boolean is_less_or_equal = true;
+		  
+		  for(int i = 0; i < this.val.size(); i++) {
+			  if(this.val.get(i).get() > ts.val.get(i).get()) {
+				  is_less_or_equal = false;
+				  break;
+			  }
+		  }
+		  
+		  return is_less_or_equal;
+		  
+	  }
+	  public boolean isLess(TimeStamp ts) {
+		  
+		  boolean is_less = false;
+		  
+		  if(this.isLessOrEqual(ts) && !this.isEqual(ts))
+			  is_less = true;
+		  
+		  return is_less;
+		  
+	  }
+	  
 }
