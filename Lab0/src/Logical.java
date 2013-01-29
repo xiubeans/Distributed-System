@@ -31,8 +31,6 @@ public final class Logical extends ClockService {
 		/* Updates the receiver's timestamp based on the values
 		 * coming in from external messages. */
 		
-		System.out.println("Message timestamp is "+message.ts.toString()+", while mine is "+this.ts.toString());
-		
 		if(!message.ts.isLess(getTimestamp()))
 			this.set(message.ts.val);
 		else

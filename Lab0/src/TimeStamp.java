@@ -11,10 +11,8 @@ public class TimeStamp implements Serializable {
 	    AtomicInteger init_val = new AtomicInteger(0);
 	    this.val = new ArrayList();
 
-	    System.out.println("Size of arraylist is " + this.val.size());
 	    for (int i = 0; i < num_users; i++)
 	      this.val.add(init_val);
-	    System.out.println("Size of arraylist is " + this.val.size());
 	  }
 
 	  
@@ -42,10 +40,16 @@ public class TimeStamp implements Serializable {
 
 	  public String toString()
 	  {
-	    String buf_string = "";
+	    String buf_string = "[";
 
 	    for (int i = 0; i < this.val.size(); i++)
-	      buf_string = buf_string + "\t" + ((AtomicInteger)this.val.get(i)).toString();
+	    {
+	    	buf_string = buf_string + ((AtomicInteger)this.val.get(i)).toString();
+	    	if(i != this.val.size()-1)
+	    		buf_string +=",";
+	    }
+	    
+	    buf_string += "]";
 	    return buf_string;
 	    
 	  }

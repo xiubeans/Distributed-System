@@ -71,7 +71,10 @@ public class TestSuiteLogger {
 						break;
 					case 2:
 						// print the message in Vector order
-						logger.printVectorOrder();
+						if(logger.queue.size() != 0 && logger.queue.get(0).ts.val.size() == 1)
+							System.out.println("Dealing with logical clocks -- happened before relation not necessarily possible.\n");
+						else
+							logger.printVectorOrder();
 						break;
 					case 3: 
 						// compare two messages
@@ -79,7 +82,10 @@ public class TestSuiteLogger {
 						System.out.println("<Usage>: compare Msg_ID1 Msg_ID2");
 						user_input = cmd_line_input.nextLine();
 						String[] paras = user_input.trim().split(" ");
-						//logger.compareTwoMessages(Integer.parseInt(paras[1]), Integer.parseInt(paras[2]);
+						if(logger.queue.size() != 0 && logger.queue.get(0).ts.val.size() == 1)
+							System.out.println("Dealing with logical clocks -- happened before relation not necessarily possible.\n");
+						else
+							logger.compareTwoMessages(Integer.parseInt(paras[1]), Integer.parseInt(paras[2]));
 						break;
 					case 4:
 						// clear message queue

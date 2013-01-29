@@ -14,7 +14,7 @@ public final class TimeStampedMessage extends Message implements Serializable {
 
 	  public String toString()
 	  {
-	    return this.ts.toString();
+	    return this.src+": "+this.ts.toString();
 	  }
 
 	  public boolean happenBefore(TimeStampedMessage timeStampedMessage)

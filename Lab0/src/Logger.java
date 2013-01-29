@@ -86,8 +86,6 @@ public class Logger {
 		
 		int numNames = 0;
 		String[] names = this.getField("name");
-		for(int i=0; i<names.length; i++)
-			System.out.println("Name "+i+" is "+names[i]);
 		return names.length-1; //because we store the heading names as the first name
 	}
 
@@ -684,7 +682,7 @@ public class Logger {
 	        	if(order == 1)
 	        		swap_needed = true;
 	        	else if(order == 0) {
-	        		if(queue.get(i).src.compareTo(queue.get(i + 1).src) < 0)
+	        		if(queue.get(i).src.compareTo(queue.get(i + 1).src) > 0)
 	        				swap_needed  = true;
 	        	}
 	        	else
@@ -749,10 +747,6 @@ class LoggerServerThread implements Runnable {
 			try {
 				
 				// Init the local listening socket
-				System.out.println(this.logger.conf[0][i]);
-				System.out.println(this.logger.conf[1][i]);
-				System.out.println(this.logger.conf[2][i]);
-
 				ServerSocket socket = new ServerSocket(Integer.parseInt(this.logger.conf[2][i]));
 				
 				// keep listening on the WELL-KNOWN port
@@ -763,7 +757,7 @@ class LoggerServerThread implements Runnable {
 					ObjectInputStream ois_tmp = new ObjectInputStream(s.getInputStream());
 	
 					// get the login message to identify the other end
-					TimeStampedMessage login_msg = (TimeStampedMessage)ois_tmp.readObject();
+					Message login_msg = (Message)ois_tmp.readObject();
 					String remote_name = login_msg.src;
 
 					// Put the new socket into mmp's connections, and initialize the message queue

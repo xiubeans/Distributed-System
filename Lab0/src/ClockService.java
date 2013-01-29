@@ -30,7 +30,6 @@ public abstract class ClockService {
 	
 	public TimeStamp getTimestamp()
 	{
-		System.out.println("In CS getTimeStamp call");
 		return this.ts.clone();
 	}
 

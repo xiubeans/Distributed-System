@@ -14,7 +14,6 @@ public final class Vector extends ClockService {
 
 	
 	public void incrementTimeStamp(){
-		System.out.println("In CS incrementTimeStamp call");
 			MessagePasser mp = MessagePasser.getInstance();
 			this.my_index = ((Integer)mp.names_index.get(mp.local_name)).intValue();
 		this.ts.val.set(this.my_index, new AtomicInteger(((AtomicInteger)this.ts.val.get(this.my_index)).intValue()+1));
@@ -32,9 +31,7 @@ public final class Vector extends ClockService {
 	{
 		/* Updates the receiver's timestamp based on the values
 		 * coming in from external messages. */
-		
-		System.out.println("Message timestamp is "+message.ts.toString()+", while mine is "+this.ts.toString());
-		
+				
 		for(int i=0; i< this.ts.val.size(); i++)
 		{
 			if(this.ts.val.get(i).get() <= message.ts.val.get(i).get())
