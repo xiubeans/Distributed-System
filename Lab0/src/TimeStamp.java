@@ -17,12 +17,28 @@ public class TimeStamp implements Serializable {
 	    System.out.println("Size of arraylist is " + this.val.size());
 	  }
 
-	  public void set(ArrayList<AtomicInteger> vector_vals)
+	  
+	  public TimeStamp clone()
 	  {
-	    System.out.println("Need to do comparisons here");
-	    for (int i = 0; i < this.val.size(); i++)
-	      this.val.set(i, (AtomicInteger)vector_vals.get(i));
+	    TimeStamp vts = new TimeStamp(this.val.size());
+
+	    for (int i = 0; i < this.val.size(); i++) {
+	      vts.val.set(i, (AtomicInteger)this.val.get(i));
+	    }
+	    return vts;
 	  }
+	  
+//	  
+//	  public void set(ArrayList<AtomicInteger> vector_vals)
+//	  {
+//	    System.out.println("Need to do comparisons here");
+//	    for (int i = 0; i < this.val.size(); i++)
+//	    {
+//	    	//if an element is less than the message's element, update it
+//	    	if(this.val.get(i) <= )
+//	    	this.val.set(i, (AtomicInteger)vector_vals.get(i));	
+//	    }
+//	  }
 
 	  public String toString()
 	  {

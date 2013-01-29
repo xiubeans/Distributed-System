@@ -28,7 +28,7 @@ public class MessagePasser {
 	String local_name;
 	AtomicInteger message_id = new AtomicInteger(0); // atomic message id counter
 	Hashtable<String, ConnState> connections = new Hashtable<String, ConnState>(); // maintain all connection state information
-	HashMap names_index = new HashMap(); //stores the name-index mapping
+	TreeMap names_index = new TreeMap<String, Integer>(); //stores the name-index mapping
 	MessageBuffer send_buf;
 	MessageBuffer rcv_buf;
 	MessageBuffer rcv_delayed_buf;
@@ -70,19 +70,32 @@ public class MessagePasser {
 		
 		int numNames = 0;
 		String[] names = this.getField("name");
-		for(int i=0; i<names.length; i++)
-			System.out.println("Name "+i+" is "+names[i]);
-		return names.length-1; //because we store the heading names as the first name
+		return names.length-2; //because we store the heading names as the first name and logger as last name
 	}
 	
 	
-	 public void listNodes()
+	public void listNodes()
 	  {
-		 /* Creates a hashmap of name-index pairs */
-		 
+		/* Creates an index of name-index pairs */
+		
 	    String[] names = getField("name");
+	    TreeMap<String, Integer> tmp = new TreeMap<String, Integer>();
+
 	    for (int i = 0; i < names.length; i++)
-	      this.names_index.put(names[i], Integer.valueOf(i));
+	    {
+	      if ((!names[i].equalsIgnoreCase("logger")) && (!names[i].equalsIgnoreCase("name")))
+	      {
+	        tmp.put(names[i], Integer.valueOf(i));
+	      }
+	    }
+	    int j = 0;
+
+	    for (Map.Entry entry : tmp.entrySet())
+	    {
+	      String name = (String)entry.getKey();
+	      this.names_index.put(name, Integer.valueOf(j));
+	      j++;
+	    }
 	  }
 	
 	
@@ -340,7 +353,7 @@ public class MessagePasser {
 				else if(action.equals("duplicate")) {
 
 					// step 1: send two identical messages, with same message_id
-					message.set_id(this.message_id.getAndIncrement());
+					message.set_id(this.message_id.get());
 					((TimeStampedMessage)message).ts = clock.getTimestamp();
 
 					oos.writeObject((TimeStampedMessage)message);
@@ -453,7 +466,7 @@ public class MessagePasser {
 	}
 
 	
-	public Message receive(ClockService clock) { /* NEEDS TO CHECK FOR MAX OF INCOMING VS. CURRENT TIMESTAMPS */
+	public Message receive(ClockService clock) {
 		/*
 		 * Receive
 		 * Get single message once called; 
@@ -461,8 +474,6 @@ public class MessagePasser {
 		 * Blocking mode
 		 * If it takes a message with "drop", it will return null
 		 */		
-		
-		clock.incrementTimeStamp(); //need to update each time regardless
 		
 		// retrieve from the rcv_delay_buf if it is ready
 		// take care of the rcv_delayed_buf at first, if it is ready

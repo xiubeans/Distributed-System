@@ -1,9 +1,9 @@
+import java.io.Serializable;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
-public final class TimeStampedMessage extends Message 
-{
+public final class TimeStampedMessage extends Message implements Serializable {
 	  TimeStamp ts;
 
 	  public TimeStampedMessage(TimeStamp t_stamp, String src, String dest, String kind, Object payload)

@@ -36,42 +36,23 @@ public abstract class ClockService {
 
 	
 	public void incrementTimeStamp(){
-		System.out.println("In CS incrementTimeStamp call");
-		if((this instanceof Logical))
-			this.my_index = 0;
-		else
-		{
-			MessagePasser mp = MessagePasser.getInstance();
-			this.my_index = ((Integer)mp.names_index.get(mp.local_name)).intValue();
-		}
-		this.ts.val.set(this.my_index, new AtomicInteger(((AtomicInteger)this.ts.val.get(this.my_index)).intValue()+1));
-		//this.ts.val.set(this.my_index, new AtomicInteger(((AtomicInteger)this.ts.val.get(this.my_index)).getAndIncrement()));
-	}
-		
-	
-	public void initTimestamp(){
 		;
 	}
 
 	
 	public TimeStampedMessage affixTimestamp(TimeStampedMessage message)
 	{
-		message.ts = this.ts.clone();
-		incrementTimeStamp();
-		message.ts.clone();
 		return message;
 	}
 	
 	public void updateTimestamp(TimeStampedMessage message)
 	{
-		/* Updates the receiver's timestamp based on the values
-		 * coming in from external messages. */
-		
-		System.out.println("Message timestamp is "+message.ts.toString()+", while mine is "+this.ts.toString());
-		
-		if(!message.ts.isLess(getTimestamp()));
-//		if(message.ts.val.intValue() >= getTimestamp())
-//			this.ts.val.set(message.ts.val.intValue() + 1);
-		
+		;		
 	}	
+	
+	  
+	public void set(ArrayList<AtomicInteger> vector_vals)
+	{
+	    ;
+	}
 }
