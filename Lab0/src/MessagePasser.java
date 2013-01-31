@@ -28,7 +28,7 @@ public class MessagePasser {
 	String local_name;
 	AtomicInteger message_id = new AtomicInteger(0); // atomic message id counter
 	Hashtable<String, ConnState> connections = new Hashtable<String, ConnState>(); // maintain all connection state information
-	TreeMap names_index = new TreeMap<String, Integer>(); //stores the name-index mapping
+	TreeMap<String, Integer> names_index = new TreeMap<String, Integer>(); //stores the name-index mapping
 	MessageBuffer send_buf;
 	MessageBuffer rcv_buf;
 	MessageBuffer rcv_delayed_buf;
@@ -445,6 +445,12 @@ public class MessagePasser {
 						// send single delayed message at once
 						TimeStampedMessage dl_message = (TimeStampedMessage)delayed_messages.remove(0);
 
+//						if(!message.dest.equalsIgnoreCase(dl_message.dest)) //only send delayed messages with the same destination
+//						{
+//							System.out.println("Skipping message in delay queue b/c of mismatched destinations");
+//							continue; //skip to the next delayed message to see if its dest matches
+//						} //doesn't work for multiple reasons...
+							 						
 						oos.writeObject(dl_message);
 						oos.flush();
 						conn.getAndIncrementOutMessageCounter();
@@ -866,7 +872,7 @@ public class MessagePasser {
 		}
 		else if(user_options.length != max_fields)
 		{	
-			System.out.println("Usage error - must be receive OR send <dest> <kind>");
+			System.out.println("Usage error - must be receive OR send <dest> <kind> OR send multicast <kind>");
 			return false;
 		}	
 		
@@ -882,7 +888,7 @@ public class MessagePasser {
 		{
 			for(int j=1; j<max_options; j++)
 			{
-				if((all_fields[ctr][j].equalsIgnoreCase((user_options[ctr].toString()))))
+				if((all_fields[ctr][j].equalsIgnoreCase((user_options[ctr].toString()))) || user_options[ctr].toString().equalsIgnoreCase("multicast"))
 					break; //found a match for that field
 				else if(all_fields[ctr][0].equalsIgnoreCase("kind") && all_fields[ctr][j].equals("*")) //because it can be anything really
 				{
