@@ -23,6 +23,7 @@ public class TestSuiteMulticast {
 		String src = "";
 		String dest = "";
 		String kind = "";
+		String type = ""; //whether it is a multicast or unicast message
 		int user_action = 0;
 		int global_modification_time = -1;  // record the latest time on servers
 		int expectedNumArgs = 3;
@@ -85,8 +86,9 @@ public class TestSuiteMulticast {
 						src = local_name;
 						dest = fields[1];
 						kind = fields[2];
+						type = "unicast";
 						data = null;
-						TimeStampedMessage newMsg = new TimeStampedMessage(tstmp, src, dest, kind, data);
+						TimeStampedMessage newMsg = new TimeStampedMessage(tstmp, src, dest, kind, type, data);
 						mp.send(newMsg, clock);
 						break;
 					case 2: //receive request
@@ -133,8 +135,9 @@ public class TestSuiteMulticast {
 							src = local_name;
 							dest = name;
 							kind = fields[2];
+							type = "multicast";
 							data = null;
-							newMsg = new TimeStampedMessage(tstmp, src, dest, kind, data);
+							newMsg = new TimeStampedMessage(tstmp, src, dest, kind, type, data);
 							System.out.println("About to send "+kind+" message from "+src+" to "+dest);
 							mp.send(newMsg, clock);
 					    }

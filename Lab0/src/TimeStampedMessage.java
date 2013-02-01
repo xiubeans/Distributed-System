@@ -6,9 +6,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 public final class TimeStampedMessage extends Message implements Serializable {
 	  TimeStamp ts;
 
-	  public TimeStampedMessage(TimeStamp t_stamp, String src, String dest, String kind, Object payload)
+	  public TimeStampedMessage(TimeStamp t_stamp, String src, String dest, String kind, String type, Object payload)
 	  {
-	    super(src, dest, kind, payload);
+	    super(src, dest, kind, type, payload);
 	    this.ts = t_stamp;
 	  }
 
@@ -51,7 +51,7 @@ public final class TimeStampedMessage extends Message implements Serializable {
 		  
 		  // Attention: we don't deep clone the playload here !!!
 		  TimeStampedMessage new_tsmsg = new TimeStampedMessage(
-				  (TimeStamp)this.ts.clone(), this.src, this.dest, this.kind, this.payload);
+				  (TimeStamp)this.ts.clone(), this.src, this.dest, this.kind, this.type, this.payload);
 		  
 		  return new_tsmsg;
 	  }
