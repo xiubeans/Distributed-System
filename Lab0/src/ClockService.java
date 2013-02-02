@@ -4,12 +4,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class ClockService {
 
+	/* Fields */
 	TimeStamp ts;
 	private static ClockService uniqInstance = null; 	
 	protected int my_index = 0;
 	
+	
 	public static synchronized ClockService getInstance(String clock_type, int num_users)
-	{		
+	{
+		/* Allows a singleton to be created. */
+		
 		if(clock_type.equals("logical")){
 			if(uniqInstance == null)
 				uniqInstance = new Logical();
@@ -28,16 +32,15 @@ public abstract class ClockService {
 	}
 
 	
+	/* Accessors */
+	
 	public TimeStamp getTimestamp()
 	{
 		return this.ts.clone();
 	}
 
 	
-	public void incrementTimeStamp(){
-		;
-	}
-
+	/* Mutators */
 	
 	public TimeStampedMessage affixTimestamp(TimeStampedMessage message)
 	{
@@ -54,4 +57,12 @@ public abstract class ClockService {
 	{
 	    ;
 	}
+	
+	
+	/* Miscellaneous Methods */
+	
+	public void incrementTimeStamp(){
+		;
+	}
+
 }

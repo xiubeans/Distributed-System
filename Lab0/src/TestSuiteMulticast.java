@@ -35,6 +35,12 @@ public class TestSuiteMulticast {
 			local_name = args[1];
 			clock_type = args[2].toString().toLowerCase();
 			
+			if(clock_type.equalsIgnoreCase("logical"))
+			{
+				System.out.println("Logical clocks are not available for multicast service. Defaulting to vector.");
+				clock_type = "vector";
+			}
+			
 			/* get a local copy of the config from AFS */
 			SFTPConnection svr_conn = new SFTPConnection();
 			svr_conn.connect("unix.andrew.cmu.edu", "dpearson");
@@ -127,8 +133,9 @@ public class TestSuiteMulticast {
 						
 						System.out.println("Names are: "+mp.names_index.keySet());
 						
-						/*do the multicast loop out here to make integration with current 
-						 *code easiest...no changes to MessagePasser needed!*/
+						/*multicast loop placed out here to make integration with 
+						 * current code easiest; no changes to MessagePasser needed!*/
+						
 						for (Map.Entry entry : mp.names_index.entrySet()) 
 					    {
 							String name = (String)entry.getKey();

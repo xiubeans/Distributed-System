@@ -4,24 +4,25 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public final class Vector extends ClockService {
 
-	/* fields */
+	/* Fields */
 	ArrayList<AtomicInteger> vector;
 
+	
+	/* Constructor */
 	public Vector(int num_users)
 	{
 		this.ts = new TimeStamp(num_users);
 	}
 
-	
-	public void incrementTimeStamp(){
-			MessagePasser mp = MessagePasser.getInstance();
-			this.my_index = ((Integer)mp.names_index.get(mp.local_name)).intValue();
-		this.ts.val.set(this.my_index, new AtomicInteger(((AtomicInteger)this.ts.val.get(this.my_index)).intValue()+1));
-	}
 
+	/* Mutators */
 	
 	public TimeStampedMessage affixTimestamp(TimeStampedMessage message)
 	{
+		/* Adds the appropriate timestamp to a message. Performs
+		 * a clone operation to disconnect the tie to this original
+		 * timestamp instance. */
+		
 		incrementTimeStamp();
 		message.ts = this.ts.clone();
 		return message;
@@ -40,4 +41,16 @@ public final class Vector extends ClockService {
 		this.incrementTimeStamp();
 		System.out.println("Updated MY TIMESTAMP to "+this.ts.val.toString());
 	}	
+
+	
+	/* Miscellaneous Methods */
+	
+	public void incrementTimeStamp(){
+		/* Monotonically increments the value of the current index.
+		 * Gets appropriate index to update through TreeMap of names. */
+		
+		MessagePasser mp = MessagePasser.getInstance();
+		this.my_index = ((Integer)mp.names_index.get(mp.local_name)).intValue();
+		this.ts.val.set(this.my_index, new AtomicInteger(((AtomicInteger)this.ts.val.get(this.my_index)).intValue()+1));
+	}
 }
