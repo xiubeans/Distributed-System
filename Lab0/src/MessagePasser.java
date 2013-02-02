@@ -27,6 +27,7 @@ public class MessagePasser {
 	String config_file;
 	String local_name;
 	AtomicInteger message_id = new AtomicInteger(0); // atomic message id counter
+	AtomicInteger mcast_msg_id = new AtomicInteger(0); //atomic multicast message ID counter
 	Hashtable<String, ConnState> connections = new Hashtable<String, ConnState>(); // maintain all connection state information
 	TreeMap<String, Integer> names_index = new TreeMap<String, Integer>(); //stores the name-index mapping
 	MessageBuffer send_buf;
@@ -97,6 +98,31 @@ public class MessagePasser {
 	      j++;
 	    }
 	  }
+	
+	
+	public boolean dispatch_delayed(Message message)
+	{
+		/* This function allows delayed messages to be released at the
+		 * appropriate time. For example, if a multicast message is sent
+		 * to all members, and there is a send rule delaying delivery of
+		 * the message to a subset of the members, then the message should
+		 * NOT be released until after the next message series NOT in this
+		 * multicast is sent (whether it be a unicast or another multicast).
+		 * This will preserve the ability to "mix up" messages to a destination. */
+		
+		Message tmp_msg = this.send_buf.buf.peek();
+		if(message.type.equals("unicast"))
+			return true; //this rule only applies to multicast messages in the same series
+		
+		if(tmp_msg != null && tmp_msg.mc_id != message.mc_id)
+		{
+			if(!message.dest.equals(names_index.lastKey()))
+				return false; //only dispatch after the last message in the NEXT multicast series has been sent
+			return true;
+		}
+		else
+			return false; //don't dispatch a delayed message that was only delayed in this multicast series
+	}	
 	
 	
 	public void runServer() {
@@ -327,6 +353,14 @@ public class MessagePasser {
 			
 			message = clock.affixTimestamp((TimeStampedMessage)message); //get a timestamp for the message
 			
+			if(message.type.equals("multicast")) //set the multicast ID
+			{
+				if(message.dest.equals(this.names_index.firstKey()))
+					message.set_mcast_id(this.mcast_msg_id.incrementAndGet());//increment multicast ID for first message in a multicast series
+				else
+					message.set_mcast_id(this.mcast_msg_id.get());//add the same multicast ID all subsequent messages in a multicast series
+			}
+			
 			// check against the send rules, and follow the first rule matched
 			if(rule != null) {
 				
@@ -340,8 +374,10 @@ public class MessagePasser {
 					((TimeStampedMessage)message).ts = clock.getTimestamp(); //give the current timestamp value to the message's ts
 					
 					System.out.println("**************************************************************************");
-					System.out.println("Main Thread $$ send: src: " + message.src + " dest: " + message.dest + "\n ID: " + message.id + 
-							   " kind: " + message.kind + " type: " + message.type + " timestamp: " + ((TimeStampedMessage)message).ts.toString());
+					System.out.println("Main Thread $$ send: src: " + message.src + " dest: " + message.dest);
+					if(message.type.equals("multicast")) { System.out.println("MID: "+ message.mc_id); } //only print field if multicast message
+					System.out.println("ID: " + message.id + " kind: " + message.kind + " type: " + message.type + 
+									   " timestamp: " + ((TimeStampedMessage)message).ts.toString());
 					System.out.println("rule: drop");
 					System.out.println("**************************************************************************");
 					
@@ -363,8 +399,10 @@ public class MessagePasser {
 					conn.getAndIncrementOutMessageCounter();
 					
 					System.out.println("**************************************************************************");
-					System.out.println("Main Thread $$ send: src: " + message.src + " dest: " + message.dest + "\n ID: " + message.id + 
-							   " kind: " + message.kind + " type: " + message.type + " timestamp: " + ((TimeStampedMessage)message).ts.toString());
+					System.out.println("Main Thread $$ send: src: " + message.src + " dest: " + message.dest);
+					if(message.type.equals("multicast")) { System.out.println("MID: "+ message.mc_id); }
+					System.out.println("ID: " + message.id + " kind: " + message.kind + " type: " + message.type + 
+							   " timestamp: " + ((TimeStampedMessage)message).ts.toString());
 					System.out.println("rule: duplicate");
 					System.out.println("**************************************************************************");
 					
@@ -379,13 +417,18 @@ public class MessagePasser {
 					conn.getAndIncrementOutMessageCounter();
 
 					System.out.println("**************************************************************************");
-					System.out.println("Main Thread $$ send: src: " + message.src + " dest: " + message.dest + "\n ID: " + message.id + 
-							   " kind: " + message.kind + " type: " + message.type + " timestamp: " + ((TimeStampedMessage)message).ts.toString());
+					System.out.println("Main Thread $$ send: src: " + message.src + " dest: " + message.dest);
+					if(message.type.equals("multicast")) { System.out.println("MID: "+ message.mc_id); }
+					System.out.println("ID: " + message.id + " kind: " + message.kind + " type: " + message.type + 
+							   " timestamp: " + ((TimeStampedMessage)message).ts.toString());
 					System.out.println("rule: duplicated message");
 					System.out.println("**************************************************************************");
 					
-					/* Need to stop messages in the delay buffer from being sent during the mcast msg in which they were
-					 * added to the buffer. Probably will need to check ID of message to stop this. */
+					if(!dispatch_delayed(message))
+					{
+						System.out.println("Not releasing delay buffer");
+						return;
+					}
 					
 					// step 2: flush send buffer
 					ArrayList<Message> delayed_messages = this.send_buf.nonblockingTakeAll();
@@ -398,8 +441,10 @@ public class MessagePasser {
 						conn.getAndIncrementOutMessageCounter();
 
 						System.out.println("******************************************************************");
-						System.out.println("Main Thread $$ send: src: " + dl_message.src + " dest: " + dl_message.dest + "\n ID: " + dl_message.id + 
-								   " kind: " + dl_message.kind + " type: " + dl_message.type + " timestamp: " + dl_message.ts.toString());
+						System.out.println("Main Thread $$ send: src: " + dl_message.src + " dest: " + dl_message.dest);
+						if(dl_message.type.equals("multicast")) { System.out.println("MID: "+ dl_message.mc_id); }
+						System.out.println("ID: " + dl_message.id + " kind: " + dl_message.kind + " type: " + dl_message.type + 
+								   " timestamp: " + dl_message.ts.toString());
 						System.out.println("rule: delayed message released");
 						System.out.println("******************************************************************");
 					}
@@ -413,8 +458,10 @@ public class MessagePasser {
 					this.send_buf.nonblockingOffer((TimeStampedMessage)message);
 					
 					System.out.println("******************************************************************");
-					System.out.println("Main Thread $$ send: src: " + message.src + " dest: " + message.dest + "\n ID: " + message.id + 
-							   " kind: " + message.kind + " type: " + message.type + " timestamp: " + ((TimeStampedMessage)message).ts.toString());
+					System.out.println("Main Thread $$ send: src: " + message.src + " dest: " + message.dest);
+					if(message.type.equals("multicast")) { System.out.println("MID: "+ message.mc_id); }
+					System.out.println("ID: " + message.id + " kind: " + message.kind + " type: " + message.type + 
+							   " timestamp: " + ((TimeStampedMessage)message).ts.toString());
 					System.out.println("rule: delay");
 					System.out.println("******************************************************************");
 				}
@@ -435,13 +482,18 @@ public class MessagePasser {
 					conn.getAndIncrementOutMessageCounter();
 					
 					System.out.println("**************************************************************************");
-					System.out.println("Main Thread $$ send: src: " + message.src + " dest: " + message.dest + "\n ID: " + message.id + 
-							   " kind: " + message.kind + " type: " + message.type + " timestamp: " + ((TimeStampedMessage)message).ts.toString());
+					System.out.println("Main Thread $$ send: src: " + message.src + " dest: " + message.dest);
+					if(message.type.equals("multicast")) { System.out.println("MID: "+ message.mc_id); }
+					System.out.println("ID: " + message.id + " kind: " + message.kind + " type: " + message.type + 
+							   " timestamp: " + ((TimeStampedMessage)message).ts.toString());
 					System.out.println("rule: n/a");
 					System.out.println("**************************************************************************");
 										
-					/* Need to stop messages in the delay buffer from being sent during the mcast msg in which they were
-					 * added to the buffer. Probably will need to check ID of message to stop this. */
+					if(!dispatch_delayed(message))
+					{
+						System.out.println("Not releasing delay buffer");
+						return;
+					}
 					
 					// step 2: send all delayed messages
 					ArrayList<Message> delayed_messages = this.send_buf.nonblockingTakeAll();
@@ -461,8 +513,10 @@ public class MessagePasser {
 						conn.getAndIncrementOutMessageCounter();
 						
 						System.out.println("**************************************************************************");
-						System.out.println("Main Thread $$ send: src: " + dl_message.src + " dest: " + dl_message.dest + "\n ID: " + dl_message.id + 
-								   " kind: " + dl_message.kind + " type: " + dl_message.type + " timestamp: " + dl_message.ts.toString());
+						System.out.println("Main Thread $$ send: src: " + dl_message.src + " dest: " + dl_message.dest);
+						if(dl_message.type.equals("multicast")) { System.out.println("MID: "+ dl_message.mc_id); }
+						System.out.println("ID: " + dl_message.id + " kind: " + dl_message.kind + " type: " + dl_message.type + 
+								   " timestamp: " + dl_message.ts.toString());
 						System.out.println("rule: delayed message released");
 						System.out.println("**************************************************************************");
 					}
@@ -499,8 +553,10 @@ public class MessagePasser {
 			clock.updateTimestamp((TimeStampedMessage) message);
 			
 			System.out.println("******************************************************************");
-			System.out.println("Main Thread: in receive(): src: " + message.src + " dest: " + message.dest + "\n ID: " + message.id + 
-									   " kind: " + message.kind + " type: " + message.type + " timestamp: " + ((TimeStampedMessage)message).ts.toString());
+			System.out.println("Main Thread: in receive(): src: " + message.src + " dest: " + message.dest);
+			if(message.type.equals("multicast")) { System.out.println("MID: "+ message.mc_id); }
+			System.out.println(" ID: " + message.id + " kind: " + message.kind + " type: " + message.type + 
+							   " timestamp: " + ((TimeStampedMessage)message).ts.toString());
 			System.out.println("rule: n/a");
 			System.out.println("******************************************************************");
 
@@ -558,8 +614,10 @@ public class MessagePasser {
 				if(action.equals("drop")) {
 					
 					System.out.println("******************************************************************");
-					System.out.println("Main Thread: in receive(): src: " + message.src + " dest: " + message.dest + "\n ID: " + message.id + 
-							   " kind: " + message.kind + " type: " + message.type + " timestamp: " + ((TimeStampedMessage)message).ts.toString());
+					System.out.println("Main Thread: in receive(): src: " + message.src + " dest: " + message.dest);
+					if(message.type.equals("multicast")) { System.out.println("MID: "+ message.mc_id); }
+					System.out.println(" ID: " + message.id + " kind: " + message.kind + " type: " + message.type + 
+									   " timestamp: " + ((TimeStampedMessage)message).ts.toString());
 					System.out.println("rule: drop");
 					System.out.println("******************************************************************");
 					
@@ -574,8 +632,10 @@ public class MessagePasser {
 					this.rcv_delayed_buf.nonblockingOfferAtHead(message);
 					
 					System.out.println("******************************************************************");
-					System.out.println("Main Thread: in receive(): src: " + message.src + " dest: " + message.dest + "\n ID: " + message.id + 
-							   " kind: " + message.kind + " type: " + message.type + " timestamp: " + ((TimeStampedMessage)message).ts.toString());
+					System.out.println("Main Thread: in receive(): src: " + message.src + " dest: " + message.dest);
+					if(message.type.equals("multicast")) { System.out.println("MID: "+ message.mc_id); }
+					System.out.println(" ID: " + message.id + " kind: " + message.kind + " type: " + message.type + 
+									   " timestamp: " + ((TimeStampedMessage)message).ts.toString());
 					System.out.println("rule: duplicate");
 					System.out.println("******************************************************************");
 
@@ -593,8 +653,10 @@ public class MessagePasser {
 					this.rcv_delayed_buf.nonblockingOffer(message);
 					
 					System.out.println("******************************************************************");
-					System.out.println("Main Thread: in receive(): src: " + message.src + " dest: " + message.dest + "\n ID: " + message.id + 
-							   " kind: " + message.kind + " type: " + message.type + " timestamp: " + ((TimeStampedMessage)message).ts.toString());
+					System.out.println("Main Thread: in receive(): src: " + message.src + " dest: " + message.dest);
+					if(message.type.equals("multicast")) { System.out.println("MID: "+ message.mc_id); }
+					System.out.println(" ID: " + message.id + " kind: " + message.kind + " type: " + message.type + 
+									   " timestamp: " + ((TimeStampedMessage)message).ts.toString());
 					System.out.println("rule: delay");
 					System.out.println("******************************************************************");
 					
@@ -607,8 +669,10 @@ public class MessagePasser {
 			
 				// step 2: return message
 				System.out.println("******************************************************************");
-				System.out.println("Main Thread: in receive(): src: " + message.src + " dest: " + message.dest + "\n ID: " + message.id + 
-						   " kind: " + message.kind + " type: " + message.type + " timestamp: " + ((TimeStampedMessage)message).ts.toString());
+				System.out.println("Main Thread: in receive(): src: " + message.src + " dest: " + message.dest);
+				if(message.type.equals("multicast")) { System.out.println("MID: "+ message.mc_id); }
+				System.out.println(" ID: " + message.id + " kind: " + message.kind + " type: " + message.type + 
+								   " timestamp: " + ((TimeStampedMessage)message).ts.toString());
 				System.out.println("rule: n/a");
 				System.out.println("******************************************************************");
 				

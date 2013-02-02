@@ -4,6 +4,7 @@ import java.io.Serializable;
 public class Message implements Serializable {
 	
 	int id;
+	int mc_id; //the multicast ID
 	String src;
 	String dest;
 	String kind;
@@ -28,9 +29,25 @@ public class Message implements Serializable {
 		
 	}
 	
+	
+	public void set_mcast_id(int mid) 
+	{ 
+		// used by MessagePasser.send, not your app
+		//Only set this IF it is a multicast message (otherwise set to an empty string)
+		this.mc_id = mid;
+		
+	}
+	
+	
 	public int get_id() {
 		return this.id;
 	}
+	
+	
+	public int get_mcast_id() {
+		return this.mc_id;
+	}
+	
 	
 	public Message build_message(Message message) {
 	/* This will get the message contents from the application program, as
@@ -43,6 +60,8 @@ public class Message implements Serializable {
 	{
 		if(field.equals("id"))
 			return "" + this.id;
+		else if(field.equals("mc_id"))
+			return "" + this.mc_id;
 		else if(field.equals("src"))
 			return this.src;
 		else if(field.equals("kind"))
@@ -64,7 +83,7 @@ public class Message implements Serializable {
 	
 	@Override
 	public String toString() {
-		return "@ " + "Message: src = " + this.src + ", id = " + this.id + ", dest = " + this.dest + ", kind = " + this.kind + ", type = " + this.type;
+		return "@ " + "Message: src = " + this.src + ", id = " + this.id + "multicast id = " + this.mc_id + ", dest = " + this.dest + ", kind = " + this.kind + ", type = " + this.type;
 	}
 	
 	public void print() {
