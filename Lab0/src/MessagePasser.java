@@ -382,6 +382,41 @@ public class MessagePasser {
 	
 	/* Communication Functions */
 	
+	
+	public void multicastAck(TimeStampedMessage message)
+	{
+		/* Wrapper to provide the ability to transmit acknowledgment of
+		 * a message in the system. This is used to provide the foundation
+		 * of reliability. The incoming message is the original message
+		 * that is being acknowledged. */
+		
+		String payload = message.src+"\t"+message.mc_id;
+		ClockService clock = ClockService.getInstance("vector", getVectorSize());
+		
+		for (Map.Entry entry : this.names_index.entrySet()) 
+	    {
+			String dest = (String)entry.getKey();
+			TimeStampedMessage newMsg = new TimeStampedMessage(message.ts, local_name, dest, "ack", message.type, payload);
+			this.send(newMsg, clock);
+	    }
+	}
+	
+	
+	public void resend(TimeStampedMessage message, String dest)
+	{
+		/* This offers a destination (who has received a multicast message) 
+		 * to resend this message to a node that it has detected as not 
+		 * having received the original message. The original message is
+		 * sent as the payload of this method's message. */
+		
+		ClockService clock = ClockService.getInstance("vector", getVectorSize());
+		
+		TimeStampedMessage newMsg = new TimeStampedMessage(message.ts, local_name, dest, "retransmit", "unicast", message);
+		this.send(newMsg, clock);
+		
+	}
+	
+	
 	public void send(Message message, ClockService clock) {
 		/* Sends a message to the specified destination. If there are messages
 		 * in the delay buffer, they will be sent if all conditions match for
