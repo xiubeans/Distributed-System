@@ -23,7 +23,10 @@ public final class Vector extends ClockService {
 		 * a clone operation to disconnect the tie to this original
 		 * timestamp instance. */
 		
-		incrementTimeStamp();
+		MessagePasser tmpMP = MessagePasser.getInstance();
+		
+		if(message.type.equals("multicast") && message.dest.equals(tmpMP.names_index.firstKey()))
+			incrementTimeStamp(); //this allows all multicast messages (in one series) to have the same timestamp
 		message.ts = this.ts.clone();
 		return message;
 	}
