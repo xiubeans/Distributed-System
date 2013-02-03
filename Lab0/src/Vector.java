@@ -93,7 +93,7 @@ public final class Vector extends ClockService {
 		
 		String[] ts_vals = null;
 		  
-		ts.replaceAll("[\\[\\]]", "").trim(); //remove brackets
+		ts = ts.replaceAll("[\\[\\]]", "").trim(); //remove brackets
 		ts_vals = ts.split(",");
 		
 		MessagePasser tmpMP = MessagePasser.getInstance();

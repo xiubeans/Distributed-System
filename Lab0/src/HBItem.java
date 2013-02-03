@@ -36,18 +36,27 @@ public class HBItem {
 			this.src = msg.src;
 			this.mc_id = msg.mc_id;
 			this.ts = msg.ts;
-			
+			if(this.message == null)
+			{
+				System.out.println("We have a null message, in HBItem Constructor");
+			}
 			this.tryAcceptAck(msg);
 		}
 		
 		/* get an ACK */
-		else if(msg.type.equals("multicast") && msg.kind.equals("ack")) {			
+		else if(msg.type.equals("multicast") && msg.kind.equals("ack")) {	
+			//System.out.println("In the get ack of HBItem");
 			String[] payload = ((String)msg.payload).split("\t");
 			this.src = payload[0];
 			this.mc_id = Integer.parseInt(payload[1]);
+			//System.out.println("Src: "+this.src+"\nMC_ID: "+this.mc_id);
+			//System.out.println("VTS raw is "+payload[2]);
 			this.ts = ClockService.getInstance("vector", this.mp.num_nodes).parseTS(payload[2]);
+			//System.out.println("VTS: "+this.ts);
 			
+		
 			this.tryAcceptAck(msg);
+			//System.out.println("After TACK");
 		}
 		
 		/* get a retransmitted multicast message by someone else */
@@ -112,7 +121,11 @@ public class HBItem {
 		/* check if it is the next MC message in the sequence */
 		if(this.mc_id != this.mp.mc_seqs.get(this.mp.names_index.get(this.src)) + 1)
 			is_ready = false;
-		
+		if(this.message == null)
+		{
+			is_ready = false;
+			System.out.println("We have a null message, in isReady()");
+		}
 		return is_ready;
 		
 	}
@@ -125,7 +138,9 @@ public class HBItem {
 		/* get an original multicast message */
 		if(msg.type.equals("multicast") && !msg.kind.equals("ack")) {			
 			if(this.message.isIdentical(msg)) {
-				int index = this.mp.names_index.get(msg.src);
+				int index = this.mp.names_index.get(msg.src); //the original sender has received the message
+				this.ack_list.set(index, true);
+				index = this.mp.names_index.get(this.mp.local_name); //since our mc msg goes only to one dest at a time, we can use that to set our own bit
 				this.ack_list.set(index, true);
 			}			
 		}
@@ -134,7 +149,7 @@ public class HBItem {
 		else if(msg.type.equals("multicast") && msg.kind.equals("ack")) {
 			String[] payload = ((String)msg.payload).split("\t");
 			if(this.src.equals(payload[0]) && this.mc_id == Integer.parseInt(payload[1])) {
-				int index = this.mp.names_index.get(this.src);
+				int index = this.mp.names_index.get(msg.src); //acknowledge that the mcAck sender has received the message
 				this.ack_list.set(index, true);
 			}			
 		}
@@ -143,7 +158,9 @@ public class HBItem {
 		else if(msg.type.equals("unicast") && msg.kind.equals("retransmit")) {			
 			message = (TimeStampedMessage)msg.payload;
 			if(this.message.src.equals(message.src) && this.message.mc_id == message.mc_id) {
-				int index = this.mp.names_index.get(this.src);
+				int index = this.mp.names_index.get(this.src); //make sure the original sender has been marked as acknowledged
+				this.ack_list.set(index, true);
+				index = this.mp.names_index.get(msg.src); //make sure the retransmitter has been marked as acknowledged
 				this.ack_list.set(index, true);
 			}			
 		}

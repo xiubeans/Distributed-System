@@ -114,7 +114,8 @@ public class TestSuiteMulticast {
 						break;
 					case 3: //quit the program
 						cmd_line_input.close();
-						svr_conn.disconnect(); // close the SFTP connection to AFS
+						svr_conn.disconnect(); //close the SFTP connection to AFS
+						mp.closeConnections(); //close sockets 
 						System.exit(1);
 					case 4: //multicast send request
 						System.out.println("Usage: send multicast <kind>");
@@ -153,7 +154,9 @@ public class TestSuiteMulticast {
 					default:
 						System.out.println("Unrecognized input "+user_action+".");
 						break;
-				}			
+				}
+				System.out.println("Jumped out of TSM case statement");
+				mp.print();
 			}
 		}
 		else

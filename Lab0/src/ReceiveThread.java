@@ -56,24 +56,36 @@ class ReceiveThread implements Runnable {
 							this.mmp.tryAcceptAck(message);
 							this.mmp.multicastAck(message);
 						}
+						this.mmp.printHBQ();
 					}
 						
 					/* get a ACK message */
 					else if(message.type.equals("multicast") && message.kind.equals("ack")) {
 						System.out.println("Got an ACK message: "+message.toString());
+						System.out.println("Payload VTS: "+message.payload.toString());
 						if(!this.mmp.isUsefulMessage(message)) {
+							System.out.println("Not useful message "+message.toString());
 							continue;
 						}
 						else {
+							System.out.println("Message is useful: "+message.toString());
 							if(!this.mmp.isInHBQ(message))
+							{
+								System.out.println("Before insertToHBQ");
 								this.mmp.insertToHBQ(new HBItem(message));
+								System.out.println("After insertToHBQ");
+							}
+							System.out.println("Before tryAcceptAck");
 							this.mmp.tryAcceptAck(message);
+							System.out.println("After tryAcceptAck");
 						}
+						this.mmp.printHBQ();
 					}
 						
 					/* get a retransmit kind message */
 					else if(message.kind.equals("retransmit")) {
 						System.out.println("Got a retransmit message: "+message.toString());
+						System.out.println("Retransmit payload: "+message.payload.toString());
 						TimeStampedMessage msg = (TimeStampedMessage)message.payload;
 						if(!this.mmp.isUsefulMessage(msg)) {
 							continue;
@@ -98,6 +110,7 @@ class ReceiveThread implements Runnable {
 					if(!this.mmp.rcv_buf.nonblockingOffer(message)) {
 						continue;
 					}
+					//this.mmp.print();
 				}
 			} finally {
 				

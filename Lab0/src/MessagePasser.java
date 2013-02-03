@@ -178,7 +178,7 @@ public class MessagePasser {
 	    
 	    /* for multi-casting messages */
 	    this.num_nodes = this.names_index.size();
-	    for(int i = 0; i < num_nodes; i++) {
+	    for(int i = 0; i < this.num_nodes; i++) {
 	    	this.mc_seqs.add(0);
 	    }
 	    this.name_list = new ArrayList<String>();
@@ -201,13 +201,15 @@ public class MessagePasser {
 	public void insertToHBQ(HBItem hbi) {
 	
 		/* find the right position in HBQ */
+		System.out.println("HBQ size: "+ this.hbq.size());
 		int i = 0; 
 		for(; i < this.hbq.size(); i++) {
 			if(hbi.compareOrder(this.hbq.get(i)) <= 0)
 				break;
 		}
+		System.out.println("Before add");
 		this.hbq.add(i, hbi);
-
+		System.out.println("After add");
 	}
 
 	
@@ -222,13 +224,12 @@ public class MessagePasser {
 		if(!this.hbq.isEmpty()) {
 			HBItem first_item = this.hbq.get(0);
 			if(first_item.isReady()) {
-				if(first_item.message.mc_id == this.mc_seqs.get(this.names_index.get(first_item.message.src))) {
 					this.mc_seqs.set(this.names_index.get(first_item.src), first_item.mc_id);
 					ready_msg = this.hbq.remove(0).message;
-				}
+					System.out.println("Ready message: ");
+					ready_msg.print();
 			}
 		}
-		
 		return ready_msg;
 		
 	}
@@ -682,6 +683,7 @@ public class MessagePasser {
 				Runnable receiveR = new ReceiveThread(remote_name);
 				Thread receiveThread = new Thread(receiveR);
 				receiveThread.start();
+				System.out.println("Connection to "+remote_name+" has been established");
 			}
 			else //the connection is already set up
 				oos = this.connections.get(message.dest).getObjectOutputStream();
@@ -845,7 +847,7 @@ public class MessagePasser {
 										
 					if(!dispatch_delayed(message))
 					{
-						System.out.println("Not releasing delay buffer");
+						//System.out.println("Not releasing delay buffer");
 						return;
 					}
 					
@@ -1272,6 +1274,24 @@ public class MessagePasser {
 		return true;
 	}
 
+	
+	public void closeConnections() {
+		/* Closed all socket streams as well as the sockets. */		
+		
+		try {	
+			Iterator<String> itr = this.connections.keySet().iterator();
+			while(itr.hasNext()) {
+				String node = itr.next();
+				ConnState conn = this.connections.get(node);
+				conn.ois.close();
+				conn.oos.close();
+				conn.local_socket.close();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
 
 	/* Print Methods */
 	
