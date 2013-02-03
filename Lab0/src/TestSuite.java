@@ -20,6 +20,7 @@ public class TestSuite {
 		String src = "";
 		String dest = "";
 		String kind = "";
+		String type = "unicast"; //what type of message (unicast or multicast)
 		int user_action = 0;
 		int global_modification_time = -1;  // record the latest time on servers
 		int expectedNumArgs = 3;
@@ -83,7 +84,7 @@ public class TestSuite {
 						dest = fields[1];
 						kind = fields[2];
 						data = null;
-						TimeStampedMessage newMsg = new TimeStampedMessage(tstmp, src, dest, kind, data);
+						TimeStampedMessage newMsg = new TimeStampedMessage(tstmp, src, dest, kind, type, data);
 						mp.send(newMsg, clock);
 						break;
 					case 2: //receive request

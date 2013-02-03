@@ -8,7 +8,7 @@ public class HBItem {
 	String src;
 	int mc_id;
 	TimeStamp ts;
-	TimeStampedMessage message;
+	TimeStampedMessage message = null;
 	ArrayList<Boolean> ack_list;
 	ArrayList<Integer> flags = new ArrayList<Integer>();
 	long timestamp;
@@ -45,7 +45,7 @@ public class HBItem {
 			String[] payload = ((String)msg.payload).split("\t");
 			this.src = payload[0];
 			this.mc_id = Integer.parseInt(payload[1]);
-			this.ts = ClockService.getInstance("vector", this.mp.num_nodes).parseVTS(payload[2]);
+			this.ts = ClockService.getInstance("vector", this.mp.num_nodes).parseTS(payload[2]);
 			
 			this.tryAcceptAck(msg);
 		}
@@ -89,11 +89,11 @@ public class HBItem {
 		this.message = msg;
 	}
 	
-	public void setAckBit(TimeStampedMessage ack_msg) {
-		String ack_from = ack_msg.getOrigSrc();
-		int index = this.mp.names_index.get(ack_from);
-		this.ack_list.set(index, true);
-	}
+//	public void setAckBit(TimeStampedMessage ack_msg) {
+//		String ack_from = ack_msg.getOrigSrc();
+//		int index = this.mp.names_index.get(ack_from);
+//		this.ack_list.set(index, true);
+//	}
 	
 	/*
 	 * Determine whether this message is ready based on seq# and acked nodes

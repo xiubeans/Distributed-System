@@ -53,7 +53,7 @@ class ReceiveThread implements Runnable {
 									this_item.message = message;
 							}
 							this.mmp.tryAcceptAck(message);
-							this.mmp.mcAck(message);
+							this.mmp.multicastAck(message);
 						}
 					}
 						
@@ -85,7 +85,7 @@ class ReceiveThread implements Runnable {
 							}
 							this.mmp.tryAcceptAck(message);
 							this.mmp.tryAcceptAck(msg);
-							this.mmp.mcAck(message);
+							this.mmp.multicastAck(message);
 						}
 					}
 						
