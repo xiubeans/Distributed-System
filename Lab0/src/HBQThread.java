@@ -22,6 +22,7 @@ class HBQThread implements Runnable {
 				/* if timeout, resend to non-acked nodes of this message*/
 				for(int i = 0; i < this.mp.hbq.size(); i++) {
 					if(this.mp.hbq.get(i).isTimeOut()) {
+						System.out.println("Out of Time!!!");
 						ArrayList<String> needed_nodes = this.mp.hbq.get(i).nodesNeedResend();
 						for(int j = 0; j < needed_nodes.size(); j++) {
 							this.mp.resend(this.mp.hbq.get(i).message, needed_nodes.get(i));

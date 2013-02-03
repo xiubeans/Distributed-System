@@ -601,6 +601,7 @@ public class MessagePasser {
 	    {
 			String dest = (String)entry.getKey();
 			TimeStampedMessage newMsg = new TimeStampedMessage(ts, local_name, dest, "ack", message.type, payload);
+			System.out.println("Sending a multicast ACK to acknowledge "+message.toString());
 			this.send(newMsg, clock);
 	    }
 	}

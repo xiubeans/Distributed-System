@@ -163,7 +163,7 @@ public class HBItem {
 		boolean is_timeout = false;
 		
 		long now = System.currentTimeMillis();
-		if(this.timestamp + this.wait_interval > now) {
+		if(this.timestamp + this.wait_interval <= now) {
 			is_timeout = true;
 			timestamp = now;
 		}

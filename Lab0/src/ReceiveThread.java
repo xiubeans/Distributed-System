@@ -41,6 +41,7 @@ class ReceiveThread implements Runnable {
 						
 					/* get a multicast message */
 					if(message.type.equals("multicast") && !message.kind.equals("ack")) {
+						System.out.println("Got a multicast message: "+message.toString()+" MCID: "+message.mc_id);
 						if(!this.mmp.isUsefulMessage(message)) {
 							continue;
 						}
@@ -58,7 +59,8 @@ class ReceiveThread implements Runnable {
 					}
 						
 					/* get a ACK message */
-					else if(message.type.equals("multicast") && message.kind.equals("ack")) {							
+					else if(message.type.equals("multicast") && message.kind.equals("ack")) {
+						System.out.println("Got an ACK message: "+message.toString());
 						if(!this.mmp.isUsefulMessage(message)) {
 							continue;
 						}
@@ -71,6 +73,7 @@ class ReceiveThread implements Runnable {
 						
 					/* get a retransmit kind message */
 					else if(message.kind.equals("retransmit")) {
+						System.out.println("Got a retransmit message: "+message.toString());
 						TimeStampedMessage msg = (TimeStampedMessage)message.payload;
 						if(!this.mmp.isUsefulMessage(msg)) {
 							continue;
