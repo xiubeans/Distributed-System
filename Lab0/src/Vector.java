@@ -46,6 +46,19 @@ public final class Vector extends ClockService {
 	}	
 
 	
+	 public void fabricate(String[] ts_vals, TimeStamp ts)
+	 {
+		 /* Sets all fields of a timestamp to values coming in from 
+		  * a parseTS call. */
+		 
+		for(int i=0; i<ts_vals.length; i++)
+		{
+			ts.val.set(i, new AtomicInteger(Integer.parseInt(ts_vals[i])));
+		}
+		return; 
+	 }
+	
+	
 	/* Miscellaneous Methods */
 	
 	public void incrementTimeStamp(){
@@ -56,4 +69,22 @@ public final class Vector extends ClockService {
 		this.my_index = ((Integer)mp.names_index.get(mp.local_name)).intValue();
 		this.ts.val.set(this.my_index, new AtomicInteger(((AtomicInteger)this.ts.val.get(this.my_index)).intValue()+1));
 	}
+	
+	
+	public TimeStamp parseTS(String ts)
+	{
+		/* Takes a string representation of a timestamp
+		 * and returns a valid timestamp object. */
+		
+		String[] ts_vals = null;
+		  
+		ts.replaceAll("[\\[\\]]", "").trim(); //remove brackets
+		ts_vals = ts.split(",");
+		
+		MessagePasser tmpMP = MessagePasser.getInstance();
+		TimeStamp ts_obj = new TimeStamp(tmpMP.getVectorSize()); 
+		fabricate(ts_vals, ts_obj);
+		
+		return ts_obj;
+	}	
 }

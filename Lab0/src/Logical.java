@@ -54,6 +54,12 @@ public final class Logical extends ClockService {
 	  }
 
 	 
+	 public void fabricate(String[] ts_vals, TimeStamp ts)
+	 {
+		; 
+	 }
+	 
+	 
 	 /* Miscellaneous Methods */
 		
 	public void incrementTimeStamp(){
@@ -63,4 +69,16 @@ public final class Logical extends ClockService {
 		this.my_index = 0;
 		this.ts.val.set(this.my_index, new AtomicInteger(((AtomicInteger)this.ts.val.get(this.my_index)).intValue()+1));
 	}
+	
+	
+	public TimeStamp parseTS(String ts)
+	{
+		/* Takes a string representation of a timestamp
+		 * and returns a valid timestamp object. */
+		
+		MessagePasser tmpMP = MessagePasser.getInstance();
+		TimeStamp ts_obj = new TimeStamp(tmpMP.getVectorSize()); 
+		
+		return ts_obj;
+	}	
 }

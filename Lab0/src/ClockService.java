@@ -59,10 +59,26 @@ public abstract class ClockService {
 	}
 	
 	
+	public void fabricate(String[] vals, TimeStamp ts)
+	{
+		;
+	}
+	
 	/* Miscellaneous Methods */
 	
 	public void incrementTimeStamp(){
 		;
 	}
 
+	
+	public TimeStamp parseTS(String ts)
+	{
+		/* Takes a string representation of a timestamp
+		 * and returns a valid timestamp object. */
+		  
+		MessagePasser tmpMP = MessagePasser.getInstance();
+		TimeStamp ts_obj = new TimeStamp(tmpMP.getVectorSize()); 
+		
+		return ts_obj;
+	}
 }

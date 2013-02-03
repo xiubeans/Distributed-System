@@ -390,13 +390,14 @@ public class MessagePasser {
 		 * of reliability. The incoming message is the original message
 		 * that is being acknowledged. */
 		
-		String payload = message.src+"\t"+message.mc_id;
+		String payload = message.src+"\t"+message.mc_id+"\t"+message.ts.toString();
 		ClockService clock = ClockService.getInstance("vector", getVectorSize());
+		TimeStamp ts = null;
 		
 		for (Map.Entry entry : this.names_index.entrySet()) 
 	    {
 			String dest = (String)entry.getKey();
-			TimeStampedMessage newMsg = new TimeStampedMessage(message.ts, local_name, dest, "ack", message.type, payload);
+			TimeStampedMessage newMsg = new TimeStampedMessage(ts, local_name, dest, "ack", message.type, payload);
 			this.send(newMsg, clock);
 	    }
 	}
@@ -410,8 +411,8 @@ public class MessagePasser {
 		 * sent as the payload of this method's message. */
 		
 		ClockService clock = ClockService.getInstance("vector", getVectorSize());
-		
-		TimeStampedMessage newMsg = new TimeStampedMessage(message.ts, local_name, dest, "retransmit", "unicast", message);
+		TimeStamp ts = null;
+		TimeStampedMessage newMsg = new TimeStampedMessage(ts, local_name, dest, "retransmit", "unicast", message);
 		this.send(newMsg, clock);
 		
 	}
