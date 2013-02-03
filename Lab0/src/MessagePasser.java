@@ -33,6 +33,12 @@ public class MessagePasser {
 	MessageBuffer rcv_delayed_buf;
 	AtomicInteger rcv_delay_buf_ready = new AtomicInteger(0);
 	
+    /* new fields for MC */
+	int num_nodes;
+	ArrayList<String> name_list;
+	ArrayList<Integer> mc_seqs = new ArrayList<Integer>();  // organize sequence # according to alphabetical order
+	ArrayList<HBItem> hbq = new ArrayList<HBItem>();
+	
 	
 	/* Constructor */
 	private MessagePasser() {		
@@ -148,42 +154,223 @@ public class MessagePasser {
 	
 	
 	public void listNodes()
-	{
-		/* Creates an index of name-index pairs.
-		 * TreeMap structure used to create an
-		 * alphabetically-ordered map of names
-		 * for uniform interaction across many uses. */
+	  {
+		/* Creates an index of name-index pairs */
 		
 	    String[] names = getField("name");
 	    TreeMap<String, Integer> tmp = new TreeMap<String, Integer>();
 
 	    for (int i = 0; i < names.length; i++)
 	    {
-	    	if ((!names[i].equalsIgnoreCase("logger")) && (!names[i].equalsIgnoreCase("name")))
-	    	{
-	    		tmp.put(names[i], Integer.valueOf(i));
+	      if ((!names[i].equalsIgnoreCase("logger")) && (!names[i].equalsIgnoreCase("name")))
+	      {
+	        tmp.put(names[i], Integer.valueOf(i));
+	      }
+	    }
+	    int j = 0;
+
+	    for (Map.Entry entry : tmp.entrySet())
+	    {
+	      String name = (String)entry.getKey();
+	      this.names_index.put(name, Integer.valueOf(j));
+	      j++;
+	    }
+	    
+	    /* for multi-casting messages */
+	    this.num_nodes = this.names_index.size();
+	    for(int i = 0; i < num_nodes; i++) {
+	    	this.mc_seqs.add(0);
+	    }
+	    this.name_list = new ArrayList<String>();
+	    for(int i = 0; i < this.num_nodes; i++) {
+	    	Iterator<String> itr = this.names_index.keySet().iterator();
+	    	while(itr.hasNext()) {
+	    		String name = itr.next();
+	    		if(this.names_index.get(name).intValue() == i) {
+	    			this.name_list.add(name);
+	    			break;
+	    		}
 	    	}
 	    }
 	    
-	    int j = 0;
-	    for (Map.Entry entry : tmp.entrySet())
-	    {
-	    	String name = (String)entry.getKey();
-	    	this.names_index.put(name, Integer.valueOf(j));
-	    	j++;
-	    }
+	  }
+	
+	/*
+	 * Insert msg to the HBQ, in Vector timestamp order
+	 */
+	public void insertToHBQ(HBItem hbi) {
+	
+		/* find the right position in HBQ */
+		int i = 0; 
+		for(; i < this.hbq.size(); i++) {
+			if(hbi.compareOrder(this.hbq.get(i)) <= 0)
+				break;
+		}
+		this.hbq.add(i, hbi);
+
+	}
+
+	
+	/*
+	 * Return the first ready message in Vector timestamp order
+	 * Which means the first message in HBQ
+	 */
+	public TimeStampedMessage getReadyMessage() {
+		
+		TimeStampedMessage ready_msg = null;
+		
+		if(!this.hbq.isEmpty()) {
+			HBItem first_item = this.hbq.get(0);
+			if(first_item.isReady()) {
+				if(first_item.message.mc_id == this.mc_seqs.get(this.names_index.get(first_item.message.src))) {
+					this.mc_seqs.set(this.names_index.get(first_item.src), first_item.mc_id);
+					ready_msg = this.hbq.remove(0).message;
+				}
+			}
+		}
+		
+		return ready_msg;
+		
+	}
+
+    	
+	/*
+	 * Determine whether msg is in HBQ, based on src + mc_id
+	 */
+	public boolean isInHBQ(TimeStampedMessage msg) {
+		
+		boolean is_in = false;
+
+		/* get a multicast message */
+		if(msg.type.equals("multicast") && !msg.kind.equals("ack")) {
+			for(int i = 0; i < this.hbq.size(); i++) {
+				if(this.hbq.get(i).src.equals(msg.src) && this.hbq.get(i).mc_id == msg.mc_id) {
+					is_in = true;
+					break;
+				}	
+			}
+		}
+			
+		/* get a ACK message */
+		else if(msg.type.equals("multicast") && msg.kind.equals("ack")) {							
+			String[] payload = ((String)msg.payload).split("\t");
+			String src = payload[0];
+			int mc_id = Integer.parseInt(payload[1]);
+			
+			for(int i = 0; i < this.hbq.size(); i++) {
+				if(this.hbq.get(i).src.equals(src) && this.hbq.get(i).mc_id == mc_id) {
+					is_in = true;
+					break;
+				}
+			}
+		}
+			
+		/* get a retransmit kind message */
+		else if(msg.kind.equals("retransmit")) {
+			TimeStampedMessage message = (TimeStampedMessage)msg.payload;
+		
+			for(int i = 0; i < this.hbq.size(); i++) {
+				if(this.hbq.get(i).src.equals(message.src) && this.hbq.get(i).mc_id == message.mc_id) {
+					is_in = true;
+					break;
+				}
+			}
+		}
+			
+		else
+			;
+		
+//		
+//		for(int i = 0; i < this.hbq.size(); i++) {
+//			if(this.hbq.get(i).src.equals(msg.src) && this.hbq.get(i).mc_id == msg.mc_id) {
+//				is_in = true;
+//				break;
+//			}
+//		}
+		
+		return is_in;
+		
 	}
 	
+
+	
+	/*
+	 * Determine whether this message is out-of-date
+	 */
+	public boolean isUsefulMessage(TimeStampedMessage msg) {
+		
+		boolean is_useful = false;
+		
+		/* Check if this mc message is out-of-date */
+		
+		/* get a multicast message */
+		if(msg.type.equals("multicast") && !msg.kind.equals("ack")) {
+			int index = this.names_index.get(msg.src);
+			if(msg.mc_id > this.mc_seqs.get(index))
+				is_useful = true;
+		}
+		
+		/* get a ACK message */
+		else if(msg.type.equals("multicast") && msg.kind.equals("ack"))) {			
+			String[] payload = ((String)msg.payload).split("\t");
+			int index = this.names_index.get(payload[0]);
+			if(Integer.parseInt(payload[1]) > this.mc_seqs.get(index))
+				is_useful = true;		
+		}
+		
+		/* get a retransmit kind message */
+		else if(msg.kind.equals("retransmit")) {
+			TimeStampedMessage message = (TimeStampedMessage)msg.payload;
+			int index = this.names_index.get(message.src);
+			if(message.mc_id > this.mc_seqs.get(index))
+				is_useful = true;
+		}
+		
+		else
+			;
+		
+		return is_useful;
+	}
+	
+	
+	public void tryAcceptAck(TimeStampedMessage msg) {
+		for(int i = 0; i < this.hbq.size(); i++) {
+			this.hbq.get(i).tryAcceptAck(msg);
+		}
+	}
+	
+    	
+	public HBItem getHBItem(String src, int mc_id) {
+		
+		HBItem hbi = null;
+		
+		for(int i = 0; i < this.hbq.size(); i++) {
+			if(this.hbq.get(i).src.equals(src) && this.hbq.get(i).mc_id == mc_id) {
+				hbi = this.hbq.get(i);
+				break;
+			}
+		}
+		
+		return hbi;
+	}
+	
+
 	
 	/* Initialization Methods */
 		
 	public void runServer() {
-		/* Initialize the local server, which then waits for
-		 * incoming connections. */
 		
+		this.listNodes();
+		
+		// Init the local server which waits for incoming connection
 		Runnable runnableServer = new ServerThread();
 		Thread threadServer = new Thread(runnableServer);
 		threadServer.start();
+		
+		// Init HBQ thread
+		Runnable runnableHBQ = new HBQThread();
+		Thread threadHBQ = new Thread(runnableHBQ);
+		threadHBQ.start();
 	}
 	
 	

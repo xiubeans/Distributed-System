@@ -4,20 +4,25 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 
+/*
+ * This class will be created as a new thread, to wait for incoming connections
+ */
 class ServerThread implements Runnable {
-	/* Created as a new thread to wait for incoming connections. */
 	
 	// get the singleton
 	MessagePasser mmp;
 	
-	/* Constructor: just get the singleton */
+	/*
+	 * Constructor: just get the singleton
+	 */
 	public ServerThread() {
 		mmp = MessagePasser.getInstance();
 	}
 	
 	
 	public void run() {
-		/* Gets the configuration of the local server. */
+		
+		// Get the configuration of local server
 		int i;
 		for(i = 0; i < 10; i++) {
 			if(this.mmp.conf[0][i].equals(mmp.local_name))
@@ -29,7 +34,9 @@ class ServerThread implements Runnable {
 			System.out.println("No such name: " + mmp.local_name);
 			System.exit(0);
 		} 
-		else //local name found, setup the local server 
+		
+		// local name found, setup the local server
+		else 
 			try {
 				
 				// Init the local listening socket
@@ -50,12 +57,13 @@ class ServerThread implements Runnable {
 					conn_state.setObjectInputStream(ois_tmp);
 					
 					this.mmp.connections.put(remote_name, conn_state);					
-					//this.mmp.printConnections();
+					//this.mmp.printConnectsions();
 					
 					// create and run the ReceiveThread
 					Runnable receiveRunnable = new ReceiveThread(remote_name);
 					Thread receiveThread = new Thread(receiveRunnable);
-					receiveThread.start();				
+					receiveThread.start();
+									
 				}
 			} catch(Exception e) {
 				e.printStackTrace();

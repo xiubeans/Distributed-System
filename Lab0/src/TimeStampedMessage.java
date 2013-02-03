@@ -43,7 +43,40 @@ public final class TimeStampedMessage extends Message implements Serializable {
 	    
 	    return order;
 	  }
+    
+      
+	  /*
+	   * Return true if this MC message is ideantical to msg
+	   */
+	  public boolean isIdentical(TimeStampedMessage msg) {
+		  
+		  boolean is_identical = false;
+		  
+		  if(this.src.equals(msg.src) &&
+				  this.mc_id == msg.mc_id)
+			  is_identical = true;
+		  
+		  return is_identical;
+		  
+	  }
 	  
+	  /*
+	   * If this is an ACK, return true if this matches MC message "msg"
+	   */
+	  public boolean isAckMatched(TimeStampedMessage msg) {
+		  
+		  boolean is_matched = false;
+		  
+		  if(this.payload != null) {
+			  String[] payload = ((String)this.payload).split("\t");
+			  if(payload[0].equals(msg.src) && Integer.parseInt(payload[1]) == msg.mc_id)
+				  is_matched = true;
+		  }
+		  
+		  return is_matched;
+		  
+	  }
+ 
 	  /*
 	   * Deep clone a TimeStampedMessage
 	   */
