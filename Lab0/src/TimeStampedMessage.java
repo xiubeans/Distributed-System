@@ -1,4 +1,5 @@
 import java.io.Serializable;
+import java.util.*;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -6,9 +7,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 public final class TimeStampedMessage extends Message implements Serializable {
 	  TimeStamp ts;
 
-	  public TimeStampedMessage(TimeStamp t_stamp, String src, String dest, String kind, String type, Object payload)
+	  public TimeStampedMessage(TimeStamp t_stamp, String src, String dest, String kind, Object payload)
 	  {
-	    super(src, dest, kind, type, payload);
+	    super(src, dest, kind, payload);
 	    this.ts = t_stamp;
 	  }
 
@@ -43,8 +44,7 @@ public final class TimeStampedMessage extends Message implements Serializable {
 	    
 	    return order;
 	  }
-    
-      
+	  
 	  /*
 	   * Return true if this MC message is ideantical to msg
 	   */
@@ -76,7 +76,7 @@ public final class TimeStampedMessage extends Message implements Serializable {
 		  return is_matched;
 		  
 	  }
- 
+	  
 	  /*
 	   * Deep clone a TimeStampedMessage
 	   */
@@ -84,8 +84,10 @@ public final class TimeStampedMessage extends Message implements Serializable {
 		  
 		  // Attention: we don't deep clone the playload here !!!
 		  TimeStampedMessage new_tsmsg = new TimeStampedMessage(
-				  (TimeStamp)this.ts.clone(), this.src, this.dest, this.kind, this.type, this.payload);
+				  (TimeStamp)this.ts.clone(), this.src, this.dest, this.kind, this.payload);
 		  
 		  return new_tsmsg;
 	  }
+
+
 }

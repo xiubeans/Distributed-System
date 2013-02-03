@@ -8,7 +8,7 @@ public class HBItem {
 	String src;
 	int mc_id;
 	TimeStamp ts;
-	TimeStampedMessage message = null;
+	TimeStampedMessage message;
 	ArrayList<Boolean> ack_list;
 	ArrayList<Integer> flags = new ArrayList<Integer>();
 	long timestamp;

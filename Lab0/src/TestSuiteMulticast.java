@@ -23,7 +23,6 @@ public class TestSuiteMulticast {
 		String src = "";
 		String dest = "";
 		String kind = "";
-		String type = ""; //whether it is a multicast or unicast message
 		int user_action = 0;
 		int global_modification_time = -1;  // record the latest time on servers
 		int expectedNumArgs = 3;
@@ -34,12 +33,6 @@ public class TestSuiteMulticast {
 			config_file = args[0];
 			local_name = args[1];
 			clock_type = args[2].toString().toLowerCase();
-			
-			if(clock_type.equalsIgnoreCase("logical"))
-			{
-				System.out.println("Logical clocks are not available for multicast service. Defaulting to vector.");
-				clock_type = "vector";
-			}
 			
 			/* get a local copy of the config from AFS */
 			SFTPConnection svr_conn = new SFTPConnection();
@@ -92,9 +85,8 @@ public class TestSuiteMulticast {
 						src = local_name;
 						dest = fields[1];
 						kind = fields[2];
-						type = "unicast";
 						data = null;
-						TimeStampedMessage newMsg = new TimeStampedMessage(tstmp, src, dest, kind, type, data);
+						TimeStampedMessage newMsg = new TimeStampedMessage(tstmp, src, dest, kind, data);
 						mp.send(newMsg, clock);
 						break;
 					case 2: //receive request
@@ -133,18 +125,16 @@ public class TestSuiteMulticast {
 						
 						System.out.println("Names are: "+mp.names_index.keySet());
 						
-						/*multicast loop placed out here to make integration with 
-						 * current code easiest; no changes to MessagePasser needed!*/
-						
+						/*do the multicast loop out here to make integration with current 
+						 *code easiest...no changes to MessagePasser needed!*/
 						for (Map.Entry entry : mp.names_index.entrySet()) 
 					    {
 							String name = (String)entry.getKey();
 							src = local_name;
 							dest = name;
 							kind = fields[2];
-							type = "multicast";
 							data = null;
-							newMsg = new TimeStampedMessage(tstmp, src, dest, kind, type, data);
+							newMsg = new TimeStampedMessage(tstmp, src, dest, kind, data);
 							System.out.println("About to send "+kind+" message from "+src+" to "+dest);
 							mp.send(newMsg, clock);
 					    }
