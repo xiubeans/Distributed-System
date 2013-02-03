@@ -27,6 +27,8 @@ public final class Vector extends ClockService {
 		
 		if(message.type.equals("multicast") && message.dest.equals(tmpMP.names_index.firstKey()))
 			incrementTimeStamp(); //this allows all multicast messages (in one series) to have the same timestamp
+		else if(message.type.equals("unicast"))
+			incrementTimeStamp(); //we still want to timestamp all unicast messages
 		message.ts = this.ts.clone();
 		return message;
 	}
@@ -68,6 +70,19 @@ public final class Vector extends ClockService {
 		MessagePasser mp = MessagePasser.getInstance();
 		this.my_index = ((Integer)mp.names_index.get(mp.local_name)).intValue();
 		this.ts.val.set(this.my_index, new AtomicInteger(((AtomicInteger)this.ts.val.get(this.my_index)).intValue()+1));
+	}
+	
+	
+	public void decrementTimeStamp(){
+		/* Monotonically decrements the value of the current index.
+		 * Gets appropriate index to update through TreeMap of names.
+		 * This is used ONLY to allow correct timestamping of duplicate
+		 * messages in multicast, and does not actually decrement a 
+		 * timestamp within the system (which would obviously be wrong). */
+		
+		MessagePasser mp = MessagePasser.getInstance();
+		this.my_index = ((Integer)mp.names_index.get(mp.local_name)).intValue();
+		this.ts.val.set(this.my_index, new AtomicInteger(((AtomicInteger)this.ts.val.get(this.my_index)).intValue()-1));
 	}
 	
 	

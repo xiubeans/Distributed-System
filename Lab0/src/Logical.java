@@ -71,6 +71,11 @@ public final class Logical extends ClockService {
 	}
 	
 	
+	public void decrementTimeStamp(){
+		;
+	}
+	
+	
 	public TimeStamp parseTS(String ts)
 	{
 		/* Takes a string representation of a timestamp

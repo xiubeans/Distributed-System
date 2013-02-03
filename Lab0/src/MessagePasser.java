@@ -555,7 +555,16 @@ public class MessagePasser {
 					//because duplicated messages should have different timestamps
 					message = new TimeStampedMessage(null, message.src, message.dest, message.kind, message.type, message.payload);
 			        message.set_id(this.message_id.getAndIncrement());
-
+			        if(message.type.equals("multicast"))
+			        {
+			        	message.set_mcast_id(this.mcast_msg_id.get()); //ID should be the same
+			        	if(!message.dest.equals(this.names_index.firstKey()))
+			        			clock.incrementTimeStamp();
+			        	/*multicast dup timestamp should be advanced and then "rolled back" (for the next 
+			        	 * message in the non-duplicate multicast series) to match the timestamp behavior 
+			        	 * of unicast. */
+			        }
+			        
 			        message = clock.affixTimestamp((TimeStampedMessage)message);
 			          
 					oos.writeObject((TimeStampedMessage)message);
@@ -569,6 +578,9 @@ public class MessagePasser {
 							   " timestamp: " + ((TimeStampedMessage)message).ts.toString());
 					System.out.println("rule: duplicated message");
 					System.out.println("**************************************************************************");
+					
+					if(message.type.equals("multicast") && !message.dest.equals(this.names_index.lastKey()))
+						clock.decrementTimeStamp(); //"roll back" to proper value (NOTE: this will look wrong if the last name isn't running in the system)
 					
 					if(!dispatch_delayed(message)) //conditionally release the delay buffer
 						return;
