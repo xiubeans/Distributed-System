@@ -145,6 +145,7 @@ public class TestSuiteMulticast {
 							kind = fields[2];
 							type = "multicast";
 							data = null;
+							
 							newMsg = new TimeStampedMessage(tstmp, src, dest, kind, type, data);
 							System.out.println("About to send "+kind+" message from "+src+" to "+dest);
 							mp.send(newMsg, clock);

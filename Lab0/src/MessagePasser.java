@@ -601,6 +601,8 @@ public class MessagePasser {
 		for (Map.Entry entry : this.names_index.entrySet()) 
 	    {
 			String dest = (String)entry.getKey();
+			if(dest.equals(this.local_name))
+				continue; //don't send yourself an ack
 			TimeStampedMessage newMsg = new TimeStampedMessage(ts, local_name, dest, "ack", message.type, payload);
 			System.out.println("Sending a multicast ACK to acknowledge "+message.toString());
 			this.send(newMsg, clock);
@@ -746,6 +748,8 @@ public class MessagePasser {
 					message.set_id(this.message_id.get());
 					((TimeStampedMessage)message).ts = clock.getTimestamp();
 
+					if(handleSelf(message))
+						return;
 					oos.writeObject((TimeStampedMessage)message);
 					oos.flush();
 					conn.getAndIncrementOutMessageCounter();
@@ -772,7 +776,9 @@ public class MessagePasser {
 			        }
 			        
 			        message = clock.affixTimestamp((TimeStampedMessage)message);
-			          
+			        
+			        if(handleSelf(message))
+						return;
 					oos.writeObject((TimeStampedMessage)message);
 					oos.flush();
 					conn.getAndIncrementOutMessageCounter();
@@ -797,6 +803,8 @@ public class MessagePasser {
 						
 						TimeStampedMessage dl_message = (TimeStampedMessage)delayed_messages.remove(0);
 						
+						if(handleSelf(dl_message))
+							return;
 						oos.writeObject(dl_message);
 						oos.flush();
 						conn.getAndIncrementOutMessageCounter();
@@ -832,6 +840,8 @@ public class MessagePasser {
 					message.set_id(this.message_id.getAndIncrement());
 					((TimeStampedMessage)message).ts = clock.getTimestamp();
 
+					if(handleSelf(message))
+						return;
 					oos.writeObject((TimeStampedMessage)message);
 					oos.flush();
 
@@ -858,6 +868,8 @@ public class MessagePasser {
 						// send single delayed message at once
 						TimeStampedMessage dl_message = (TimeStampedMessage)delayed_messages.remove(0);
 
+						if(handleSelf(dl_message))
+							return;
 						oos.writeObject(dl_message);
 						oos.flush();
 						conn.getAndIncrementOutMessageCounter();
@@ -1240,11 +1252,11 @@ public class MessagePasser {
 			return false;
 		}	
 		
-		if(user_options[dest].equalsIgnoreCase(local_name)) //same src and dest
+		/*if(user_options[dest].equalsIgnoreCase(local_name)) //same src and dest
 		{
 			System.out.println("Error - same src and dest "+local_name+". No loopback functionality offered.");
 			return false;
-		}
+		}*/
 		
 		all_fields = populateOptions(mp, user_input, max_fields, max_options);	
 		
@@ -1293,6 +1305,21 @@ public class MessagePasser {
 	}
 	
 
+	public boolean handleSelf(Message msg)
+	{
+		/* Determines if a message is to be sent to the sender */
+		
+		if(msg.src.equals(msg.dest))
+		{
+			this.insertToHBQ(new HBItem((TimeStampedMessage) msg));
+			this.tryAcceptAck((TimeStampedMessage)msg); //set my bits for having received the message
+			this.printHBQ();
+			return true;
+		}
+		return false;
+	}
+	
+	
 	/* Print Methods */
 	
 	public void printConnections() {
