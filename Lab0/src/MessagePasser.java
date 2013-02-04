@@ -804,7 +804,7 @@ public class MessagePasser {
 						TimeStampedMessage dl_message = (TimeStampedMessage)delayed_messages.remove(0);
 						
 						if(handleSelf(dl_message))
-							return;
+							continue; //because otherwise you'd miss the rest of the messages in the buffer
 						oos.writeObject(dl_message);
 						oos.flush();
 						conn.getAndIncrementOutMessageCounter();
@@ -869,7 +869,7 @@ public class MessagePasser {
 						TimeStampedMessage dl_message = (TimeStampedMessage)delayed_messages.remove(0);
 
 						if(handleSelf(dl_message))
-							return;
+							continue; //because otherwise you'd miss the rest of the messages in the buffer
 						oos.writeObject(dl_message);
 						oos.flush();
 						conn.getAndIncrementOutMessageCounter();
@@ -1063,6 +1063,7 @@ public class MessagePasser {
 	
 	if(tmp_msg != null && tmp_msg.mc_id != message.mc_id)
 	{
+		System.out.println("Message dest: "+message.dest+" and last key: "+names_index.lastKey());
 		if(!message.dest.equals(names_index.lastKey()))
 			return false; //only dispatch after the last message in the NEXT multicast series has been sent
 		return true;
