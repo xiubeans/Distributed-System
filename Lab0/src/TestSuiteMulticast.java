@@ -132,7 +132,7 @@ public class TestSuiteMulticast {
 						
 						fields = user_input.trim().split("\\s");
 						
-						System.out.println("Names are: "+mp.names_index.keySet());
+						//System.out.println("Names are: "+mp.names_index.keySet());
 						
 						/*multicast loop placed out here to make integration with 
 						 * current code easiest; no changes to MessagePasser needed!*/
@@ -147,7 +147,7 @@ public class TestSuiteMulticast {
 							data = null;
 							
 							newMsg = new TimeStampedMessage(tstmp, src, dest, kind, type, data);
-							System.out.println("About to send "+kind+" message from "+src+" to "+dest);
+							//System.out.println("About to send "+kind+" message from "+src+" to "+dest);
 							mp.send(newMsg, clock);
 					    }
 					
@@ -156,8 +156,8 @@ public class TestSuiteMulticast {
 						System.out.println("Unrecognized input "+user_action+".");
 						break;
 				}
-				System.out.println("Jumped out of TSM case statement");
-				mp.print();
+//				System.out.println("Jumped out of TSM case statement");
+//				mp.print();
 			}
 		}
 		else

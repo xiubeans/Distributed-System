@@ -201,6 +201,7 @@ public class MessagePasser {
 	public void insertToHBQ(HBItem hbi) {
 	
 		/* find the right position in HBQ */
+		this.globalLock.lock();
 		System.out.println("HBQ size: "+ this.hbq.size());
 		int i = 0; 
 		for(; i < this.hbq.size(); i++) {
@@ -210,6 +211,7 @@ public class MessagePasser {
 		System.out.println("Before add");
 		this.hbq.add(i, hbi);
 		System.out.println("After add");
+		this.globalLock.unlock();
 	}
 
 	
@@ -220,7 +222,7 @@ public class MessagePasser {
 	public TimeStampedMessage getReadyMessage() {
 		
 		TimeStampedMessage ready_msg = null;
-		
+		this.globalLock.lock();
 		if(!this.hbq.isEmpty()) {
 			HBItem first_item = this.hbq.get(0);
 			if(first_item.isReady()) {
@@ -230,6 +232,7 @@ public class MessagePasser {
 					ready_msg.print();
 			}
 		}
+		this.globalLock.unlock();
 		return ready_msg;
 		
 	}
@@ -241,7 +244,7 @@ public class MessagePasser {
 	public boolean isInHBQ(TimeStampedMessage msg) {
 		
 		boolean is_in = false;
-
+		this.globalLock.lock();
 		/* get a multicast message */
 		if(msg.type.equals("multicast") && !msg.kind.equals("ack")) {
 			for(int i = 0; i < this.hbq.size(); i++) {
@@ -288,7 +291,7 @@ public class MessagePasser {
 //				break;
 //			}
 //		}
-		
+		this.globalLock.unlock();
 		return is_in;
 		
 	}
@@ -303,7 +306,7 @@ public class MessagePasser {
 		boolean is_useful = false;
 		
 		/* Check if this mc message is out-of-date */
-		
+		this.globalLock.lock();
 		/* get a multicast message */
 		if(msg.type.equals("multicast") && !msg.kind.equals("ack")) {
 			int index = this.names_index.get(msg.src);
@@ -329,7 +332,7 @@ public class MessagePasser {
 		
 		else
 			;
-		
+		this.globalLock.unlock();
 		return is_useful;
 	}
 	
@@ -344,14 +347,14 @@ public class MessagePasser {
 	public HBItem getHBItem(String src, int mc_id) {
 		
 		HBItem hbi = null;
-		
+		this.globalLock.lock();
 		for(int i = 0; i < this.hbq.size(); i++) {
 			if(this.hbq.get(i).src.equals(src) && this.hbq.get(i).mc_id == mc_id) {
 				hbi = this.hbq.get(i);
 				break;
 			}
 		}
-		
+		this.globalLock.unlock();
 		return hbi;
 	}
 	
@@ -604,7 +607,7 @@ public class MessagePasser {
 			if(dest.equals(this.local_name))
 				continue; //don't send yourself an ack
 			TimeStampedMessage newMsg = new TimeStampedMessage(ts, local_name, dest, "ack", message.type, payload);
-			System.out.println("Sending a multicast ACK to acknowledge "+message.toString());
+			//System.out.println("Sending a multicast ACK to acknowledge "+message.toString());
 			this.send(newMsg, clock);
 	    }
 	}

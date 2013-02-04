@@ -71,13 +71,13 @@ class ReceiveThread implements Runnable {
 							System.out.println("Message is useful: "+message.toString());
 							if(!this.mmp.isInHBQ(message))
 							{
-								System.out.println("Before insertToHBQ");
+								//System.out.println("Before insertToHBQ");
 								this.mmp.insertToHBQ(new HBItem(message));
-								System.out.println("After insertToHBQ");
+								//System.out.println("After insertToHBQ");
 							}
-							System.out.println("Before tryAcceptAck");
+							//System.out.println("Before tryAcceptAck");
 							this.mmp.tryAcceptAck(message);
-							System.out.println("After tryAcceptAck");
+							//System.out.println("After tryAcceptAck");
 						}
 						this.mmp.printHBQ();
 					}
