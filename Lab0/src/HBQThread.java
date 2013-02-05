@@ -12,7 +12,7 @@ class HBQThread implements Runnable {
 		
 		try{
 			while(true) {
-				
+				this.mp.globalLock.lock();
 				/* push ready message to rcv_buf */
 				if(!this.mp.hbq.isEmpty())
 					if(this.mp.hbq.get(0).isReady()) {
@@ -29,11 +29,14 @@ class HBQThread implements Runnable {
 						}
 					}
 				}
-				
+				this.mp.globalLock.unlock();
 				Thread.sleep(50);
 			}
 		} catch(Exception e) {
 			e.printStackTrace();
+		}
+		finally{
+			this.mp.globalLock.unlock();
 		}
 				
 	}

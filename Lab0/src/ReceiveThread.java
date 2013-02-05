@@ -41,12 +41,16 @@ class ReceiveThread implements Runnable {
 					/* get a multicast message */
 					if(message.type.equals("multicast") && !message.kind.equals("ack")) {
 						System.out.println("Got a multicast message: "+message.toString()+" MCID: "+message.mc_id);
+						this.mmp.globalLock.lock();
 						if(!this.mmp.isUsefulMessage(message)) {
+							this.mmp.globalLock.unlock();
 							continue;
 						}
 						else {
 							if(!this.mmp.isInHBQ(message))
+							{
 								stored = this.mmp.insertToHBQ(new HBItem(message));
+							}
 							else {
 								HBItem this_item = this.mmp.getHBItem(message.src, message.mc_id);
 								if(this_item.message == null)
@@ -54,10 +58,11 @@ class ReceiveThread implements Runnable {
 							}
 							if(stored) //because otherwise we'd be acking a message that we won't receive
 							{
-								this.mmp.tryAcceptAck(message);
+								this.mmp.tryAckAll(message);
 								System.out.println("After getting reg multicast message, trying to mc_ACK message "+message.toString());
 								this.mmp.multicastAck(message);
 							}
+							this.mmp.globalLock.unlock();
 						}
 						this.mmp.printHBQ();
 					}
@@ -66,7 +71,9 @@ class ReceiveThread implements Runnable {
 					else if(message.type.equals("multicast") && message.kind.equals("ack")) {
 						System.out.println("Got an ACK message: "+message.toString());
 						System.out.println("Payload VTS: "+message.payload.toString());
+						this.mmp.globalLock.lock();
 						if(!this.mmp.isUsefulMessage(message)) {
+							this.mmp.globalLock.unlock();
 							System.out.println("Not useful message "+message.toString());
 							continue;
 						}
@@ -81,9 +88,10 @@ class ReceiveThread implements Runnable {
 							if(stored)
 							{
 								//System.out.println("Before tryAcceptAck");
-								this.mmp.tryAcceptAck(message);
+								this.mmp.tryAckAll(message);
 								//System.out.println("After tryAcceptAck");
 							}
+							this.mmp.globalLock.unlock();
 						}
 						//this.mmp.printHBQ(); can't print HBQ here, because we're dealing with incomplete messages as the ACK payload
 					}
@@ -93,8 +101,10 @@ class ReceiveThread implements Runnable {
 						System.out.println("Got a retransmit message: "+message.toString());
 						System.out.println("Retransmit payload: "+message.payload.toString());
 						TimeStampedMessage msg = (TimeStampedMessage)message.payload;
+						this.mmp.globalLock.lock();
 						if(!this.mmp.isUsefulMessage(msg)) {
 							this.mmp.multicastAck(message); //we still need to ack it, b/c somebody didn't receive our ack
+							this.mmp.globalLock.unlock();
 							continue;
 						}
 						else {
@@ -107,11 +117,12 @@ class ReceiveThread implements Runnable {
 							}
 							if(stored)
 							{
-								this.mmp.tryAcceptAck(message);
-								this.mmp.tryAcceptAck(msg);
+								this.mmp.tryAckAll(message);
+								this.mmp.tryAckAll(msg);
 								System.out.println("After getting retransmit message, trying to mc_ACK message "+message.toString());
 								this.mmp.multicastAck(message);
 							}
+							this.mmp.globalLock.unlock();
 						}
 						this.mmp.printHBQ();
 					}
@@ -130,8 +141,10 @@ class ReceiveThread implements Runnable {
 				conn_state.getObjectOutputStream().close();
 				conn_state.local_socket.close();
 				this.mmp.connections.remove(remote_name);
+				this.mmp.globalLock.unlock();
 			}
 		} catch (Exception e){
+			this.mmp.globalLock.unlock();
 			if(e instanceof EOFException) {
 				System.out.println("Connection to " + remote_name + " is disconnected");
 			}
