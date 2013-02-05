@@ -17,9 +17,11 @@ public class SFTPConnection {
     public void connect(String host, String user) {
         JSch jsch = new JSch();
     	try {
+    		
+
 	    	session = jsch.getSession(user, host, 22);
 	        session.setConfig("StrictHostKeyChecking", "no");
-	        //session.setPassword(CONSTANTS.PWD);
+
 	        
 	        UserInfo ui=new MyUserInfo();
 	        session.setUserInfo(ui);

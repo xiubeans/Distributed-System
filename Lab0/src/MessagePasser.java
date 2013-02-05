@@ -226,9 +226,12 @@ public class MessagePasser {
 		if(!this.hbq.isEmpty()) {
 			HBItem first_item = this.hbq.get(0);
 			if(first_item.isReady()) {
-					this.mc_seqs.set(this.names_index.get(first_item.src), first_item.mc_id);
+				
+					// TEST: should set seq# !!!
+					//this.mc_seqs.set(this.names_index.get(first_item.src), first_item.mc_id);
+				
 					ready_msg = this.hbq.remove(0).message;
-					System.out.println("Ready message: ");
+					System.out.println("in getReadyMessage(): return ready message: ");
 					ready_msg.print();
 			}
 		}

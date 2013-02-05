@@ -5,33 +5,41 @@ import java.util.*;
  */
 public class HBItem {
 	
+	/* identification */
 	String src;
 	int mc_id;
+	
 	TimeStamp ts;
 	TimeStampedMessage message = null;
 	ArrayList<Boolean> ack_list;
-	ArrayList<Integer> flags = new ArrayList<Integer>();
+	
+	/* for timeout and retransmit */
 	long timestamp;
 	long wait_interval = 30000 + ((new Random()).nextLong() % 2000);
 	
+	/* global singleton */
 	MessagePasser mp;
 	
 	public HBItem(TimeStampedMessage msg) {
 		
-		this.mp = MessagePasser.getInstance();
-		
+		this.mp = MessagePasser.getInstance();		
 		this.ack_list = new ArrayList<Boolean>();
 		for(int i = 0; i < this.mp.num_nodes; i++) {
 			this.ack_list.add(false);
-		}
-		
-		for(int i = 0; i < 5; i++)
-			this.flags.add(0);
-		
+		}		
 		this.timestamp = System.currentTimeMillis();
 		
+//		
+//		if(msg.type.equals("multicast"))
+//			System.out.println("OK");
+//		if(msg.kind.equals("ack"))
+//			System.out.println("OK");
+
 		/* get an original multicast message */
 		if(msg.type.equals("multicast") && !msg.kind.equals("ack")) {
+			
+			System.out.println("In HBItem(): I am about to create Multicast HBItem");
+			
 			this.message = msg;
 			this.src = msg.src;
 			this.mc_id = msg.mc_id;
@@ -44,8 +52,15 @@ public class HBItem {
 		}
 		
 		/* get an ACK */
-		else if(msg.type.equals("multicast") && msg.kind.equals("ack")) {	
+		else if(msg.type.equals("multicast") && msg.kind.equals("ack")) {
+			
+			System.out.println("In HBItem(): I am about to create ACK HBItem");
+			
 			//System.out.println("In the get ack of HBItem");
+			if(msg.payload == null) {
+				System.out.println("In HBItem(): ACK message has no payload! Craete HBItem failed.");
+				return;
+			}
 			String[] payload = ((String)msg.payload).split("\t");
 			this.src = payload[0];
 			this.mc_id = Integer.parseInt(payload[1]);
@@ -61,6 +76,9 @@ public class HBItem {
 		
 		/* get a retransmitted multicast message by someone else */
 		else if(msg.type.equals("unicast") && msg.kind.equals("retransmit")) {
+			
+			System.out.println("In HBItem(): I am about to create Retransmit HBItem");
+			
 			this.message = (TimeStampedMessage)msg.payload;
 			this.src = this.message.src;
 			this.mc_id = this.message.mc_id;
@@ -73,36 +91,12 @@ public class HBItem {
 		else
 			return;
 		
-//		
-//		this.src = src;
-//		this.seq_num = seq_num;
-//		this.ts = ts;
-//		
-//		this.mp = MessagePasser.getInstance();
-//		this.timestamp = System.currentTimeMillis();
-//		
-//		/* init ack_list, by given list length */
-//		this.ack_list = new ArrayList<Boolean>();
-//		for(int i = 0; i < this.mp.num_nodes; i++) 
-//			this.ack_list.add(false);
-//		this.ack_list.set(this.mp.names_index.get(src), true);
-//		this.ack_list.set(this.mp.names_index.get(this.mp.local_name), true);
-//		
-//		/* init list of flags with arbitrary length */
-//		for(int i = 0; i < 5; i++)
-//			this.flags.add(0);
-		
 	}
 	
 	public void setMessage(TimeStampedMessage msg) {
 		this.message = msg;
 	}
 	
-//	public void setAckBit(TimeStampedMessage ack_msg) {
-//		String ack_from = ack_msg.getOrigSrc();
-//		int index = this.mp.names_index.get(ack_from);
-//		this.ack_list.set(index, true);
-//	}
 	
 	/*
 	 * Determine whether this message is ready based on seq# and acked nodes
@@ -111,6 +105,13 @@ public class HBItem {
 		
 		boolean is_ready = true;
 		
+		/* message should not be empty */
+		if(this.message == null)
+		{
+			is_ready = false;
+			// System.out.println("We have a null message, in isReady()");
+		}
+		
 		/* check if it is acked by everyone */
 		for(int i = 0; i < ack_list.size(); i++)
 			if(ack_list.get(i).booleanValue() == false) {
@@ -118,14 +119,11 @@ public class HBItem {
 				break;
 			}
 		
-		/* check if it is the next MC message in the sequence */
-		if(this.mc_id != this.mp.mc_seqs.get(this.mp.names_index.get(this.src)) + 1)
-			is_ready = false;
-		if(this.message == null)
-		{
-			is_ready = false;
-			System.out.println("We have a null message, in isReady()");
-		}
+		// TEST: should check seq# !!!
+//		/* check if it is the next MC message in the sequence */
+//		if(this.mc_id != this.mp.mc_seqs.get(this.mp.names_index.get(this.src)) + 1)
+//			is_ready = false;
+		
 		return is_ready;
 		
 	}
@@ -235,7 +233,7 @@ public class HBItem {
 		  print += ", timestamp=" + this.ts.toString();
 		  print += ", type=" + this.message.type;
 		  print += ", kind=" + this.message.kind;
-		  print += "\n\t\t\t" + "Acked list:";
+		  print += "\n\t" + "Acked list:";
 		  for(int i = 0; i < this.ack_list.size(); i++) {
 			  String name = this.mp.getName(i);
 			  if(this.ack_list.get(i).booleanValue() == true)
