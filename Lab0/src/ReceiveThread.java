@@ -30,7 +30,7 @@ class ReceiveThread implements Runnable {
 		// get the connection state of this socket at first
 		ConnState conn_state = this.mmp.connections.get(this.remote_name);
 		ObjectInputStream ois = conn_state.getObjectInputStream();
-		
+		boolean stored = true; //must be true by default to catch ACK of non-new messages
 		// Infinite loop: listen for input
 		try {
 			
@@ -47,15 +47,21 @@ class ReceiveThread implements Runnable {
 						}
 						else {
 							if(!this.mmp.isInHBQ(message))
-								this.mmp.insertToHBQ(new HBItem(message));
+							{
+								stored = this.mmp.insertToHBQ(new HBItem(message));
+								System.out.println("Stored is "+stored);
+							}
 							else {
 								HBItem this_item = this.mmp.getHBItem(message.src, message.mc_id);
 								if(this_item.message == null)
 									this_item.message = message;
 							}
-							this.mmp.tryAcceptAck(message);
-							System.out.println("After getting reg multicast message, trying to mc_ACK message "+message.toString());
-							this.mmp.multicastAck(message);
+							if(stored) //because otherwise we'd be acking a message that we won't receive
+							{
+								this.mmp.tryAcceptAck(message);
+								System.out.println("After getting reg multicast message, trying to mc_ACK message "+message.toString());
+								this.mmp.multicastAck(message);
+							}
 						}
 						this.mmp.printHBQ();
 					}
@@ -73,12 +79,16 @@ class ReceiveThread implements Runnable {
 							if(!this.mmp.isInHBQ(message))
 							{
 								//System.out.println("Before insertToHBQ");
-								this.mmp.insertToHBQ(new HBItem(message));
+								stored = this.mmp.insertToHBQ(new HBItem(message));
+								System.out.println("Stored is "+stored);
 								//System.out.println("After insertToHBQ");
 							}
-							//System.out.println("Before tryAcceptAck");
-							this.mmp.tryAcceptAck(message);
-							//System.out.println("After tryAcceptAck");
+							if(stored)
+							{
+								//System.out.println("Before tryAcceptAck");
+								this.mmp.tryAcceptAck(message);
+								//System.out.println("After tryAcceptAck");
+							}
 						}
 						this.mmp.printHBQ();
 					}
@@ -93,17 +103,21 @@ class ReceiveThread implements Runnable {
 						}
 						else {
 							if(!this.mmp.isInHBQ(msg))
-								this.mmp.insertToHBQ(new HBItem(msg));
+								stored = this.mmp.insertToHBQ(new HBItem(msg));
 							else {
 								HBItem this_item = this.mmp.getHBItem(msg.src, msg.mc_id);
 								if(this_item.message == null)
 									this_item.message = msg;
 							}
-							this.mmp.tryAcceptAck(message);
-							this.mmp.tryAcceptAck(msg);
-							System.out.println("After getting retransmit message, trying to mc_ACK message "+message.toString());
-							this.mmp.multicastAck(message);
+							if(stored)
+							{
+								this.mmp.tryAcceptAck(message);
+								this.mmp.tryAcceptAck(msg);
+								System.out.println("After getting retransmit message, trying to mc_ACK message "+message.toString());
+								this.mmp.multicastAck(message);
+							}
 						}
+						this.mmp.printHBQ();
 					}
 						
 					/* get a regular message */

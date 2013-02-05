@@ -198,20 +198,42 @@ public class MessagePasser {
 	/*
 	 * Insert msg to the HBQ, in Vector timestamp order
 	 */
-	public void insertToHBQ(HBItem hbi) {
+	public boolean insertToHBQ(HBItem hbi) {
 	
+		/* first check to see if it doesn't hit a receiver-side
+		 * drop rule. If so, don't add it. Duplicates and delays
+		 * will be handled at print time, so no worries (I think?).
+		 * Returns true if inserted, false if not. */
+		
+		HashMap rule = this.matchRules("receive", hbi.message);
+		rule = this.checkNth(rule, "receive", hbi.message);
+		
+		if(rule != null)
+		{
+			String action = rule.get("action").toString();
+			if(action.equals("drop"))
+			{
+				System.out.println("Message "+hbi.message.toString()+" will match a receiver-side drop rule, so discarding before HBQ.");
+				return false;
+			}
+		}
+		System.out.println("Message "+hbi.message+" successfully passed the rule pre-check");
+		
 		/* find the right position in HBQ */
 		this.globalLock.lock();
-		System.out.println("HBQ size: "+ this.hbq.size());
+		//System.out.println("HBQ size: "+ this.hbq.size());
 		int i = 0; 
 		for(; i < this.hbq.size(); i++) {
 			if(hbi.compareOrder(this.hbq.get(i)) <= 0)
 				break;
 		}
-		System.out.println("Before add");
+		//System.out.println("Before add, placing message "+hbi.toString()+" in position "+i+" of current HBQ: ");
+		//this.printHBQ();
 		this.hbq.add(i, hbi);
-		System.out.println("After add");
 		this.globalLock.unlock();
+//		System.out.println("After add, HBQ is ");
+//		this.printHBQ();
+		return true;
 	}
 
 	
@@ -224,15 +246,19 @@ public class MessagePasser {
 		TimeStampedMessage ready_msg = null;
 		this.globalLock.lock();
 		if(!this.hbq.isEmpty()) {
+//			System.out.println("In GetReadyMessage, HBQ is");
+//			this.printHBQ();
 			HBItem first_item = this.hbq.get(0);
 			if(first_item.isReady()) {
 				
 					// TEST: should set seq# !!!
-					//this.mc_seqs.set(this.names_index.get(first_item.src), first_item.mc_id);
+					this.mc_seqs.set(this.names_index.get(first_item.src), first_item.mc_id);
 				
 					ready_msg = this.hbq.remove(0).message;
-					System.out.println("in getReadyMessage(): return ready message: ");
+					System.out.println("Added message");
+					//System.out.println("in getReadyMessage(): return ready message: ");
 					ready_msg.print();
+					System.out.println("to the receive queue");
 			}
 		}
 		this.globalLock.unlock();
@@ -705,25 +731,7 @@ public class MessagePasser {
 			// get the first rule matched against this outgoing message
 			HashMap rule = this.matchRules("send", message);
 			
-			if(rule != null && (rule.containsKey("nth") || rule.containsKey("everynth"))) //figure out if it has an Nth/EveryNth field in it
-			{
-				int rule_num = (Integer)rule.get("rule_num");
-				int times=0;
-				times = this.connections.get(message.getVal("dest", message)).getTimesRuleSeen(rule_num); //get value, since it's already initialized if we're here
-
-				String everynth = rule.get("everynth").toString();
-				String nth = rule.get("nth").toString();
-
-				/* Have to be careful here...if both Nth/Ev are *, keep the rule. */
-				try{ //everyNth is a number
-					int eNth = Integer.parseInt(everynth);
-					if((!(nth).equals("*") || !(everynth).equals("*")) && (!(nth).equals(times+"") && !((times % eNth) == 0))) //if neither is a * and none match
-						rule = null;
-				} catch (NumberFormatException e) { //everyNth is not a number
-					if((!(nth).equals("*") || !(everynth).equals("*")) && (!(nth).equals(times+"") && !everynth.equals(times+"")))
-						rule = null;
-				}
-			}
+			rule = checkNth(rule, "send", message);
 			
 			message = clock.affixTimestamp((TimeStampedMessage)message); //get a timestamp for the message
 			
@@ -942,26 +950,7 @@ public class MessagePasser {
 		message.print();
 		HashMap rule = this.matchRules("receive", (Message)message);
 		
-		if(rule != null && (rule.containsKey("nth") || rule.containsKey("everynth"))) //figure out if it has an Nth/EveryNth field in it
-		{
-			int rule_num = (Integer)rule.get("rule_num");
-			int times=0;
-			times = this.connections.get(message.getVal("src", message)).getTimesRuleSeen(rule_num); //get value, since it's already initialized if we're here
-
-			String everynth = rule.get("everynth").toString();
-			String nth = rule.get("nth").toString();
-
-			//have to be careful here...if both Nth/Ev are *, keep the rule.
-			try{ //everyNth is a number
-				int eNth = Integer.parseInt(everynth);
-				if((!(nth).equals("*") || !(everynth).equals("*")) && (!(nth).equals(times+"") && !((times % eNth) == 0))) //if neither is a * and none match
-					rule = null;
-			} catch (NumberFormatException e) { //everyNth is not a number
-				if((!(nth).equals("*") || !(everynth).equals("*")) && (!(nth).equals(times+"") && !everynth.equals(times+"")))
-					rule = null;
-			}
-		}
-		
+		rule = checkNth(rule, "receive", message);		
 		
 		try {
 			
@@ -1009,8 +998,7 @@ public class MessagePasser {
 					System.out.println("******************************************************************");
 
 					// set the delay buffer as ready
-					System.out.println("size of delay buf: "+this.rcv_delayed_buf.size());
-				
+					//System.out.println("size of delay buf: "+this.rcv_delayed_buf.size());
 					this.rcv_delay_buf_ready.set(this.rcv_delayed_buf.size());
 					
 					conn.getAndIncrementInMessageCounter();					
@@ -1075,7 +1063,7 @@ public class MessagePasser {
 	
 	if(tmp_msg != null && tmp_msg.mc_id != message.mc_id)
 	{
-		System.out.println("Message dest: "+message.dest+" and last key: "+names_index.lastKey());
+		//System.out.println("Message dest: "+message.dest+" and last key: "+names_index.lastKey());
 		if(!message.dest.equals(names_index.lastKey()))
 			return false; //only dispatch after the last message in the NEXT multicast series has been sent
 		return true;
@@ -1208,6 +1196,40 @@ public class MessagePasser {
 	}
 
 	
+	public HashMap checkNth(HashMap rule, String direction, Message message)
+	{
+		/* Determines if this is the Nth or everyNth time a rule is matched*/
+		String valType = "";
+		
+		if(direction == "send")
+			valType = "dest";
+		else
+			valType = "src";
+		
+		if(rule != null && (rule.containsKey("nth") || rule.containsKey("everynth"))) //figure out if it has an Nth/EveryNth field in it
+	
+		{
+			int rule_num = (Integer)rule.get("rule_num");
+			int times=0;
+			times = this.connections.get(message.getVal(valType, message)).getTimesRuleSeen(rule_num); //get value, since it's already initialized if we're here
+	
+			String everynth = rule.get("everynth").toString();
+			String nth = rule.get("nth").toString();
+	
+			/* Have to be careful here...if both Nth/Ev are *, keep the rule. */
+			try{ //everyNth is a number
+				int eNth = Integer.parseInt(everynth);
+				if((!(nth).equals("*") || !(everynth).equals("*")) && (!(nth).equals(times+"") && !((times % eNth) == 0))) //if neither is a * and none match
+					rule = null;
+			} catch (NumberFormatException e) { //everyNth is not a number
+				if((!(nth).equals("*") || !(everynth).equals("*")) && (!(nth).equals(times+"") && !everynth.equals(times+"")))
+					rule = null;
+			}
+		}
+		return rule;
+	}
+	
+	
 	public boolean isNewestConfig(SFTPConnection svr_conn)
 	{
 		/* Determines if the current configuration file is up to date.
@@ -1324,9 +1346,10 @@ public class MessagePasser {
 		
 		if(msg.src.equals(msg.dest))
 		{
+			//this may fail if sending to/from self with a receive drop rule matching the sender...
 			this.insertToHBQ(new HBItem((TimeStampedMessage) msg));
 			this.tryAcceptAck((TimeStampedMessage)msg); //set my bits for having received the message
-			this.printHBQ();
+			//this.printHBQ();
 			return true;
 		}
 		return false;
@@ -1373,59 +1396,4 @@ public class MessagePasser {
 		System.out.print("HBQ: ");
 
 	}
-	
-	
-	//	public void printVectorOrder() {
-	//
-	//		/* lock the logger at first */
-	//		//this.globalLock.lock();
-	//		
-	//		/* copy the queue at first */
-	//		ArrayList<TimeStampedMessage> queue = new ArrayList<TimeStampedMessage>();
-	//		for(int i = 0 ; i < this.rcv_buf.size(); i++)
-	//			queue.add((TimeStampedMessage)this.rcv_buf.get(i).clone());
-	//
-	//		/* unlock the logger */
-	//		//this.globalLock.unlock();
-	//		
-	//		/* use bubble sorting to figure out the order */
-	//	    boolean swapped = true;
-	//	    int j = 0;
-	//	    int tmp;
-	//	    while (swapped) {
-	//	    	
-	//	    	swapped = false;
-	//	        j++;
-	//	        
-	//	        for (int i = 0; i < queue.size() - j; i++) {
-	//	        	
-	//	        	boolean swap_needed = false;
-	//	        	
-	//	        	/* determine whether should swap the neighbor */
-	//	        	int order = queue.get(i).compareOrder(queue.get(i + 1));
-	//	        	if(order == 1)
-	//	        		swap_needed = true;
-	//	        	else if(order == 0) {
-	//	        		if(queue.get(i).src.compareTo(queue.get(i + 1).src) > 0)
-	//	        				swap_needed  = true;
-	//	        	}
-	//	        	else
-	//	        		;	// do nothing
-	//	        	
-	//	        	if (swap_needed) { 
-	//	        		Collections.swap(queue, i, i + 1);
-	//		            swapped = true;
-	//	        	}
-	//	        	
-	//	         }
-	//	    }		
-	//		
-	//		/* print out the ordered messages */
-	//	    System.out.println("#####################  The Ordering  #####################");
-	//	    for(int i = 0; i < queue.size(); i++) {
-	//	    	System.out.println(queue.get(i).toString());
-	//	    }
-	//	    System.out.println("##########################################################");
-	//
-	//	}		
 }

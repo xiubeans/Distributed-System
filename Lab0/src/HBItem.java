@@ -71,7 +71,7 @@ public class HBItem {
 			//System.out.println("VTS: "+this.ts);
 		
 			this.tryAcceptAck(msg);
-			//System.out.println("After TACK");
+			System.out.println("After TACK in ACK block");
 			System.out.println("Message created in HBItem --> "+this.message.toString());
 		}
 		
@@ -101,7 +101,9 @@ public class HBItem {
 	
 	
 	/*
-	 * Determine whether this message is ready based on seq# and acked nodes
+	 * Determine whether this message is ready based on seq# and acked nodes.
+	 * Because this is a polling function, it will continuously print anything
+	 * in here when things are not in order.
 	 */
 	public boolean isReady() {
 		
@@ -121,10 +123,12 @@ public class HBItem {
 				break;
 			}
 		
-		// TEST: should check seq# !!!
 //		/* check if it is the next MC message in the sequence */
-//		if(this.mc_id != this.mp.mc_seqs.get(this.mp.names_index.get(this.src)) + 1)
-//			is_ready = false;
+		if(this.mc_id != this.mp.mc_seqs.get(this.mp.names_index.get(this.src)) + 1)
+		{
+			//System.out.println(this.mc_id+" is not the next message in the sequence");
+			is_ready = false;
+		}
 		
 		return is_ready;
 		
@@ -173,6 +177,7 @@ public class HBItem {
 			return;
 	}
 	
+	
 	/*
 	 * Determine whether time-out for resend
 	 * and will update timestamp if timeout
@@ -207,6 +212,7 @@ public class HBItem {
 		return nodes;	  
 	}
 	
+	
 	  /*
 	   * Compare the relationship between two messages
 	   * Return:
@@ -217,17 +223,16 @@ public class HBItem {
 	  public int compareOrder(HBItem hbi)
 	  {
 	    int order = 0;
-
 	    if(this.ts.isLess(hbi.ts))
 	    	order = -1;
 	    else if(hbi.ts.isLess(this.ts))
 	    	order = 1;
 	    else
 	    	order = 0;
-	    
 	    return order;
 	  }
 
+	  
 	  public String toString() {
 		  
 		  String print = "";
@@ -245,9 +250,6 @@ public class HBItem {
 			  else
 				  print += name + "=false ";
 		  }
-		  
 		  return print;
-		  
 	  }
-	
 }
