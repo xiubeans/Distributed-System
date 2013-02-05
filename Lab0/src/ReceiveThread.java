@@ -74,7 +74,7 @@ class ReceiveThread implements Runnable {
 							System.out.println("Message is useful: "+message.toString());
 							if(!this.mmp.isInHBQ(message))
 							{
-								//System.out.println("Before insertToHBQ");
+								System.out.println("Before insertToHBQ");
 								stored = this.mmp.insertToHBQ(new HBItem(message));
 								//System.out.println("After insertToHBQ");
 							}
@@ -85,7 +85,7 @@ class ReceiveThread implements Runnable {
 								//System.out.println("After tryAcceptAck");
 							}
 						}
-						this.mmp.printHBQ();
+						//this.mmp.printHBQ(); can't print HBQ here, because we're dealing with incomplete messages as the ACK payload
 					}
 						
 					/* get a retransmit kind message */
@@ -136,6 +136,7 @@ class ReceiveThread implements Runnable {
 				System.out.println("Connection to " + remote_name + " is disconnected");
 			}
 			System.out.println("Exception is "+e.toString());
+			e.printStackTrace();
 			return;
 		}
 	}

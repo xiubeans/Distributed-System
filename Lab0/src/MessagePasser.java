@@ -205,8 +205,12 @@ public class MessagePasser {
 		 * will be handled at print time, so no worries (I think?).
 		 * Returns true if inserted, false if not. */
 		
-		HashMap rule = this.matchRules("receive", hbi.message);
-		rule = this.checkNth(rule, "receive", hbi.message);
+		HashMap rule = null; //default
+		if(hbi.message != null) //when processing ACKs, the hbi.message only has the src/MCID/VTS fields set, and thus isn't a valid message
+		{
+			rule = this.matchRules("receive", hbi.message);
+			rule = this.checkNth(rule, "receive", hbi.message);
+		}
 		
 		if(rule != null)
 		{
@@ -903,11 +907,11 @@ public class MessagePasser {
 						System.out.println("**************************************************************************");
 					}
 				} catch(Exception e) {
-					e.printStackTrace();
+					System.out.println("At send, error is "+e.toString());//e.printStackTrace();
 				}
 			}
 		} catch(Exception e) {
-			e.printStackTrace();
+			System.out.println("At send outer level, error is "+e.toString());//e.printStackTrace();
 		}
 	}
 
@@ -1041,7 +1045,7 @@ public class MessagePasser {
 			}
 						
 		} catch(Exception e) {
-			e.printStackTrace();
+			System.out.println("At receive, error is "+e.toString());//e.printStackTrace();
 		}
 		return message;
 	}
@@ -1133,6 +1137,7 @@ public class MessagePasser {
 				//iterate through each of the fields and check if the rule value and the message vals match.
 				int ctr;
 				String field_name = send_recv_headers[j]; //the current field we're trying to check
+				
 				int rule_tmp = (Integer)rule.get("rule_num"); //save a copy
 				rule.put("rule_num", "*"); //overwrite it for the check
 				

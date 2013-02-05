@@ -72,7 +72,7 @@ public class HBItem {
 		
 			this.tryAcceptAck(msg);
 			System.out.println("After TACK in ACK block");
-			System.out.println("Message created in HBItem --> "+this.message.toString());
+			//System.out.println("Message created in HBItem --> "+this.message.toString());
 		}
 		
 		/* get a retransmitted multicast message by someone else */
