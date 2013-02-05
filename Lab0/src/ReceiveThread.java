@@ -33,7 +33,6 @@ class ReceiveThread implements Runnable {
 		boolean stored = true; //must be true by default to catch ACK of non-new messages
 		// Infinite loop: listen for input
 		try {
-			
 			try {
 				while(true) {
 		
@@ -47,10 +46,7 @@ class ReceiveThread implements Runnable {
 						}
 						else {
 							if(!this.mmp.isInHBQ(message))
-							{
 								stored = this.mmp.insertToHBQ(new HBItem(message));
-								System.out.println("Stored is "+stored);
-							}
 							else {
 								HBItem this_item = this.mmp.getHBItem(message.src, message.mc_id);
 								if(this_item.message == null)
@@ -80,7 +76,6 @@ class ReceiveThread implements Runnable {
 							{
 								//System.out.println("Before insertToHBQ");
 								stored = this.mmp.insertToHBQ(new HBItem(message));
-								System.out.println("Stored is "+stored);
 								//System.out.println("After insertToHBQ");
 							}
 							if(stored)
@@ -99,6 +94,7 @@ class ReceiveThread implements Runnable {
 						System.out.println("Retransmit payload: "+message.payload.toString());
 						TimeStampedMessage msg = (TimeStampedMessage)message.payload;
 						if(!this.mmp.isUsefulMessage(msg)) {
+							this.mmp.multicastAck(message); //we still need to ack it, b/c somebody didn't receive our ack
 							continue;
 						}
 						else {
@@ -139,6 +135,7 @@ class ReceiveThread implements Runnable {
 			if(e instanceof EOFException) {
 				System.out.println("Connection to " + remote_name + " is disconnected");
 			}
+			System.out.println("Exception is "+e.toString());
 			return;
 		}
 	}
