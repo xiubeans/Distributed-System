@@ -55,7 +55,7 @@ public class HBItem {
 		/* get an ACK */
 		else if(msg.type.equals("multicast") && msg.kind.equals("ack")) {
 			
-			System.out.println("In HBItem(): I am about to create ACK HBItem");
+			System.out.println("In HBItem(): I am about to create ACK HBItem for message "+msg.toString());
 			
 			//System.out.println("In the get ack of HBItem");
 			if(msg.payload == null) {
@@ -69,7 +69,6 @@ public class HBItem {
 			//System.out.println("VTS raw is "+payload[2]);
 			this.ts = ClockService.getInstance("vector", this.mp.num_nodes).parseTS(payload[2]);
 			//System.out.println("VTS: "+this.ts);
-			
 		
 			this.tryAcceptAck(msg);
 			//System.out.println("After TACK");
@@ -137,7 +136,7 @@ public class HBItem {
 	public void tryAcceptAck(TimeStampedMessage msg) {
 		
 		/* get an original multicast message */
-		if(msg.type.equals("multicast") && !msg.kind.equals("ack")) {			
+		if(msg.type.equals("multicast") && !msg.kind.equals("ack")) {
 			if(this.message.isIdentical(msg)) {
 				int index = this.mp.names_index.get(msg.src); //the original sender has received the message
 				this.ack_list.set(index, true);
@@ -151,14 +150,17 @@ public class HBItem {
 			String[] payload = ((String)msg.payload).split("\t");
 			if(this.src.equals(payload[0]) && this.mc_id == Integer.parseInt(payload[1])) {
 				int index = this.mp.names_index.get(msg.src); //acknowledge that the mcAck sender has received the message
+				System.out.println(msg.src+" has an index of "+index);
 				this.ack_list.set(index, true);
+//				System.out.println("Ack List set: "+this.ack_list.toString());
 			}			
 		}
 		
 		/* get a retransmitted multicast message by someone else */
 		else if(msg.type.equals("unicast") && msg.kind.equals("retransmit")) {			
 			message = (TimeStampedMessage)msg.payload;
-			if(this.message.src.equals(message.src) && this.message.mc_id == message.mc_id) {
+			if(this.message.src.equals(message.src) && this.message.mc_id == message.mc_id) //is it possible for this to fail???
+			{
 				int index = this.mp.names_index.get(this.src); //make sure the original sender has been marked as acknowledged
 				this.ack_list.set(index, true);
 				index = this.mp.names_index.get(msg.src); //make sure the retransmitter has been marked as acknowledged
@@ -169,7 +171,6 @@ public class HBItem {
 		/* else: the default case */
 		else
 			return;
-		
 	}
 	
 	/*

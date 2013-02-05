@@ -603,13 +603,10 @@ public class MessagePasser {
 		String payload = "";
 		
 		if(message.kind.equals("retransmit"))
-		{
-			message = (TimeStampedMessage) message.payload;
-			//payload = message.payload.toString();// System.out.println("Payload of retransmit that SHOULD be sent: "+message.payload.toString());
-		}
+			message = (TimeStampedMessage) message.payload; //retransmits store the original message in their payload
 		payload = message.src+"\t"+message.mc_id+"\t"+message.ts.toString();
 		
-		System.out.println("In MCACK, message payload is "+payload);
+		//System.out.println("In MCACK, message payload is "+payload);
 		ClockService clock = ClockService.getInstance("vector", getVectorSize());
 		TimeStamp ts = null;
 		
