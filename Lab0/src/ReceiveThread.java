@@ -54,6 +54,7 @@ class ReceiveThread implements Runnable {
 									this_item.message = message;
 							}
 							this.mmp.tryAcceptAck(message);
+							System.out.println("After getting reg multicast message, trying to mc_ACK message "+message.toString());
 							this.mmp.multicastAck(message);
 						}
 						this.mmp.printHBQ();
@@ -100,6 +101,7 @@ class ReceiveThread implements Runnable {
 							}
 							this.mmp.tryAcceptAck(message);
 							this.mmp.tryAcceptAck(msg);
+							System.out.println("After getting retransmit message, trying to mc_ACK message "+message.toString());
 							this.mmp.multicastAck(message);
 						}
 					}

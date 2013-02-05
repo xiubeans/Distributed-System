@@ -600,7 +600,16 @@ public class MessagePasser {
 		 * of reliability. The incoming message is the original message
 		 * that is being acknowledged. */
 		
-		String payload = message.src+"\t"+message.mc_id+"\t"+message.ts.toString();
+		String payload = "";
+		
+		if(message.kind.equals("retransmit"))
+		{
+			message = (TimeStampedMessage) message.payload;
+			//payload = message.payload.toString();// System.out.println("Payload of retransmit that SHOULD be sent: "+message.payload.toString());
+		}
+		payload = message.src+"\t"+message.mc_id+"\t"+message.ts.toString();
+		
+		System.out.println("In MCACK, message payload is "+payload);
 		ClockService clock = ClockService.getInstance("vector", getVectorSize());
 		TimeStamp ts = null;
 		
@@ -609,7 +618,7 @@ public class MessagePasser {
 			String dest = (String)entry.getKey();
 			if(dest.equals(this.local_name))
 				continue; //don't send yourself an ack
-			TimeStampedMessage newMsg = new TimeStampedMessage(ts, local_name, dest, "ack", message.type, payload);
+			TimeStampedMessage newMsg = new TimeStampedMessage(ts, local_name, dest, "ack", "multicast", payload); //explicitly multicast b/c retransmits are unicast
 			//System.out.println("Sending a multicast ACK to acknowledge "+message.toString());
 			this.send(newMsg, clock);
 	    }

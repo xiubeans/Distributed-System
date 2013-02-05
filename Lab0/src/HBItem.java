@@ -49,6 +49,7 @@ public class HBItem {
 				System.out.println("We have a null message, in HBItem Constructor");
 			}
 			this.tryAcceptAck(msg);
+			System.out.println("Message created in HBItem --> "+this.message.toString());
 		}
 		
 		/* get an ACK */
@@ -72,6 +73,7 @@ public class HBItem {
 		
 			this.tryAcceptAck(msg);
 			//System.out.println("After TACK");
+			System.out.println("Message created in HBItem --> "+this.message.toString());
 		}
 		
 		/* get a retransmitted multicast message by someone else */
@@ -85,6 +87,7 @@ public class HBItem {
 			this.ts = this.message.ts;
 			
 			this.tryAcceptAck(msg);
+			System.out.println("Message created in HBItem --> "+this.message.toString());
 		}
 		
 		/* else: the default case */
