@@ -773,18 +773,24 @@ public class MessagePasser {
 					((TimeStampedMessage)message).ts = clock.getTimestamp();
 
 					if(handleSelf(message))
-						return;
-					oos.writeObject((TimeStampedMessage)message);
-					oos.flush();
-					conn.getAndIncrementOutMessageCounter();
+					{
+						if(!this.local_name.equals(this.names_index.lastKey()))
+							return;
+					}
+					else //so that we can hit this when we are the last name in the file and when not handling ourself
+					{
+						oos.writeObject((TimeStampedMessage)message);
+						oos.flush();
+						conn.getAndIncrementOutMessageCounter();
 					
-					System.out.println("**************************************************************************");
-					System.out.println("Main Thread $$ send: src: " + message.src + " dest: " + message.dest);
-					if(message.type.equals("multicast")) { System.out.println("MID: "+ message.mc_id); }
-					System.out.println("ID: " + message.id + " kind: " + message.kind + " type: " + message.type + 
-							   " timestamp: " + ((TimeStampedMessage)message).ts.toString());
-					System.out.println("rule: duplicate");
-					System.out.println("**************************************************************************");
+						System.out.println("**************************************************************************");
+						System.out.println("Main Thread $$ send: src: " + message.src + " dest: " + message.dest);
+						if(message.type.equals("multicast")) { System.out.println("MID: "+ message.mc_id); }
+						System.out.println("ID: " + message.id + " kind: " + message.kind + " type: " + message.type + 
+								   " timestamp: " + ((TimeStampedMessage)message).ts.toString());
+						System.out.println("rule: duplicate");
+						System.out.println("**************************************************************************");
+					}
 					
 					//because duplicated messages should have different timestamps
 					message = new TimeStampedMessage(null, message.src, message.dest, message.kind, message.type, message.payload);
@@ -800,26 +806,34 @@ public class MessagePasser {
 			        }
 			        
 			        message = clock.affixTimestamp((TimeStampedMessage)message);
-			        
 			        if(handleSelf(message))
-						return;
-					oos.writeObject((TimeStampedMessage)message);
-					oos.flush();
-					conn.getAndIncrementOutMessageCounter();
-
-					System.out.println("**************************************************************************");
-					System.out.println("Main Thread $$ send: src: " + message.src + " dest: " + message.dest);
-					if(message.type.equals("multicast")) { System.out.println("MID: "+ message.mc_id); }
-					System.out.println("ID: " + message.id + " kind: " + message.kind + " type: " + message.type + 
-							   " timestamp: " + ((TimeStampedMessage)message).ts.toString());
-					System.out.println("rule: duplicated message");
-					System.out.println("**************************************************************************");
-					
+					{
+						if(!this.local_name.equals(this.names_index.lastKey()))
+							return;
+					}
+					else //so that we can hit this when we are the last name in the file and when not handling ourself
+					{
+				        oos.writeObject((TimeStampedMessage)message);
+						oos.flush();
+						conn.getAndIncrementOutMessageCounter();
+	
+						System.out.println("**************************************************************************");
+						System.out.println("Main Thread $$ send: src: " + message.src + " dest: " + message.dest);
+						if(message.type.equals("multicast")) { System.out.println("MID: "+ message.mc_id); }
+						System.out.println("ID: " + message.id + " kind: " + message.kind + " type: " + message.type + 
+								   " timestamp: " + ((TimeStampedMessage)message).ts.toString());
+						System.out.println("rule: duplicated message");
+						System.out.println("**************************************************************************");
+					}
+			        
 					if(message.type.equals("multicast") && !message.dest.equals(this.names_index.lastKey()))
 						clock.decrementTimeStamp(); //"roll back" to proper value (NOTE: this will look wrong if the last name isn't running in the system)
 					
 					if(!dispatch_delayed(message)) //conditionally release the delay buffer
+					{
+						System.out.println("Not releasing delay buffer");
 						return;
+					}
 					
 					// step 2: flush send buffer
 					ArrayList<Message> delayed_messages = this.send_buf.nonblockingTakeAll();
@@ -865,23 +879,30 @@ public class MessagePasser {
 					((TimeStampedMessage)message).ts = clock.getTimestamp();
 
 					if(handleSelf(message))
-						return;
-					oos.writeObject((TimeStampedMessage)message);
-					oos.flush();
-
-					conn.getAndIncrementOutMessageCounter();
+					{
+						System.out.println("After passing handleSelf, name and last key are "+this.local_name+" and "+this.names_index.lastKey());
+						if(!this.local_name.equals(this.names_index.lastKey()))
+							return;
+					}
+					else //so that we can hit this when we are the last name in the file and when not handling ourself
+					{
+						oos.writeObject((TimeStampedMessage)message);
+						oos.flush();
+	
+						conn.getAndIncrementOutMessageCounter();
+						
+						System.out.println("**************************************************************************");
+						System.out.println("Main Thread $$ send: src: " + message.src + " dest: " + message.dest);
+						if(message.type.equals("multicast")) { System.out.println("MID: "+ message.mc_id); }
+						System.out.println("ID: " + message.id + " kind: " + message.kind + " type: " + message.type + 
+								   " timestamp: " + ((TimeStampedMessage)message).ts.toString());
+						System.out.println("rule: n/a");
+						System.out.println("**************************************************************************");
+					}
 					
-					System.out.println("**************************************************************************");
-					System.out.println("Main Thread $$ send: src: " + message.src + " dest: " + message.dest);
-					if(message.type.equals("multicast")) { System.out.println("MID: "+ message.mc_id); }
-					System.out.println("ID: " + message.id + " kind: " + message.kind + " type: " + message.type + 
-							   " timestamp: " + ((TimeStampedMessage)message).ts.toString());
-					System.out.println("rule: n/a");
-					System.out.println("**************************************************************************");
-										
 					if(!dispatch_delayed(message))
 					{
-						//System.out.println("Not releasing delay buffer");
+						System.out.println("Not releasing delay buffer");
 						return;
 					}
 					
@@ -893,11 +914,7 @@ public class MessagePasser {
 						TimeStampedMessage dl_message = (TimeStampedMessage)delayed_messages.remove(0);
 
 						if(handleSelf(dl_message))
-						{
-							if(!this.local_name.equals(this.names_index.lastKey()))
-								continue; //because otherwise you'd miss the rest of the messages in the buffer
-							//else
-						}
+							continue; //because otherwise you'd miss the rest of the messages in the buffer
 						oos.writeObject(dl_message);
 						oos.flush();
 						conn.getAndIncrementOutMessageCounter();
@@ -1071,7 +1088,7 @@ public class MessagePasser {
 	
 	if(tmp_msg != null && tmp_msg.mc_id != message.mc_id)
 	{
-		//System.out.println("Message dest: "+message.dest+" and last key: "+names_index.lastKey());
+		System.out.println("Message dest: "+message.dest+" and last key: "+names_index.lastKey());
 		if(!message.dest.equals(names_index.lastKey()))
 			return false; //only dispatch after the last message in the NEXT multicast series has been sent
 		return true;
