@@ -16,7 +16,14 @@ class HBQThread implements Runnable {
 				/* push ready message to rcv_buf */
 				if(!this.mp.hbq.isEmpty())
 					if(this.mp.hbq.get(0).isReady()) {
-						this.mp.rcv_buf.nonblockingOffer(this.mp.getReadyMessage());
+						System.out.println("In HBQThread() $$ Before getReadyMessage, the HBQ size =  " + this.mp.hbq.size());
+						TimeStampedMessage msg = this.mp.getReadyMessage();
+						System.out.println("In HBQThread() $$ We got the ready message: " + msg.toString());
+						System.out.println("In HBQThread() $$ After getReadyMessage, the HBQ size =  " + this.mp.hbq.size());
+						System.out.println("In HBQThread() $$ Before offer rcv_buf, the rcv_buf size =  " + this.mp.rcv_buf.size());
+						this.mp.rcv_buf.nonblockingOffer(msg);
+						System.out.println("In HBQThread() $$ After offer rcv_buf, the rcv_buf size =  " + this.mp.rcv_buf.size());
+
 					}
 				
 				/* if timeout, resend to non-acked nodes of this message*/

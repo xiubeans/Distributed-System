@@ -130,10 +130,10 @@ class ReceiveThread implements Runnable {
 					/* get a regular message */
 					// put it into the MessagePasser's rcv_buf
 					// drop the message if the buffer is full
-					if(!this.mmp.rcv_buf.nonblockingOffer(message)) {
-						continue;
-					}
-					//this.mmp.print();
+					else
+						if(!this.mmp.rcv_buf.nonblockingOffer(message)) {
+							continue;
+						}
 				}
 			} finally {
 				

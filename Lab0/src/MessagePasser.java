@@ -259,10 +259,11 @@ public class MessagePasser {
 					this.mc_seqs.set(this.names_index.get(first_item.src), first_item.mc_id);
 				
 					ready_msg = this.hbq.remove(0).message;
-					System.out.println("Added message");
+					System.out.println("Get the ready message");
 					//System.out.println("in getReadyMessage(): return ready message: ");
 					ready_msg.print();
-					System.out.println("to the receive queue");
+					System.out.println("from HBQ");
+					System.out.println("The rcv_buf is:");
 			}
 		}
 //		this.globalLock.unlock();
