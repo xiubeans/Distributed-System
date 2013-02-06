@@ -8,32 +8,38 @@
 Configuration :
   - Name : alice 
     IP   : 127.0.0.1
-    Port : 12344        
+    Port : 12345        # This is the incoming port on which MP will listen
+                        # May be changed for further communication as usual
   - Name : bob 
     IP   : 127.0.0.1
-    Port : 14255
-  - Name : charlie 
+    Port : 14245
+  - Name : charlie
     IP   : 127.0.0.1
-    Port : 12998
-  - Name : daphnie
+    Port : 19870
+#  - Name : daphnie
+#    IP   : 127.0.0.1
+#    Port : 29870
+  - Name : logger
     IP   : 127.0.0.1
-    Port : 1987
-
+    Port : 13752
 
 SendRules :
-  - Action : drop # Ack message number 4 from bob to alice will not be sent
-    Src    : bob
-    Dest   : alice
-    Kind   : Ack
-    ID     : 4
-  - Action : delay # Every Lookup message in the system will be delayed
-    Kind   : Lookup
-  - Action : duplicate #change this to drop and delay to show other test cases 
-    Src    : bob   #P2
-    Dest   : daphnie #P4
-    Nth    : 3 #should match the 3rd time a lookup is sent to daphnie from bob
-
+#  - Action : drop # Ack message number 4 from bob to alice will not be sent
+#    Src    : bob
+#    Dest   : alice
+#    Kind   : Ack
+#    ID     : 4
+  - Action : drop # Every Lookup delayed
+    Kind   : dropper 
+  - Action : duplicate 
+    Kind   : doubler
+  - Action : delay
+    Kind   : delayer
 ReceiveRules :
+  - Action : duplicate
+    Kind   : bunches
+  - Action : delay
+    Kind   : lookup 
   - Action : duplicate      # 3rd message from Charlie that anyone 
-    Src    : bob        # receives will be duplicated
-    Nth    : 2
+    Src    : daphnie        # receives will be duplicated
+    Nth    : 200
