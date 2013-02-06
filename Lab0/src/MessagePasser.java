@@ -310,6 +310,7 @@ public class MessagePasser {
 			TimeStampedMessage message = (TimeStampedMessage)msg.payload;
 		
 			for(int i = 0; i < this.hbq.size(); i++) {
+				System.out.println("message: "+message.toString()+" and this: "+this.hbq.get(i).toString());
 				if(this.hbq.get(i).src.equals(message.src) && this.hbq.get(i).mc_id == message.mc_id) {
 					is_in = true;
 					break;
@@ -950,7 +951,7 @@ public class MessagePasser {
 				}
 			}
 		} catch(Exception e) {
-			System.out.println("At send outer level, error is "+e.toString());//e.printStackTrace();
+			System.out.println("At send outer level, error is "+e.toString()); e.printStackTrace();
 		}
 	}
 

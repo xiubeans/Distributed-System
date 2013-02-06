@@ -131,7 +131,7 @@ public class HBItem {
 		if(this.mc_id != Integer.parseInt(this.mp.mc_ids.get(this.mp.names_index.get(this.src)).toString()) + 1)
 		{
 			//System.out.println(this.mc_id+" is not the next message in the sequence (expected "+this.mp.mc_ids.get(this.mp.names_index.get(this.src)) + 1+")");
-			//is_ready = false;
+			is_ready = false;
 		}
 		//System.out.println("IS ready? "+is_ready);
 		return is_ready;
@@ -195,7 +195,8 @@ public class HBItem {
 			is_timeout = true;
 			timestamp = now;
 		}
-		
+		if(this.message == null)
+			is_timeout = false;
 		return is_timeout;
 		
 	}
