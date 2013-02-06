@@ -28,23 +28,16 @@ public class HBItem {
 			this.ack_list.add(false);
 		}		
 		this.timestamp = System.currentTimeMillis();
-		
-//		
-//		if(msg.type.equals("multicast"))
-//			System.out.println("OK");
-//		if(msg.kind.equals("ack"))
-//			System.out.println("OK");
 
 		/* get an original multicast message */
 		if(msg.type.equals("multicast") && !msg.kind.equals("ack")) {
 			
 			System.out.println("In HBItem(): I am about to create Multicast HBItem");
 			
-			this.message = msg;//.clone();
-			this.src = this.message.src;
-			//this.src = msg.src;
-			this.mc_id = this.message.mc_id;//msg.mc_id;
-			this.ts = this.message.ts;//msg.ts;
+			this.message = msg;
+			this.src = msg.src;
+			this.mc_id = msg.mc_id;
+			this.ts = msg.ts;
 			if(this.message == null)
 			{
 				System.out.println("We have a null message, in HBItem Constructor");
@@ -57,7 +50,6 @@ public class HBItem {
 		else if(msg.type.equals("multicast") && msg.kind.equals("ack")) {
 			
 			System.out.println("In HBItem(): I am about to create ACK HBItem for message "+msg.toString());
-			
 			//System.out.println("In the get ack of HBItem");
 			if(msg.payload == null) {
 				System.out.println("In HBItem(): ACK message has no payload! Craete HBItem failed.");
@@ -72,15 +64,15 @@ public class HBItem {
 			System.out.println("VTS: "+this.ts);
 		
 			this.tryAcceptAck(msg);
-			System.out.println("After TACK in ACK block");
+			//System.out.println("After TACK in ACK block");
 			//System.out.println("Message created in HBItem --> "+this.message.toString());
 		}
 		
 		/* get a retransmitted multicast message by someone else */
 		else if(msg.type.equals("unicast") && msg.kind.equals("retransmit")) {
 			
-			System.out.println("In HBItem(): I am about to create Retransmit HBItem");
-			System.out.println("Message payload: "+ msg.payload);
+			//System.out.println("In HBItem(): I am about to create Retransmit HBItem");
+			//System.out.println("Message payload: "+ msg.payload);
 			this.message = (TimeStampedMessage)msg.payload;
 			this.src = this.message.src;
 			this.mc_id = this.message.mc_id;
@@ -158,9 +150,9 @@ public class HBItem {
 			String[] payload = ((String)msg.payload).split("\t");
 			if(this.src.equals(payload[0]) && this.mc_id == Integer.parseInt(payload[1])) {
 				int index = this.mp.names_index.get(msg.src); //acknowledge that the mcAck sender has received the message
-				System.out.println(msg.src+" has an index of "+index);
+				//System.out.println(msg.src+" has an index of "+index);
 				this.ack_list.set(index, true);
-//				System.out.println("Ack List set: "+this.ack_list.toString());
+				//System.out.println("Ack List set: "+this.ack_list.toString());
 			}			
 		}
 		
@@ -209,10 +201,10 @@ public class HBItem {
 		ArrayList<String> nodes = new ArrayList<String>();
 		  
 		for(int i = 0 ; i < this.ack_list.size(); i++) {
-			System.out.println("Node "+this.mp.getName(i)+" has a value of "+this.ack_list.get(i));
+			//System.out.println("Node "+this.mp.getName(i)+" has a value of "+this.ack_list.get(i));
 			if(this.ack_list.get(i) == false) {
 				nodes.add(this.mp.getName(i));
-				System.out.println("Added node "+ i+" "+this.mp.getName(i)+" to list of nodes need resend.");
+				//System.out.println("Added node "+ i+" "+this.mp.getName(i)+" to list of nodes need resend.");
 			}
 		}
 		  

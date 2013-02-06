@@ -35,7 +35,7 @@ class ReceiveThread implements Runnable {
 		try {
 			try {
 				while(true) {
-					System.out.println("In run while loop");
+					//System.out.println("In run while loop");
 					TimeStampedMessage message = (TimeStampedMessage)ois.readObject(); 
 						
 					/* get a multicast message */
@@ -54,23 +54,23 @@ class ReceiveThread implements Runnable {
 							else {
 								HBItem this_item = this.mmp.getHBItem(message.src, message.mc_id);
 								if(this_item.message == null)
-									this_item.message = message;//.clone();
+									this_item.message = message;
 							}
 							if(stored) //because otherwise we'd be acking a message that we won't receive
 							{
 								this.mmp.tryAckAll(message);
-								System.out.println("After getting reg multicast message, trying to mc_ACK message "+message.toString());
+								//System.out.println("After getting reg multicast message, trying to mc_ACK message "+message.toString());
 								this.mmp.multicastAck(message);
 							}
 							this.mmp.globalLock.unlock();
 						}
-						this.mmp.printHBQ();
+						//System.out.println("In Recv Thread, HBQ: "); this.mmp.printHBQ();
 					}
 						
 					/* get a ACK message */
 					else if(message.type.equals("multicast") && message.kind.equals("ack")) {
-						System.out.println("Got an ACK message: "+message.toString());
-						System.out.println("Payload VTS: "+message.payload.toString());
+						//System.out.println("Got an ACK message: "+message.toString());
+						//System.out.println("Payload VTS: "+message.payload.toString());
 						this.mmp.globalLock.lock();
 						if(!this.mmp.isUsefulMessage(message)) {
 							this.mmp.globalLock.unlock();
@@ -78,12 +78,11 @@ class ReceiveThread implements Runnable {
 							continue;
 						}
 						else {
-							System.out.println("Message is useful: "+message.toString());
+							//System.out.println("Message is useful: "+message.toString());
 							if(!this.mmp.isInHBQ(message))
 							{
-								System.out.println("Before insertToHBQ with remote name "+this.remote_name);
+								//System.out.println("Before insertToHBQ with remote name "+this.remote_name);
 								stored = this.mmp.insertToHBQ(new HBItem(message));
-								System.out.println("After insertToHBQ with "+this.remote_name);
 							}
 							if(stored)
 							{
@@ -109,22 +108,27 @@ class ReceiveThread implements Runnable {
 						}
 						else {
 							if(!this.mmp.isInHBQ(msg))
+							{
 								stored = this.mmp.insertToHBQ(new HBItem(msg));
+							}
 							else {
 								HBItem this_item = this.mmp.getHBItem(msg.src, msg.mc_id);
 								if(this_item.message == null)
-									this_item.message = msg;//.clone();
+									this_item.message = msg;
 							}
 							if(stored)
 							{
-								this.mmp.tryAckAll(message);
+								//System.out.println("Before storing"); this.mmp.printHBQ();
+								//System.out.println("Message: "+msg.kind+" and "+msg.mc_id);
+								this.mmp.tryAckAll(message); //The incorrect message reference comes from the retransmit. no idea how to fix it, though.
 								this.mmp.tryAckAll(msg);
-								System.out.println("After getting retransmit message, trying to mc_ACK message "+message.toString());
+								//System.out.println("After storing"); this.mmp.printHBQ();
+								//System.out.println("After getting retransmit message, trying to mc_ACK message "+message.toString());
 								this.mmp.multicastAck(message);
 							}
 							this.mmp.globalLock.unlock();
 						}
-						this.mmp.printHBQ();
+						//this.mmp.printHBQ();
 					}
 						
 					/* get a regular message */
@@ -134,7 +138,7 @@ class ReceiveThread implements Runnable {
 						if(!this.mmp.rcv_buf.nonblockingOffer(message)) {
 							continue;
 						}
-				System.out.println("End of run while loop");
+				//System.out.println("End of run while loop");
 				}
 			} finally {
 				
@@ -149,8 +153,8 @@ class ReceiveThread implements Runnable {
 			if(e instanceof EOFException) {
 				System.out.println("Connection to " + remote_name + " is disconnected");
 			}
-			System.out.println("Exception is "+e.toString());
-			e.printStackTrace();
+			//System.out.println("Exception is "+e.toString());
+			//e.printStackTrace();
 			return;
 		}
 	}

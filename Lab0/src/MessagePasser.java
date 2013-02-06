@@ -224,19 +224,12 @@ public class MessagePasser {
 		System.out.println("Message "+hbi.message+" successfully passed the rule pre-check");
 		
 		/* find the right position in HBQ */
-//		this.globalLock.lock();
-		//System.out.println("HBQ size: "+ this.hbq.size());
 		int i = 0; 
 		for(; i < this.hbq.size(); i++) {
 			if(hbi.compareOrder(this.hbq.get(i)) <= 0)
 				break;
 		}
-		//System.out.println("Before add, placing message "+hbi.toString()+" in position "+i+" of current HBQ: ");
-		//this.printHBQ();
 		this.hbq.add(i, hbi);
-//		this.globalLock.unlock();
-//		System.out.println("After add, HBQ is ");
-//		this.printHBQ();
 		return true;
 	}
 
@@ -255,14 +248,15 @@ public class MessagePasser {
 			HBItem first_item = this.hbq.get(0);
 			if(first_item.isReady()) {
 				
-					System.out.println("in GRM(), Setting MCID for "+this.names_index.get(first_item.src)+" to "+first_item.mc_id);
-					// TEST: should set seq# !!!
+					//System.out.println("in GRM(), Setting MCID for "+this.names_index.get(first_item.src)+" to "+first_item.mc_id);
 					this.mc_ids.set(this.names_index.get(first_item.src), first_item.mc_id);
-				
+					System.out.println("In GetReadyMessage, HBQ is");
+					this.printHBQ();				
 					ready_msg = this.hbq.remove(0).message;
-					System.out.println("Get the ready message");
+					//System.out.println("Get the ready message");
 					//System.out.println("in getReadyMessage(): return ready message: ");
 					ready_msg.print();
+					ready_msg.toString();
 					System.out.println("from HBQ");
 					System.out.println("The rcv_buf is:");
 			}
@@ -297,12 +291,12 @@ public class MessagePasser {
 			int mc_id = Integer.parseInt(payload[1]);
 			
 			for(int i = 0; i < this.hbq.size(); i++) {
-				System.out.println("Is "+this.hbq.get(i).src+" == "+src+"? AND "+this.hbq.get(i).mc_id+" == "+mc_id+"?");
+				//System.out.println("Is "+this.hbq.get(i).src+" == "+src+"? AND "+this.hbq.get(i).mc_id+" == "+mc_id+"?");
 				if(this.hbq.get(i).src.equals(src) && this.hbq.get(i).mc_id == mc_id) {
 					is_in = true;
 					break;
 				}
-			}System.out.println("Is In? "+is_in);
+			}//System.out.println("Is In? "+is_in);
 		}
 			
 		/* get a retransmit kind message */
@@ -759,9 +753,9 @@ public class MessagePasser {
 			{
 				this.insertToHBQ(new HBItem((TimeStampedMessage) message));
 			}
-			System.out.println("In handleSelf, trying to ack");
+			//System.out.println("In handleSelf, trying to ack");
 			this.tryAckAll((TimeStampedMessage)message); //set my bits for having received the message
-			System.out.println("After acking in handleSelf");
+			//System.out.println("After acking in handleSelf");
 			this.globalLock.unlock();//this.printHBQ();
 			message.dest = tmp_dst; //restore value
 			/* end of HBItem code */
@@ -850,7 +844,7 @@ public class MessagePasser {
 					
 					if(!dispatch_delayed(message)) //conditionally release the delay buffer
 					{
-						System.out.println("Not releasing delay buffer");
+						//System.out.println("Not releasing delay buffer");
 						return;
 					}
 					
@@ -921,7 +915,7 @@ public class MessagePasser {
 					
 					if(!dispatch_delayed(message))
 					{
-						System.out.println("Not releasing delay buffer");
+						//System.out.println("Not releasing delay buffer");
 						return;
 					}
 					
@@ -947,11 +941,11 @@ public class MessagePasser {
 						System.out.println("**************************************************************************");
 					}
 				} catch(Exception e) {
-					System.out.println("At send, error is "+e.toString()); e.printStackTrace();
+					//System.out.println("At send, error is "+e.toString()); e.printStackTrace();
 				}
 			}
 		} catch(Exception e) {
-			System.out.println("At send outer level, error is "+e.toString()); e.printStackTrace();
+			//System.out.println("At send outer level, error is "+e.toString()); e.printStackTrace();
 		}
 	}
 
@@ -981,9 +975,7 @@ public class MessagePasser {
 			System.out.println("rule: n/a");
 			System.out.println("******************************************************************");
 
-			
-			return message;
-			
+			return message;			
 		}
 		// get blocked here until one message comes
 		TimeStampedMessage message = (TimeStampedMessage)this.rcv_buf.blockingTake();
@@ -993,7 +985,6 @@ public class MessagePasser {
 		// check against receive rules
 		message.print();
 		HashMap rule = this.matchRules("receive", (Message)message);
-		
 		rule = checkNth(rule, "receive", message);		
 		
 		try {
@@ -1085,7 +1076,7 @@ public class MessagePasser {
 			}
 						
 		} catch(Exception e) {
-			System.out.println("At receive, error is "+e.toString());//e.printStackTrace();
+			e.printStackTrace();//System.out.println("At receive, error is "+e.toString());
 		}
 		return message;
 	}
@@ -1396,10 +1387,12 @@ public class MessagePasser {
 			if(!this.isInHBQ((TimeStampedMessage)msg))
 			{
 				this.insertToHBQ(new HBItem((TimeStampedMessage) msg));
+				System.out.println("at end of InsertToHBQ, HBQ is ");
+				this.printHBQ();
 			}
-			System.out.println("In handleSelf, trying to ack");
+			//System.out.println("In handleSelf, trying to ack");
 			this.tryAckAll((TimeStampedMessage)msg); //set my bits for having received the message
-			System.out.println("After acking in handleSelf");
+			//System.out.println("After acking in handleSelf");
 			this.globalLock.unlock();//this.printHBQ();
 			return true;
 		}

@@ -104,7 +104,7 @@ public class TestSuiteMulticast {
 						if(!mp.isNewestConfig(svr_conn)) //MAKE THIS transparent to user!
 							mp.parseConfig(config_file);
 
-						if(!mp.validateUserRequests(user_input, mp, local_name)) //check user input and create our message from within it --but this is a receive message....?
+						if(!mp.validateUserRequests(user_input, mp, local_name)) //check user input and create our message from within it
 						{	
 							System.out.println("Error: format of message not recognized.");
 							continue;

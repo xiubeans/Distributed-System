@@ -41,7 +41,6 @@ class HBQThread implements Runnable {
 						ArrayList<String> needed_nodes = this.mp.hbq.get(i).nodesNeedResend();
 						
 						for(int j = 0; j < needed_nodes.size(); j++) {
-							//System.out.println("Resending to "+needed_nodes.get(i)+" instead of "+needed_nodes.get(j)); //needs to be j instead of i?
 							this.mp.resend(this.mp.hbq.get(j).message, needed_nodes.get(j));
 						}
 					}
@@ -50,7 +49,7 @@ class HBQThread implements Runnable {
 				Thread.sleep(50);
 			}
 		} catch(Exception e) {
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
 		finally{
 			this.mp.globalLock.unlock();
