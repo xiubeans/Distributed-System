@@ -40,10 +40,11 @@ public class HBItem {
 			
 			System.out.println("In HBItem(): I am about to create Multicast HBItem");
 			
-			this.message = msg;
-			this.src = msg.src;
-			this.mc_id = msg.mc_id;
-			this.ts = msg.ts;
+			this.message = msg;//.clone();
+			this.src = this.message.src;
+			//this.src = msg.src;
+			this.mc_id = this.message.mc_id;//msg.mc_id;
+			this.ts = this.message.ts;//msg.ts;
 			if(this.message == null)
 			{
 				System.out.println("We have a null message, in HBItem Constructor");
@@ -65,10 +66,10 @@ public class HBItem {
 			String[] payload = ((String)msg.payload).split("\t");
 			this.src = payload[0];
 			this.mc_id = Integer.parseInt(payload[1]);
-			//System.out.println("Src: "+this.src+"\nMC_ID: "+this.mc_id);
-			//System.out.println("VTS raw is "+payload[2]);
+			System.out.println("Src: "+this.src+"\nMC_ID: "+this.mc_id);
+			System.out.println("VTS raw is "+payload[2]);
 			this.ts = ClockService.getInstance("vector", this.mp.num_nodes).parseTS(payload[2]);
-			//System.out.println("VTS: "+this.ts);
+			System.out.println("VTS: "+this.ts);
 		
 			this.tryAcceptAck(msg);
 			System.out.println("After TACK in ACK block");
@@ -79,7 +80,7 @@ public class HBItem {
 		else if(msg.type.equals("unicast") && msg.kind.equals("retransmit")) {
 			
 			System.out.println("In HBItem(): I am about to create Retransmit HBItem");
-			
+			System.out.println("Message payload: "+ msg.payload);
 			this.message = (TimeStampedMessage)msg.payload;
 			this.src = this.message.src;
 			this.mc_id = this.message.mc_id;
@@ -96,7 +97,7 @@ public class HBItem {
 	}
 	
 	public void setMessage(TimeStampedMessage msg) {
-		this.message = msg;
+		this.message = msg;//.clone();
 	}
 	
 	
@@ -113,23 +114,26 @@ public class HBItem {
 		if(this.message == null)
 		{
 			is_ready = false;
-			// System.out.println("We have a null message, in isReady()");
+			//System.out.println("We have a null message, in isReady()");
 		}
 		
-		/* check if it is acked by everyone */
+		/* check if it is acked by everyone */ 
 		for(int i = 0; i < ack_list.size(); i++)
+		{
+			//System.out.println(ack_list.get(i)+" has a value of "+ack_list.get(i).booleanValue());
 			if(ack_list.get(i).booleanValue() == false) {
 				is_ready = false;
 				break;
 			}
-		
-//		/* check if it is the next MC message in the sequence */
-		if(this.mc_id != this.mp.mc_seqs.get(this.mp.names_index.get(this.src)) + 1)
-		{
-			//System.out.println(this.mc_id+" is not the next message in the sequence");
-			is_ready = false;
 		}
-		
+		//System.out.println("About to test ID "+this.mc_id+" with expected val "+Integer.parseInt(this.mp.mc_ids.get(this.mp.names_index.get(this.src)).toString()) + 1);
+//		/* check if it is the next MC message in the sequence */
+		if(this.mc_id != Integer.parseInt(this.mp.mc_ids.get(this.mp.names_index.get(this.src)).toString()) + 1)
+		{
+			//System.out.println(this.mc_id+" is not the next message in the sequence (expected "+this.mp.mc_ids.get(this.mp.names_index.get(this.src)) + 1+")");
+			//is_ready = false;
+		}
+		//System.out.println("IS ready? "+is_ready);
 		return is_ready;
 		
 	}
@@ -141,7 +145,7 @@ public class HBItem {
 		
 		/* get an original multicast message */
 		if(msg.type.equals("multicast") && !msg.kind.equals("ack")) {
-			if(this.message.isIdentical(msg)) {
+			if(this.src.equals(msg.src) && this.mc_id == msg.mc_id) {
 				int index = this.mp.names_index.get(msg.src); //the original sender has received the message
 				this.ack_list.set(index, true);
 				index = this.mp.names_index.get(this.mp.local_name); //since our mc msg goes only to one dest at a time, we can use that to set our own bit
@@ -204,8 +208,10 @@ public class HBItem {
 		ArrayList<String> nodes = new ArrayList<String>();
 		  
 		for(int i = 0 ; i < this.ack_list.size(); i++) {
+			System.out.println("Node "+this.mp.getName(i)+" has a value of "+this.ack_list.get(i));
 			if(this.ack_list.get(i) == false) {
 				nodes.add(this.mp.getName(i));
+				System.out.println("Added node "+ i+" "+this.mp.getName(i)+" to list of nodes need resend.");
 			}
 		}
 		  

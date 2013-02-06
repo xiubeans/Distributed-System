@@ -35,7 +35,7 @@ class ReceiveThread implements Runnable {
 		try {
 			try {
 				while(true) {
-		
+					System.out.println("In run while loop");
 					TimeStampedMessage message = (TimeStampedMessage)ois.readObject(); 
 						
 					/* get a multicast message */
@@ -54,7 +54,7 @@ class ReceiveThread implements Runnable {
 							else {
 								HBItem this_item = this.mmp.getHBItem(message.src, message.mc_id);
 								if(this_item.message == null)
-									this_item.message = message;
+									this_item.message = message;//.clone();
 							}
 							if(stored) //because otherwise we'd be acking a message that we won't receive
 							{
@@ -81,9 +81,9 @@ class ReceiveThread implements Runnable {
 							System.out.println("Message is useful: "+message.toString());
 							if(!this.mmp.isInHBQ(message))
 							{
-								System.out.println("Before insertToHBQ");
+								System.out.println("Before insertToHBQ with remote name "+this.remote_name);
 								stored = this.mmp.insertToHBQ(new HBItem(message));
-								//System.out.println("After insertToHBQ");
+								System.out.println("After insertToHBQ with "+this.remote_name);
 							}
 							if(stored)
 							{
@@ -113,7 +113,7 @@ class ReceiveThread implements Runnable {
 							else {
 								HBItem this_item = this.mmp.getHBItem(msg.src, msg.mc_id);
 								if(this_item.message == null)
-									this_item.message = msg;
+									this_item.message = msg;//.clone();
 							}
 							if(stored)
 							{
@@ -134,6 +134,7 @@ class ReceiveThread implements Runnable {
 						if(!this.mmp.rcv_buf.nonblockingOffer(message)) {
 							continue;
 						}
+				System.out.println("End of run while loop");
 				}
 			} finally {
 				

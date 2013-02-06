@@ -36,7 +36,7 @@ public class MessagePasser {
     /* new fields for MC */
 	int num_nodes;
 	ArrayList<String> name_list;
-	ArrayList<Integer> mc_seqs = new ArrayList<Integer>();  // organize sequence # according to alphabetical order
+	ArrayList<Integer> mc_ids = new ArrayList<Integer>();  // organize sequence # according to alphabetical order
 	ArrayList<HBItem> hbq = new ArrayList<HBItem>();
 	
 	
@@ -179,7 +179,7 @@ public class MessagePasser {
 	    /* for multi-casting messages */
 	    this.num_nodes = this.names_index.size();
 	    for(int i = 0; i < this.num_nodes; i++) {
-	    	this.mc_seqs.add(0);
+	    	this.mc_ids.add(0);
 	    }
 	    this.name_list = new ArrayList<String>();
 	    for(int i = 0; i < this.num_nodes; i++) {
@@ -255,8 +255,9 @@ public class MessagePasser {
 			HBItem first_item = this.hbq.get(0);
 			if(first_item.isReady()) {
 				
+					System.out.println("in GRM(), Setting MCID for "+this.names_index.get(first_item.src)+" to "+first_item.mc_id);
 					// TEST: should set seq# !!!
-					this.mc_seqs.set(this.names_index.get(first_item.src), first_item.mc_id);
+					this.mc_ids.set(this.names_index.get(first_item.src), first_item.mc_id);
 				
 					ready_msg = this.hbq.remove(0).message;
 					System.out.println("Get the ready message");
@@ -296,11 +297,12 @@ public class MessagePasser {
 			int mc_id = Integer.parseInt(payload[1]);
 			
 			for(int i = 0; i < this.hbq.size(); i++) {
+				System.out.println("Is "+this.hbq.get(i).src+" == "+src+"? AND "+this.hbq.get(i).mc_id+" == "+mc_id+"?");
 				if(this.hbq.get(i).src.equals(src) && this.hbq.get(i).mc_id == mc_id) {
 					is_in = true;
 					break;
 				}
-			}
+			}System.out.println("Is In? "+is_in);
 		}
 			
 		/* get a retransmit kind message */
@@ -344,7 +346,7 @@ public class MessagePasser {
 		/* get a multicast message */
 		if(msg.type.equals("multicast") && !msg.kind.equals("ack")) {
 			int index = this.names_index.get(msg.src);
-			if(msg.mc_id > this.mc_seqs.get(index))
+			if(msg.mc_id > this.mc_ids.get(index))
 				is_useful = true;
 		}
 		
@@ -352,7 +354,7 @@ public class MessagePasser {
 		else if(msg.type.equals("multicast") && msg.kind.equals("ack")) {			
 			String[] payload = ((String)msg.payload).split("\t");
 			int index = this.names_index.get(payload[0]);
-			if(Integer.parseInt(payload[1]) > this.mc_seqs.get(index))
+			if(Integer.parseInt(payload[1]) > this.mc_ids.get(index))
 				is_useful = true;		
 		}
 		
@@ -360,7 +362,7 @@ public class MessagePasser {
 		else if(msg.kind.equals("retransmit")) {
 			TimeStampedMessage message = (TimeStampedMessage)msg.payload;
 			int index = this.names_index.get(message.src);
-			if(message.mc_id > this.mc_seqs.get(index))
+			if(message.mc_id > this.mc_ids.get(index))
 				is_useful = true;
 		}
 		
@@ -740,13 +742,28 @@ public class MessagePasser {
 			
 			message = clock.affixTimestamp((TimeStampedMessage)message); //get a timestamp for the message
 			
-			if(message.type.equals("multicast")) //set the multicast ID
+			if(message.type.equals("multicast") && !message.kind.equals("ack")) //set the multicast ID
 			{
 				if(message.dest.equals(this.names_index.firstKey()))
 					message.set_mcast_id(this.mcast_msg_id.incrementAndGet());//increment multicast ID for first message in a multicast series
 				else
 					message.set_mcast_id(this.mcast_msg_id.get());//add the same multicast ID all subsequent messages in a multicast series
 			}
+			
+			/* Build the HBItem right away for the case of same sender/receiver */
+			this.globalLock.lock();
+			String tmp_dst = message.dest; //save it for later
+			message.dest = this.local_name; //set it to same value
+			if(!this.isInHBQ((TimeStampedMessage)message))
+			{
+				this.insertToHBQ(new HBItem((TimeStampedMessage) message));
+			}
+			System.out.println("In handleSelf, trying to ack");
+			this.tryAckAll((TimeStampedMessage)message); //set my bits for having received the message
+			System.out.println("After acking in handleSelf");
+			this.globalLock.unlock();//this.printHBQ();
+			message.dest = tmp_dst; //restore value
+			/* end of HBItem code */
 			
 			// check against the send rules, and follow the first rule matched
 			if(rule != null) {
@@ -929,7 +946,7 @@ public class MessagePasser {
 						System.out.println("**************************************************************************");
 					}
 				} catch(Exception e) {
-					System.out.println("At send, error is "+e.toString());//e.printStackTrace();
+					System.out.println("At send, error is "+e.toString()); e.printStackTrace();
 				}
 			}
 		} catch(Exception e) {
@@ -1374,9 +1391,15 @@ public class MessagePasser {
 		if(msg.src.equals(msg.dest))
 		{
 			//this may fail if sending to/from self with a receive drop rule matching the sender...
-			this.insertToHBQ(new HBItem((TimeStampedMessage) msg));
+			this.globalLock.lock();
+			if(!this.isInHBQ((TimeStampedMessage)msg))
+			{
+				this.insertToHBQ(new HBItem((TimeStampedMessage) msg));
+			}
+			System.out.println("In handleSelf, trying to ack");
 			this.tryAckAll((TimeStampedMessage)msg); //set my bits for having received the message
-			//this.printHBQ();
+			System.out.println("After acking in handleSelf");
+			this.globalLock.unlock();//this.printHBQ();
 			return true;
 		}
 		return false;
