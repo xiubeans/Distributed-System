@@ -227,8 +227,13 @@ public class MessagePasser {
 		/* find the right position in HBQ */
 		int i = 0; 
 		for(; i < this.hbq.size(); i++) {
-			if(hbi.compareOrder(this.hbq.get(i)) <= 0)
-				break;
+			if(this.hbq.get(i).message != null)
+			{
+				if(hbi.compareOrder(this.hbq.get(i)) <= 0)
+					break;
+			}
+			else
+				System.out.println("Message is NULL, so no check on order...");
 		}
 		this.hbq.add(i, hbi);
 		return true;
@@ -278,10 +283,14 @@ public class MessagePasser {
 		/* get a multicast message */
 		if(msg.type.equals("multicast") && !msg.kind.equals("ack")) {
 			for(int i = 0; i < this.hbq.size(); i++) {
+				System.out.println("With MCast Msg, is "+this.hbq.get(i).src+" == "+msg.src+"? AND "+this.hbq.get(i).mc_id+" == "+msg.mc_id+"?");
 				if(this.hbq.get(i).src.equals(msg.src) && this.hbq.get(i).mc_id == msg.mc_id) {
+					System.out.println("YES");
 					is_in = true;
 					break;
 				}	
+				else
+					System.out.println("NO");
 			}
 		}
 			
@@ -292,11 +301,14 @@ public class MessagePasser {
 			int mc_id = Integer.parseInt(payload[1]);
 			
 			for(int i = 0; i < this.hbq.size(); i++) {
-				//System.out.println("Is "+this.hbq.get(i).src+" == "+src+"? AND "+this.hbq.get(i).mc_id+" == "+mc_id+"?");
+				System.out.println("Is "+this.hbq.get(i).src+" == "+src+"? AND "+this.hbq.get(i).mc_id+" == "+mc_id+"?");
 				if(this.hbq.get(i).src.equals(src) && this.hbq.get(i).mc_id == mc_id) {
+					System.out.println("YES");
 					is_in = true;
 					break;
 				}
+				else
+					System.out.println("NO");
 			}//System.out.println("Is In? "+is_in);
 		}
 			
@@ -708,6 +720,69 @@ public class MessagePasser {
 		
 	}
 	
+	
+	public void multicastCSRequest(CSItem item)
+	{
+		/* Enables the user to send a multicast request for
+		 * the critical section. 
+		 */
+		
+		String payload = "";
+	
+		ClockService clock = ClockService.getInstance("logical", 1);
+		TimeStamp ts = null;
+		
+	    String[] group_members = this.getGroup(local_name); //get members in my group
+	    
+		for (int i=0; i<group_members.length; i++) 
+	    {
+			String dest = group_members[i];
+			if(dest.equals(this.local_name))
+				continue; //not sure if we still want this lack of functionality...
+			TimeStampedMessage newMsg = new TimeStampedMessage(ts, local_name, dest, "cs_request", "multicast", payload);
+			//System.out.println("Sending a multicast ACK to acknowledge "+message.toString());
+			this.send(newMsg, clock);
+	    }
+	}
+	
+	
+	public void multicastCSRelease(CSItem item)
+	{
+		/* Enables the user to send a multicast release of
+		 * the critical section. 
+		 */
+		
+		String payload = "";
+	
+		ClockService clock = ClockService.getInstance("logical", 1);
+		TimeStamp ts = null;
+		
+	    String[] group_members = this.getGroup(local_name); //get members in my group
+	    
+		for (int i=0; i<group_members.length; i++) 
+	    {
+			String dest = group_members[i];
+			if(dest.equals(this.local_name))
+				continue; //not sure if we still want this lack of functionality...
+			TimeStampedMessage newMsg = new TimeStampedMessage(ts, local_name, dest, "cs_release", "multicast", payload);
+			//System.out.println("Sending a multicast ACK to acknowledge "+message.toString());
+			this.send(newMsg, clock);
+	    }
+	}
+	
+	
+	public void unicastCSReply(CSItem item)
+	{
+		String payload = item.ts.toString(); //pass back the timestamp of the sender's message?
+		TimeStamp ts = null;
+		
+		ClockService clock = ClockService.getInstance("logical", 1);
+	    
+		TimeStampedMessage newMsg = new TimeStampedMessage(ts, local_name, item.src, "cs_release", "unicast", payload);
+		//System.out.println("Sending a multicast ACK to acknowledge "+message.toString());
+		this.send(newMsg, clock);
+	}
+		
 	
 	public void send(Message message, ClockService clock) {
 		/* Sends a message to the specified destination. If there are messages
@@ -1463,7 +1538,10 @@ public class MessagePasser {
 	
 	public void printHBQ() {
 		for(int i = 0; i < this.hbq.size(); i++) {
-			System.out.println(this.hbq.get(i).toString());
+			if(this.hbq.get(i).message != null)
+				System.out.println(this.hbq.get(i).toString());
+			else
+				System.out.println("message is null, so it's really just an ack..."); //now we need to update the ack when we receive a regular one
 		}
 		System.out.println();
 	}
