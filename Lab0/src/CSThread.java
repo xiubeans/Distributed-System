@@ -42,7 +42,7 @@ public class CSThread implements Runnable{
 			
 			mp.state = "held";
 			
-			System.out.println("In CSThread $$ got it, about to terminate thread. mp.state=" + mp.state);
+			System.out.println("In CSThread $$ got it, about to terminate thread");
 
 			
 		} catch(Exception e) {
