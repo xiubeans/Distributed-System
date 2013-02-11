@@ -55,14 +55,14 @@ public class TestSuiteCriticalSection {
 			
 			
 			/* Example Code -- Take out for final version! */
-			for (Map.Entry entry : mp.names_index.entrySet()) 
+			/*for (Map.Entry entry : mp.names_index.entrySet()) 
 		    {
 				String name = (String)entry.getKey();
 				String[] tmp = mp.getGroup(name);
 				System.out.println("Names for "+name+" are: ");
 				for(int i=0; i<tmp.length; i++)
 					System.out.println(i+": "+tmp[i]);
-		    }
+		    }*/
 			/* End of Example Code */
 			
 			
@@ -76,9 +76,7 @@ public class TestSuiteCriticalSection {
 				 */
 				
 				//offer the user three choices, then from there give usage for the specific option chosen and wait for input.
-				System.out.println("Choose your action:\n" +
-						"1 for send, 2 for receive, 3 for quit, 4 for send multicast\n" +
-						"5 for cs request, 6 for cs release, 7 for cs status"); //need request cs, release cs, others...
+				System.out.println("Choose your action (1 for send, 2 for receive, 3 for quit, 4 for send multicast)"); //need request cs, release cs, others...
 				
 				user_input = cmd_line_input.nextLine(); //get the input and check it
 				user_action = mp.validOption(user_input);
@@ -163,39 +161,6 @@ public class TestSuiteCriticalSection {
 							//System.out.println("About to send "+kind+" message from "+src+" to "+dest);
 							mp.send(newMsg, clock);
 					    }
-						break;
-					case 5:		// request the CS
-						/* break if either want it or already hold it  */
-						if(mp.state.equals("held")) {
-							System.out.println("The CS is already held by myself.");
-						}
-						else if(mp.state.equals("wanted")) {
-							System.out.println("I am already waiting for it.");
-						}
-						/* request it */
-						else {
-							Runnable runnableCS = new CSThread();
-							Thread threadCS = new Thread(runnableCS);
-							threadCS.start();
-						}
-						System.out.println("I am blocked here wating for the CS......");
-						/* spin here until I got CS */
-						while(!mp.state.equals("held"))
-							;
-						System.out.println("I am holding the CS......");
-						break;
-					case 6:		// release the CS
-						/* send cs_release message to everyone in the group */
-						mp.releaseCS();
-						break;
-					case 7:		// print out the CS status
-						String state = mp.getState();
-						if(state.equals("released"))
-							System.out.println("I don't either want or hold CS");
-						else if(state.equals("wanted"))
-							System.out.println("I am waiting for CS");
-						else
-							System.out.println("I am holding CS");
 						break;
 					default: //there will be more categories added here
 						System.out.println("Unrecognized input "+user_action+".");

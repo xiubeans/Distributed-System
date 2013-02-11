@@ -38,126 +38,106 @@ class ReceiveThread implements Runnable {
 					//System.out.println("In run while loop");
 					TimeStampedMessage message = (TimeStampedMessage)ois.readObject(); 
 						
-					System.out.println("******************************************************************");
-					System.out.println("Receive Thread: in receive(): src: " + message.src + " dest: " + message.dest);
-					System.out.println(" ID: " + message.id + " kind: " + message.kind + " type: " + message.type + 
-									   " timestamp: " + ((TimeStampedMessage)message).ts.toString());
-					System.out.println("******************************************************************");
-					
-					if(message.kind.equals("cs_request") || message.kind.equals("cs_reply") || message.kind.equals("cs_release")) {
-						System.out.println("We are here!!!");
-						this.mmp.handleCSMessage(message);
+					/* get a multicast message */
+					if(message.type.equals("multicast") && !message.kind.equals("ack")) {
+						System.out.println("Got a multicast message: "+message.toString()+" MCID: "+message.mc_id);
+						this.mmp.globalLock.lock();
+						if(!this.mmp.isUsefulMessage(message)) {
+							this.mmp.globalLock.unlock();
+							continue;
+						}
+						else {
+							if(!this.mmp.isInHBQ(message))
+							{
+								stored = this.mmp.insertToHBQ(new HBItem(message));
+							}
+							else {
+								HBItem this_item = this.mmp.getHBItem(message.src, message.mc_id);
+								if(this_item.message == null)
+									this_item.message = message;
+							}
+							if(stored) //because otherwise we'd be acking a message that we won't receive
+							{
+								this.mmp.tryAckAll(message);
+								//System.out.println("After getting reg multicast message, trying to mc_ACK message "+message.toString());
+								this.mmp.multicastAck(message);
+							}
+							this.mmp.globalLock.unlock();
+						}
+						//System.out.println("In Recv Thread, HBQ: "); this.mmp.printHBQ();
 					}
-					
-//					/* get a multicast message */
-//					if(message.type.equals("multicast") && !message.kind.equals("ack")) {
-//						if(!this.mmp.rcv_buf.nonblockingOffer(message)) {
-//							continue;
-//						}
-////						System.out.println("Got a multicast message: "+message.toString()+" MCID: "+message.mc_id);
-////						this.mmp.globalLock.lock();
-////						if(!this.mmp.isUsefulMessage(message)) {
-////							this.mmp.globalLock.unlock();
-////							continue;
-////						}
-////						else {
-////							if(!this.mmp.isInHBQ(message))
-////							{
-////								stored = this.mmp.insertToHBQ(new HBItem(message));
-////							}
-////							else {
-////								HBItem this_item = this.mmp.getHBItem(message.src, message.mc_id);
-////								if(this_item.message == null)
-////									this_item.message = message;
-////							}
-////							if(stored) //because otherwise we'd be acking a message that we won't receive
-////							{
-////								this.mmp.tryAckAll(message);
-////								//System.out.println("After getting reg multicast message, trying to mc_ACK message "+message.toString());
-////								this.mmp.multicastAck(message);
-////							}
-////							this.mmp.globalLock.unlock();
-////						}
-////						//System.out.println("In Recv Thread, HBQ: "); this.mmp.printHBQ();
-//					}
-//						
-//					/* get a ACK message */
-//					else if(message.type.equals("multicast") && message.kind.equals("ack")) {
-//						if(!this.mmp.rcv_buf.nonblockingOffer(message)) {
-//							continue;
-//						}
-////						//System.out.println("Got an ACK message: "+message.toString());
-////						//System.out.println("Payload VTS: "+message.payload.toString());
-////						this.mmp.globalLock.lock();
-////						if(!this.mmp.isUsefulMessage(message)) {
-////							this.mmp.globalLock.unlock();
-////							System.out.println("Not useful message "+message.toString());
-////							continue;
-////						}
-////						else {
-////							//System.out.println("Message is useful: "+message.toString());
-////							if(!this.mmp.isInHBQ(message))
-////							{
-////								//System.out.println("Before insertToHBQ with remote name "+this.remote_name);
-////								stored = this.mmp.insertToHBQ(new HBItem(message));
-////							}
-////							if(stored)
-////							{
-////								//System.out.println("Before tryAcceptAck");
-////								this.mmp.tryAckAll(message);
-////								//System.out.println("After tryAcceptAck");
-////							}
-////							this.mmp.globalLock.unlock();
-////						}
-////						//this.mmp.printHBQ(); can't print HBQ here, because we're dealing with incomplete messages as the ACK payload
-//					}
-//						
-//					/* get a retransmit kind message */
-//					else if(message.kind.equals("retransmit")) {
-//						if(!this.mmp.rcv_buf.nonblockingOffer(message)) {
-//							continue;
-//						}
-////						System.out.println("Got a retransmit message: "+message.toString());
-////						System.out.println("Retransmit payload: "+message.payload.toString());
-////						TimeStampedMessage msg = (TimeStampedMessage)message.payload;
-////						this.mmp.globalLock.lock();
-////						if(!this.mmp.isUsefulMessage(msg)) {
-////							this.mmp.multicastAck(message); //we still need to ack it, b/c somebody didn't receive our ack
-////							this.mmp.globalLock.unlock();
-////							continue;
-////						}
-////						else {
-////							if(!this.mmp.isInHBQ(msg))
-////							{
-////								stored = this.mmp.insertToHBQ(new HBItem(msg));
-////							}
-////							else {
-////								HBItem this_item = this.mmp.getHBItem(msg.src, msg.mc_id);
-////								if(this_item.message == null)
-////									this_item.message = msg;
-////							}
-////							if(stored)
-////							{
-////								//System.out.println("Before storing"); this.mmp.printHBQ();
-////								//System.out.println("Message: "+msg.kind+" and "+msg.mc_id);
-////								this.mmp.tryAckAll(message); //The incorrect message reference comes from the retransmit. no idea how to fix it, though.
-////								this.mmp.tryAckAll(msg);
-////								//System.out.println("After storing"); this.mmp.printHBQ();
-////								//System.out.println("After getting retransmit message, trying to mc_ACK message "+message.toString());
-////								this.mmp.multicastAck(message);
-////							}
-////							this.mmp.globalLock.unlock();
-////						}
-////						//this.mmp.printHBQ();
-//					}
-//						
-//					/* get a regular message */
-//					// put it into the MessagePasser's rcv_buf
-//					// drop the message if the buffer is full
-//					else
-//						if(!this.mmp.rcv_buf.nonblockingOffer(message)) {
-//							continue;
-//						}
+						
+					/* get a ACK message */
+					else if(message.type.equals("multicast") && message.kind.equals("ack")) {
+						//System.out.println("Got an ACK message: "+message.toString());
+						//System.out.println("Payload VTS: "+message.payload.toString());
+						this.mmp.globalLock.lock();
+						if(!this.mmp.isUsefulMessage(message)) {
+							this.mmp.globalLock.unlock();
+							System.out.println("Not useful message "+message.toString());
+							continue;
+						}
+						else {
+							//System.out.println("Message is useful: "+message.toString());
+							if(!this.mmp.isInHBQ(message))
+							{
+								//System.out.println("Before insertToHBQ with remote name "+this.remote_name);
+								stored = this.mmp.insertToHBQ(new HBItem(message));
+							}
+							if(stored)
+							{
+								//System.out.println("Before tryAcceptAck");
+								this.mmp.tryAckAll(message);
+								//System.out.println("After tryAcceptAck");
+							}
+							this.mmp.globalLock.unlock();
+						}
+						//this.mmp.printHBQ(); can't print HBQ here, because we're dealing with incomplete messages as the ACK payload
+					}
+						
+					/* get a retransmit kind message */
+					else if(message.kind.equals("retransmit")) {
+						System.out.println("Got a retransmit message: "+message.toString());
+						System.out.println("Retransmit payload: "+message.payload.toString());
+						TimeStampedMessage msg = (TimeStampedMessage)message.payload;
+						this.mmp.globalLock.lock();
+						if(!this.mmp.isUsefulMessage(msg)) {
+							this.mmp.multicastAck(message); //we still need to ack it, b/c somebody didn't receive our ack
+							this.mmp.globalLock.unlock();
+							continue;
+						}
+						else {
+							if(!this.mmp.isInHBQ(msg))
+							{
+								stored = this.mmp.insertToHBQ(new HBItem(msg));
+							}
+							else {
+								HBItem this_item = this.mmp.getHBItem(msg.src, msg.mc_id);
+								if(this_item.message == null)
+									this_item.message = msg;
+							}
+							if(stored)
+							{
+								//System.out.println("Before storing"); this.mmp.printHBQ();
+								//System.out.println("Message: "+msg.kind+" and "+msg.mc_id);
+								this.mmp.tryAckAll(message); //The incorrect message reference comes from the retransmit. no idea how to fix it, though.
+								this.mmp.tryAckAll(msg);
+								//System.out.println("After storing"); this.mmp.printHBQ();
+								//System.out.println("After getting retransmit message, trying to mc_ACK message "+message.toString());
+								this.mmp.multicastAck(message);
+							}
+							this.mmp.globalLock.unlock();
+						}
+						//this.mmp.printHBQ();
+					}
+						
+					/* get a regular message */
+					// put it into the MessagePasser's rcv_buf
+					// drop the message if the buffer is full
+					else
+						if(!this.mmp.rcv_buf.nonblockingOffer(message)) {
+							continue;
+						}
 				//System.out.println("End of run while loop");
 				}
 			} finally {
@@ -166,10 +146,10 @@ class ReceiveThread implements Runnable {
 				conn_state.getObjectOutputStream().close();
 				conn_state.local_socket.close();
 				this.mmp.connections.remove(remote_name);
-				//this.mmp.globalLock.unlock();
+				this.mmp.globalLock.unlock();
 			}
 		} catch (Exception e){
-			//this.mmp.globalLock.unlock();
+			this.mmp.globalLock.unlock();
 			if(e instanceof EOFException) {
 				System.out.println("Connection to " + remote_name + " is disconnected");
 			}

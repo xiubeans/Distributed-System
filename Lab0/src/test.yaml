@@ -8,71 +8,38 @@
 Configuration :
   - Name : alice 
     IP   : 127.0.0.1
-    Port : 12449        # This is the incoming port on which MP will listen
-    Group :
-      - alice
-      - bob
-      - charlie
-      - daphnie 
+    Port : 12345        # This is the incoming port on which MP will listen
+                        # May be changed for further communication as usual
   - Name : bob 
     IP   : 127.0.0.1
     Port : 14245
-    Group :
-      - alice
-      - bob
-      - charlie
-      - daphnie 
-  - Name : daphnie 
-    IP   : 127.0.0.1
-    Port : 29870
-    Group :
-      - alice
-      - bob
-      - charlie
-      - daphnie 
   - Name : charlie
     IP   : 127.0.0.1
     Port : 19870
-    Group :
-      - alice
-      - bob
-      - charlie
-      - daphnie 
+#  - Name : daphnie
+#    IP   : 127.0.0.1
+#    Port : 29870
   - Name : logger
-    IP	 : 192.168.1.150
+    IP   : 127.0.0.1
     Port : 13752
-    Group :
-      - alice
-      - bob
-      - charlie
-      - daphnie 
 
 SendRules :
-  - Action : drop # Every 2nd ack from bob to alice won't be sent
-    Src    : bob
-    Dest   : alice
-    Kind   : Ack
-    EveryNth : 200
-# - Action : delay # Every Lookup from alice to charlie delayed
-#    Kind   : delayer 
-#  - Action : duplicate
-#    Kind   : doubler
-#  - Action : drop
-#    Kind   : dropper
-#    Src    : Alice
-#    Dest   : Charlie
-#  - Action : duplicate
-#    Kind   : bunches
-#  - Action : duplicate 
-#    Src    : bob   #P2
-#    Dest   : daphnie #P4
-#    EveryNth    : 3
+#  - Action : drop # Ack message number 4 from bob to alice will not be sent
+#    Src    : bob
+#    Dest   : alice
+#    Kind   : Ack
+#    ID     : 4
+  - Action : drop # Every Lookup delayed
+    Kind   : dropper 
+  - Action : duplicate 
+    Kind   : doubler
+  - Action : delay
+    Kind   : delayer
 ReceiveRules :
   - Action : duplicate
-    Kind   : whatthef
-#  - Action : delay
-#    Kind   : lookup 
-#    Dest   : charlie
-#  - Action : duplicate      # 3rd message from Charlie that anyone 
-#    Src    : daphnie        # receives will be duplicated
-#    Nth    : 200
+    Kind   : bunches
+  - Action : delay
+    Kind   : lookup 
+  - Action : duplicate      # 3rd message from Charlie that anyone 
+    Src    : daphnie        # receives will be duplicated
+    Nth    : 200
