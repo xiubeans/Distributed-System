@@ -18,11 +18,11 @@ public class SFTPConnection {
         JSch jsch = new JSch();
     	try {
     		
+        
 
+    		// TEST: should enable these four lines
 	    	session = jsch.getSession(user, host, 22);
-	        session.setConfig("StrictHostKeyChecking", "no");
-
-	        
+	        session.setConfig("StrictHostKeyChecking", "no");	        
 	        UserInfo ui=new MyUserInfo();
 	        session.setUserInfo(ui);
 	        session.connect();        	

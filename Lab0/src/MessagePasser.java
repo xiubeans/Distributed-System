@@ -1517,22 +1517,22 @@ public class MessagePasser {
 	{
 		/* Determines if a message is to be sent to the sender */
 		
-		if(msg.src.equals(msg.dest))
-		{
-			//this may fail if sending to/from self with a receive drop rule matching the sender...
-			this.globalLock.lock();
-			if(!this.isInHBQ((TimeStampedMessage)msg))
-			{
-				this.insertToHBQ(new HBItem((TimeStampedMessage) msg));
-				System.out.println("at end of InsertToHBQ, HBQ is ");
-				this.printHBQ();
-			}
-			//System.out.println("In handleSelf, trying to ack");
-			this.tryAckAll((TimeStampedMessage)msg); //set my bits for having received the message
-			//System.out.println("After acking in handleSelf");
-			this.globalLock.unlock();//this.printHBQ();
-			return true;
-		}
+//		if(msg.src.equals(msg.dest))
+//		{
+//			//this may fail if sending to/from self with a receive drop rule matching the sender...
+//			this.globalLock.lock();
+//			if(!this.isInHBQ((TimeStampedMessage)msg))
+//			{
+//				this.insertToHBQ(new HBItem((TimeStampedMessage) msg));
+//				System.out.println("at end of InsertToHBQ, HBQ is ");
+//				this.printHBQ();
+//			}
+//			//System.out.println("In handleSelf, trying to ack");
+//			this.tryAckAll((TimeStampedMessage)msg); //set my bits for having received the message
+//			//System.out.println("After acking in handleSelf");
+//			this.globalLock.unlock();//this.printHBQ();
+//			return true;
+//		}
 		return false;
 	}
 	
