@@ -77,8 +77,8 @@ public class TestSuiteCriticalSection {
 				
 				//offer the user three choices, then from there give usage for the specific option chosen and wait for input.
 				System.out.println("Choose your action:\n" +
-						"1 for send, 2 for receive, 3 for quit, 4 for send multicast\n" +
-						"5 for cs request, 6 for cs release, 7 for cs status"); //need request cs, release cs, others...
+						/*"1 for send, 2 for receive, 3 for quit, 4 for send multicast\n" +*/
+						"1 for cs request, 2 for cs release, 3 for cs status"); //need request cs, release cs, others...
 				
 				user_input = cmd_line_input.nextLine(); //get the input and check it
 				user_action = mp.validOption(user_input);
@@ -88,83 +88,83 @@ public class TestSuiteCriticalSection {
 				
 				switch(user_action)
 				{				
-					case 1: //send request
-						System.out.println("Usage: send <dest> <kind>");
-						user_input = cmd_line_input.nextLine(); //get the input and check it (pass back out to user if garbage input)
-
-						if(!mp.isNewestConfig(svr_conn))
-							mp.parseConfig(config_file);
-											
-						if(!mp.validateUserRequests(user_input, mp, local_name)) //check user input
-						{	
-							System.out.println("Error: format of message not recognized.");
-							continue;
-						}
-						
-						String[] fields = user_input.trim().split("\\s");
-						src = local_name;
-						dest = fields[1];
-						kind = fields[2];
-						type = "unicast";
-						data = null;
-						TimeStampedMessage newMsg = new TimeStampedMessage(tstmp, src, dest, kind, type, data);
-						mp.send(newMsg, clock);
-						break;
-					case 2: //receive request
-						System.out.println("Usage: receive");
-						user_input = cmd_line_input.nextLine(); //get the input and check it (pass back out to user if garbage input)
-
-						if(!mp.isNewestConfig(svr_conn)) //MAKE THIS transparent to user!
-							mp.parseConfig(config_file);
-
-						if(!mp.validateUserRequests(user_input, mp, local_name)) //check user input and create our message from within it
-						{	
-							System.out.println("Error: format of message not recognized.");
-							continue;
-						}
-						mp.receive(clock);
-						mp.print();
-						break;
-					case 3: //quit the program
-						cmd_line_input.close();
-						svr_conn.disconnect(); //close the SFTP connection to AFS
-						mp.closeConnections(); //close sockets 
-						System.exit(1);
-					case 4: //multicast send request
-						System.out.println("Usage: send multicast <kind>");
-						user_input = cmd_line_input.nextLine(); //get the input and check it (pass back out to user if garbage input)
-
-						if(!mp.isNewestConfig(svr_conn))
-							mp.parseConfig(config_file);
-											
-						if(!mp.validateUserRequests(user_input, mp, local_name)) //check user input
-						{	
-							System.out.println("Error: format of message not recognized.");
-							continue;
-						}
-						
-						fields = user_input.trim().split("\\s");
-						
-						//System.out.println("Names are: "+mp.names_index.keySet());
-						
-						/*multicast loop placed out here to make integration with 
-						 * current code easiest; no changes to MessagePasser needed!*/
-						
-						for (Map.Entry entry : mp.names_index.entrySet()) 
-					    {
-							String name = (String)entry.getKey();
-							src = local_name;
-							dest = name;
-							kind = fields[2];
-							type = "multicast";
-							data = null;
-							
-							newMsg = new TimeStampedMessage(tstmp, src, dest, kind, type, data);
-							//System.out.println("About to send "+kind+" message from "+src+" to "+dest);
-							mp.send(newMsg, clock);
-					    }
-						break;
-					case 5:		// request the CS
+//					case 1: //send request
+//						System.out.println("Usage: send <dest> <kind>");
+//						user_input = cmd_line_input.nextLine(); //get the input and check it (pass back out to user if garbage input)
+//
+//						if(!mp.isNewestConfig(svr_conn))
+//							mp.parseConfig(config_file);
+//											
+//						if(!mp.validateUserRequests(user_input, mp, local_name)) //check user input
+//						{	
+//							System.out.println("Error: format of message not recognized.");
+//							continue;
+//						}
+//						
+//						String[] fields = user_input.trim().split("\\s");
+//						src = local_name;
+//						dest = fields[1];
+//						kind = fields[2];
+//						type = "unicast";
+//						data = null;
+//						TimeStampedMessage newMsg = new TimeStampedMessage(tstmp, src, dest, kind, type, data);
+//						mp.send(newMsg, clock);
+//						break;
+//					case 2: //receive request
+//						System.out.println("Usage: receive");
+//						user_input = cmd_line_input.nextLine(); //get the input and check it (pass back out to user if garbage input)
+//
+//						if(!mp.isNewestConfig(svr_conn)) //MAKE THIS transparent to user!
+//							mp.parseConfig(config_file);
+//
+//						if(!mp.validateUserRequests(user_input, mp, local_name)) //check user input and create our message from within it
+//						{	
+//							System.out.println("Error: format of message not recognized.");
+//							continue;
+//						}
+//						mp.receive(clock);
+//						mp.print();
+//						break;
+//					case 3: //quit the program
+//						cmd_line_input.close();
+//						svr_conn.disconnect(); //close the SFTP connection to AFS
+//						mp.closeConnections(); //close sockets 
+//						System.exit(1);
+//					case 4: //multicast send request
+//						System.out.println("Usage: send multicast <kind>");
+//						user_input = cmd_line_input.nextLine(); //get the input and check it (pass back out to user if garbage input)
+//
+//						if(!mp.isNewestConfig(svr_conn))
+//							mp.parseConfig(config_file);
+//											
+//						if(!mp.validateUserRequests(user_input, mp, local_name)) //check user input
+//						{	
+//							System.out.println("Error: format of message not recognized.");
+//							continue;
+//						}
+//						
+//						fields = user_input.trim().split("\\s");
+//						
+//						//System.out.println("Names are: "+mp.names_index.keySet());
+//						
+//						/*multicast loop placed out here to make integration with 
+//						 * current code easiest; no changes to MessagePasser needed!*/
+//						
+//						for (Map.Entry entry : mp.names_index.entrySet()) 
+//					    {
+//							String name = (String)entry.getKey();
+//							src = local_name;
+//							dest = name;
+//							kind = fields[2];
+//							type = "multicast";
+//							data = null;
+//							
+//							newMsg = new TimeStampedMessage(tstmp, src, dest, kind, type, data);
+//							//System.out.println("About to send "+kind+" message from "+src+" to "+dest);
+//							mp.send(newMsg, clock);
+//					    }
+//						break;
+					case 1:		// request the CS
 						/* break if either want it or already hold it  */
 						if(mp.state.equals("held")) {
 							System.out.println("The CS is already held by myself.");
@@ -177,18 +177,28 @@ public class TestSuiteCriticalSection {
 							Runnable runnableCS = new CSThread();
 							Thread threadCS = new Thread(runnableCS);
 							threadCS.start();
+							
+							System.out.println("I am blocked here wating for the CS......");
+
+							/* sleep for a while */
+							try {
+								/* spin here until I got CS */
+								while(!mp.state.equals("held")) {
+									System.out.println("Our state is " + mp.state);
+									Thread.sleep(100);
+								}
+							} catch(Exception e) {
+								e.printStackTrace();
+							}
+							System.out.println("I am holding the CS......");
 						}
-						System.out.println("I am blocked here wating for the CS......");
-						/* spin here until I got CS */
-						while(!mp.state.equals("held"))
-							;
-						System.out.println("I am holding the CS......");
+						
 						break;
-					case 6:		// release the CS
+					case 2:		// release the CS
 						/* send cs_release message to everyone in the group */
 						mp.releaseCS();
 						break;
-					case 7:		// print out the CS status
+					case 3:		// print out the CS status
 						String state = mp.getState();
 						if(state.equals("released"))
 							System.out.println("I don't either want or hold CS");
