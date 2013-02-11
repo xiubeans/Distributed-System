@@ -153,8 +153,8 @@ class ReceiveThread implements Runnable {
 			if(e instanceof EOFException) {
 				System.out.println("Connection to " + remote_name + " is disconnected");
 			}
-			System.out.println("Exception is "+e.toString());
-			e.printStackTrace();
+			//System.out.println("Exception is "+e.toString());
+			//e.printStackTrace();
 			return;
 		}
 	}

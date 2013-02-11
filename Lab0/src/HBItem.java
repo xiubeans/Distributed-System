@@ -222,7 +222,6 @@ public class HBItem {
 	  public int compareOrder(HBItem hbi)
 	  {
 	    int order = 0;
-
 	    if(this.ts.isLess(hbi.ts))
 	    	order = -1;
 	    else if(hbi.ts.isLess(this.ts))

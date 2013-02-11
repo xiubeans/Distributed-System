@@ -49,8 +49,7 @@ class HBQThread implements Runnable {
 				Thread.sleep(50);
 			}
 		} catch(Exception e) {
-			System.out.println("Broken in HBQ Thread");
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
 		finally{
 			this.mp.globalLock.unlock();

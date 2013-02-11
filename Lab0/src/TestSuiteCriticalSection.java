@@ -55,14 +55,14 @@ public class TestSuiteCriticalSection {
 			
 			
 			/* Example Code -- Take out for final version! */
-			/*for (Map.Entry entry : mp.names_index.entrySet()) 
+			for (Map.Entry entry : mp.names_index.entrySet()) 
 		    {
 				String name = (String)entry.getKey();
 				String[] tmp = mp.getGroup(name);
 				System.out.println("Names for "+name+" are: ");
 				for(int i=0; i<tmp.length; i++)
 					System.out.println(i+": "+tmp[i]);
-		    }*/
+		    }
 			/* End of Example Code */
 			
 			

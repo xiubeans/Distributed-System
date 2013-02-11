@@ -7,7 +7,7 @@ import java.util.*;
 public class CSItem {
 	
 	/* id */
-	String src = ""; //sender of request
+	String src = "";
 	TimeStamp ts = new TimeStamp(1);
 	
 	/* not used for now */
