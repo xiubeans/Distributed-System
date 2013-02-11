@@ -28,7 +28,6 @@ public class MessagePasser {
 	AtomicInteger mcast_msg_id = new AtomicInteger(0); //atomic multicast message ID counter
 	Hashtable<String, ConnState> connections = new Hashtable<String, ConnState>(); // maintain all connection state information
 	TreeMap<String, Integer> names_index = new TreeMap<String, Integer>(); //stores the name-index mapping
-	TreeMap<String, String> group_index = new TreeMap<String, String>(); //stores the group identified for each user
 	MessageBuffer send_buf;
 	MessageBuffer rcv_buf;
 	MessageBuffer rcv_delayed_buf;
@@ -408,16 +407,6 @@ public class MessagePasser {
 	}
 
 	
-	public String[] getGroup(String name)
-	{
-		/* Returns the members of the group given the
-		 * name of the user specified as "Name: xxx" in
-		 * the configuration file. */
-		
-		return group_index.get(name).split(" ");
-	}
-	
-	
 	/* Initialization Methods */
 		
 	public void runServer() {
@@ -501,7 +490,7 @@ public class MessagePasser {
 			elements = whole.split("\\},?");
 			
 			for(j=0; j<elements.length; j++) //the number of rules in this section of the config
-			{		
+			{				
 				pairs = elements[j].split(", "); //the number of elements in a particular rule
 				
 				if(file_part.equals("sendrules"))
@@ -534,21 +523,12 @@ public class MessagePasser {
 		
 		int key=0;
 		int val=1;
-		String name = ""; //hold onto the name for each iteration
 		
 		for(int i=0; i<pairs.length; i++)
 		{
 			String[] choices = pairs[i].split("=");
 			choices[key] = choices[key].trim().toString().toLowerCase(); //grab heading
-			if(choices[key].equals("name"))
-					name = choices[val]; //store this for building the group 
-			if(choices[key].equals("group"))
-			{
-				buildGroup(pairs, i, name);
-				break; //we don't want to do anything else...this REQUIRES that Group is last part of the config entry
-			}
-			
-			//System.out.println("Key: "+ choices[key]+" and value: "+choices[val]);
+
 			for(int j=0; j<arr.length; j++) //loop through 2D array's headers and put the values where they belong
 			{
 				if(arr[j][key].equals(choices[key])) //we found the correct heading
@@ -610,30 +590,6 @@ public class MessagePasser {
 			}
 		}
 		return all_fields;
-	}
-	
-	
-	public void buildGroup(String[] pairs, int i, String name)
-	{
-		/* Creates an entry for the user's group in a TreeMap structure
-		 * with its name as the key and the group members as the value. 
-		 * Each member is separated by a space. */
-		
-		String[] tmp = Arrays.copyOfRange(pairs, i, pairs.length);
-		String group_names = "";
-		int eq_loc = -1;
-		for(int k=0; k<tmp.length; k++)
-		{
-			eq_loc = tmp[k].indexOf("=");
-			if(eq_loc != -1) //it is the first one
-				tmp[k] = tmp[k].substring(eq_loc+1);
-			group_names += tmp[k]+" ";
-		}
-		if(!name.equals(""))
-			group_index.put(name, group_names);
-		else
-			System.out.println("No name found for group; please specify name in YAML file before group.");
-		return;		
 	}
 	
 	
