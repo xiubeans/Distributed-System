@@ -40,6 +40,12 @@ public class MessagePasser {
 	ArrayList<Integer> mc_ids = new ArrayList<Integer>();  // organize sequence # according to alphabetical order
 	ArrayList<HBItem> hbq = new ArrayList<HBItem>();
 	
+	/* new fields for CS */
+	String state = "released";
+	boolean voted = false;
+	Hashtable<String, String> group_members = new Hashtable<String, String>();
+	Hashtable<String, String> replied_members = new Hashtable<String, String>();
+	ArrayList<TimeStampedMessage> cs_queue = new ArrayList<TimeStampedMessage>();
 	
 	/* Constructor */
 	private MessagePasser() {		
@@ -194,6 +200,10 @@ public class MessagePasser {
 	    	}
 	    }
 	    
+      /* for CS in lab3 */
+	    String[] members = getGroup(this.local_name);
+	    for(int i = 0; i < members.length; i++) 
+	    	this.group_members.put(members[i], "");
 	  }
 	
 	/*
@@ -441,10 +451,10 @@ public class MessagePasser {
 		Thread threadServer = new Thread(runnableServer);
 		threadServer.start();
 		
-		// Init HBQ thread
-		Runnable runnableHBQ = new HBQThread();
-		Thread threadHBQ = new Thread(runnableHBQ);
-		threadHBQ.start();
+//		// Init HBQ thread
+//		Runnable runnableHBQ = new HBQThread();
+//		Thread threadHBQ = new Thread(runnableHBQ);
+//		threadHBQ.start();
 	}
 	
 	
@@ -721,7 +731,7 @@ public class MessagePasser {
 	}
 	
 	
-	public void multicastCSRequest(CSItem item)
+	public void multicastCSRequest()
 	{
 		/* Enables the user to send a multicast request for
 		 * the critical section. 
@@ -741,12 +751,13 @@ public class MessagePasser {
 				continue; //not sure if we still want this lack of functionality...
 			TimeStampedMessage newMsg = new TimeStampedMessage(ts, local_name, dest, "cs_request", "multicast", payload);
 			//System.out.println("Sending a multicast ACK to acknowledge "+message.toString());
+			System.out.println("About to send... cs_request");
 			this.send(newMsg, clock);
 	    }
 	}
 	
 	
-	public void multicastCSRelease(CSItem item)
+	public void multicastCSRelease()
 	{
 		/* Enables the user to send a multicast release of
 		 * the critical section. 
@@ -771,14 +782,14 @@ public class MessagePasser {
 	}
 	
 	
-	public void unicastCSReply(CSItem item)
+	public void unicastCSReply(String request_src)
 	{
-		String payload = item.ts.toString(); //pass back the timestamp of the sender's message?
+		String payload = ""; //item.ts.toString(); //pass back the timestamp of the sender's message?
 		TimeStamp ts = null;
 		
 		ClockService clock = ClockService.getInstance("logical", 1);
 	    
-		TimeStampedMessage newMsg = new TimeStampedMessage(ts, local_name, item.src, "cs_release", "unicast", payload);
+		TimeStampedMessage newMsg = new TimeStampedMessage(ts, local_name, request_src, "cs_reply", "unicast", payload);
 		//System.out.println("Sending a multicast ACK to acknowledge "+message.toString());
 		this.send(newMsg, clock);
 	}
@@ -864,20 +875,20 @@ public class MessagePasser {
 					message.set_mcast_id(this.mcast_msg_id.get());//add the same multicast ID all subsequent messages in a multicast series
 			}
 			
-			/* Build the HBItem right away for the case of same sender/receiver */
-			this.globalLock.lock();
-			String tmp_dst = message.dest; //save it for later
-			message.dest = this.local_name; //set it to same value
-			if(!this.isInHBQ((TimeStampedMessage)message))
-			{
-				this.insertToHBQ(new HBItem((TimeStampedMessage) message));
-			}
-			//System.out.println("In handleSelf, trying to ack");
-			this.tryAckAll((TimeStampedMessage)message); //set my bits for having received the message
-			//System.out.println("After acking in handleSelf");
-			this.globalLock.unlock();//this.printHBQ();
-			message.dest = tmp_dst; //restore value
-			/* end of HBItem code */
+//			/* Build the HBItem right away for the case of same sender/receiver */
+//			this.globalLock.lock();
+//			String tmp_dst = message.dest; //save it for later
+//			message.dest = this.local_name; //set it to same value
+//			if(!this.isInHBQ((TimeStampedMessage)message))
+//			{
+//				this.insertToHBQ(new HBItem((TimeStampedMessage) message));
+//			}
+//			//System.out.println("In handleSelf, trying to ack");
+//			this.tryAckAll((TimeStampedMessage)message); //set my bits for having received the message
+//			//System.out.println("After acking in handleSelf");
+//			this.globalLock.unlock();//this.printHBQ();
+//			message.dest = tmp_dst; //restore value
+//			/* end of HBItem code */
 			
 			// check against the send rules, and follow the first rule matched
 			if(rule != null) {
@@ -1191,6 +1202,13 @@ public class MessagePasser {
 				this.rcv_delay_buf_ready.set(this.rcv_delayed_buf.size());
 				
 				conn.getAndIncrementInMessageCounter();
+
+				System.out.println("Message kind = " + message.kind);
+				 /* handle the CS issue for no-rule-matched message */
+				if(message.kind.equals("cs_request") || message.kind.equals("cs_reply") || message.kind.equals("cs_release")) {
+					System.out.println("We are here!!!");
+					this.handleCSMessage(message);
+				}
 				return message;
 			}
 						
@@ -1524,7 +1542,6 @@ public class MessagePasser {
 	public void printConnections() {
 		/* Print all connections. */
 		
-		System.out.println("#############################  MessagePasser Status  ###############################");
 		String conns = "--> We have connections: ";
 		Iterator<String> itr = this.connections.keySet().iterator();
 		while(itr.hasNext()) {
@@ -1549,6 +1566,8 @@ public class MessagePasser {
 
 	public void print() {
 		
+		System.out.println("\n#############################  MessagePasser Status  ###############################");
+		
 		// print all connections
 		this.printConnections();
 		
@@ -1559,7 +1578,86 @@ public class MessagePasser {
 		this.rcv_buf.print();
 		System.out.print("rcv_delayed_buf: ");
 		this.rcv_delayed_buf.print();
-		System.out.print("HBQ: ");
+		System.out.println("\n");
+		
 
 	}
+
+	/*
+	 * Release CS if I have
+	 */
+	public void releaseCS() {
+		
+		if(!this.state.equals("held"))
+			return;
+		
+		/* change state */
+		this.state = "released";
+		this.multicastCSRelease();
+		
+		/* init a CSItem simply for multicast release */
+		
+	}
+	
+	/*
+	 * Handle any kind of CS message
+	 */
+	public void handleCSMessage(TimeStampedMessage msg) {
+		
+		System.out.println("In handleCSMessage(): about to handle");
+		
+		/* get a cs_release */
+		if(msg.kind.equals("cs_release")) {
+			System.out.println("In handleCSMessage(): got cs_release");
+			if(this.cs_queue.size() != 0) {
+				TimeStampedMessage message = this.cs_queue.get(0);
+				if(message.src.equals(this.local_name)) {
+					this.replied_members.put(msg.src, "");
+					if(this.replied_members.size() == this.group_members.size())
+						message = this.cs_queue.remove(0);
+				}
+				else {
+					message = this.cs_queue.remove(0);
+					this.unicastCSReply(message.src);
+					this.voted = true;
+				}
+			}
+			else
+				this.voted = false;
+				
+		}
+		/* get a cs_request */
+		else if(msg.kind.equals("cs_request")) {
+			System.out.println("In handleCSMessage(): got cs_request");
+			if(this.state.equals("held") || this.voted == true) 
+				this.cs_queue.add(msg);
+			else {
+				this.unicastCSReply(msg.src);
+				this.voted = true;
+			}
+		}
+		/* get a cs_reply */
+		else if(msg.kind.equals("cs_reply")) {
+			System.out.println("In handleCSMessage(): got cs_reply");
+			if(this.group_index.containsKey(msg.src) 
+					&& !this.replied_members.contains(msg.src))
+				this.replied_members.put(msg.src, "");
+		}
+		/* no useful message for this method */
+		else
+			return;
+		
+	}
+	
+	public String getState() {
+		return this.state;
+	}
+	
+	
 }
+
+
+
+
+
+
