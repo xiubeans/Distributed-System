@@ -40,6 +40,7 @@ class ServerThread implements Runnable {
 			try {
 				
 				// Init the local listening socket
+				System.out.println("I am listening on port = " + Integer.parseInt(this.mmp.conf[2][i]));
 				ServerSocket socket = new ServerSocket(Integer.parseInt(this.mmp.conf[2][i]));
 
 				// keep listening on the WELL-KNOWN port
@@ -47,22 +48,34 @@ class ServerThread implements Runnable {
 					Socket s = socket.accept();
 					ObjectOutputStream oos_tmp = new ObjectOutputStream(s.getOutputStream());
 					ObjectInputStream ois_tmp = new ObjectInputStream(s.getInputStream());
+					
+					//oos_tmp.defaultWriteObject();
+					//ois_tmp.defaultReadObject();
 	
+					System.out.println("In ServerThread $$ about to receive LOGIN");
 					Message login_msg = (Message)ois_tmp.readObject();
 					String remote_name = login_msg.src;
+					System.out.println("In ServerThread $$ just received LOGIN from: " + remote_name);
 
-					// Put the new socket into mmp's connections
 					ConnState conn_state = new ConnState(remote_name, s);					
 					conn_state.setObjectOutputStream(oos_tmp);
 					conn_state.setObjectInputStream(ois_tmp);
-					
-					this.mmp.connections.put(remote_name, conn_state);					
+					// if connector is myself 
+					if(remote_name.equals(this.mmp.local_name)) {
+						this.mmp.self_conn = conn_state;
+					}
+					else {
+						this.mmp.connections.put(remote_name, conn_state);	
+					}
 					//this.mmp.printConnectsions();
 					
 					// create and run the ReceiveThread
+					System.out.println("In ServerThread $$ about to launch a new receive thread...");
 					Runnable receiveRunnable = new ReceiveThread(remote_name);
 					Thread receiveThread = new Thread(receiveRunnable);
 					receiveThread.start();
+					System.out.println("In ServerThread $$ just launched a new receive thread...");
+
 									
 				}
 			} catch(Exception e) {
