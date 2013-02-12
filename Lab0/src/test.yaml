@@ -23,7 +23,7 @@ Configuration :
     Port : 19870
     Group :
       - charlie
-      - daphnie 
+      - daphnie
   - Name : daphnie 
     IP   : 127.0.0.1
     Port : 29870
@@ -40,10 +40,10 @@ Configuration :
       - daphnie 
 
 SendRules :
-  - Action : delay # Every 2nd ack from bob to alice won't be sent
-    Src    : bob
-    Kind   : cs_request
-    EveryNth : 200
+  - Action : duplicate # Every 2nd ack from bob to alice won't be sent
+    Src    : alice
+    Kind   : rukiddingme
+#    EveryNth : 200
 # - Action : delay # Every Lookup from alice to charlie delayed
 #    Kind   : delayer 
 #  - Action : duplicate
@@ -59,8 +59,9 @@ SendRules :
 #    Dest   : daphnie #P4
 #    EveryNth    : 3
 ReceiveRules :
-  - Action : duplicate
-    Kind   : whatthef
+  - Action : delay
+    Src    : alice
+    Kind   : cs_request
 #  - Action : delay
 #    Kind   : lookup 
 #    Dest   : charlie

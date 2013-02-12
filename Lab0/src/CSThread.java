@@ -26,15 +26,15 @@ public class CSThread implements Runnable{
 			
 			/* set the state */
 			mp.state = "wanted";				
-			
+		
 			/* multicast the cs request */
 			mp.multicastCSRequest();
 			
 			/* spin here until get all replies */
 			while(mp.group_members.size() != mp.replied_members.size()) {
 				Thread.sleep(100);
+				mp.printCSSendBuffer();
 				mp.printRepliedNodes();
-				//System.out.println("In CSThread $$ replied number: " + mp.replied_members.size());
 
 			}
 			

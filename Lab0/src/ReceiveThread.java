@@ -1,5 +1,6 @@
 import java.io.EOFException;
 import java.io.ObjectInputStream;
+import java.util.*;
 
 /*
  * Child thread created by the Server
@@ -27,6 +28,7 @@ class ReceiveThread implements Runnable {
 	 */
 	public void run() {
 		
+		/* initialize this thread */
 		ObjectInputStream ois;
 		ConnState conn_state;
 		if(this.remote_name.equals(this.mmp.local_name)) {
@@ -40,142 +42,105 @@ class ReceiveThread implements Runnable {
 			boolean stored = true; //must be true by default to catch ACK of non-new messages			
 		}
 		
-		System.out.println("In ReceiveThread $$ I am in connection with " + this.remote_name + 
-				" Thread ID: " + Thread.currentThread().getId());
+//		System.out.println("In ReceiveThread $$ I am in connection with " + this.remote_name + 
+//				" Thread ID: " + Thread.currentThread().getId());
 		
 		// Infinite loop: listen for input
 		try {
-//			Thread.sleep(10000);
 			try {
-				//ois.defaultReadObject();
 				while(true) {
 					
-					//System.out.println("In ReceiveThread with " + this.remote_name + "$$ About to receive the first object from socket...");
-					//ois.skip(0);
+					/* get the message from socket */
 					TimeStampedMessage message = (TimeStampedMessage)ois.readObject(); 
-					//System.out.println("In ReceiveThread with " + this.remote_name + "$$ Just received the first object from socket...");
 						
-					System.out.println("***********************************************************");
-					System.out.println("Receive Thread: in receive(): src: " + message.src + " dest: " + message.dest);
-					System.out.println(" ID: " + message.id + " kind: " + message.kind + " type: " + message.type + 
-									   " timestamp: " + ((TimeStampedMessage)message).ts.toString());
-					System.out.println("***********************************************************");
+					/* get the rule */
+					HashMap rule = null;
+					rule = mmp.matchRules("receive", message);
+					rule = mmp.checkNth(rule, "receive", message);
 					
-					if(message.kind.equals("cs_request") || message.kind.equals("cs_reply") || message.kind.equals("cs_release")) {
-						//System.out.println("We are here!!!");
-						this.mmp.handleCSMessage(message);
+					if(rule != null) {
+						
+						String action = rule.get("action").toString();
+						
+						/* case 1: duplicate
+						 * don't duplicate; just handle it as regular message
+						 *  */
+						if(action.equals("duplicate")) {
+													
+							/* step 1: handle this message */
+							System.out.println("***********************************************************");
+							System.out.println("Receive Thread: in receive(): src: " + message.src + " dest: " + message.dest);
+							System.out.println(" ID: " + message.id + " kind: " + message.kind + " type: " + message.type + 
+											   " timestamp: " + ((TimeStampedMessage)message).ts.toString());
+							System.out.println("rule: duplicate, but just ignore this rule");
+							System.out.println("***********************************************************");
+							
+							this.mmp.handleCSMessage(message);
+							
+							/* step 2: handle all delayed messages in the rcv_delayed_buf */
+							ArrayList<Message> delayed_messages = mmp.rcv_delayed_buf.nonblockingTakeAll();
+							while(!delayed_messages.isEmpty()) {							
+								TimeStampedMessage dl_message = (TimeStampedMessage)delayed_messages.remove(0);	
+								System.out.println("***********************************************************");
+								System.out.println("Receive Thread: in receive(): src: " + dl_message.src + " dest: " + dl_message.dest);
+								System.out.println(" ID: " + message.id + " kind: " + dl_message.kind + " type: " + dl_message.type + 
+												   " timestamp: " + ((TimeStampedMessage)dl_message).ts.toString());
+								System.out.println("rule: delayed message got released");
+								System.out.println("***********************************************************");	
+								
+								mmp.handleCSMessage(dl_message);
+							}
+							
+						}
+						
+						/* case 2: delay 
+						 * put it into rcv_delayed_buf
+						 * */
+						else if(action.equals("delay")) {
+							/* step 1: handle this message */
+							System.out.println("***********************************************************");
+							System.out.println("Receive Thread: in receive(): src: " + message.src + " dest: " + message.dest);
+							System.out.println(" ID: " + message.id + " kind: " + message.kind + " type: " + message.type + 
+											   " timestamp: " + ((TimeStampedMessage)message).ts.toString());
+							System.out.println("rule: delay");
+							System.out.println("***********************************************************");	
+							
+							this.mmp.rcv_delayed_buf.nonblockingOffer(message);
+						}
+						else
+							;
+						
 					}
 					
-//					/* get a multicast message */
-//					if(message.type.equals("multicast") && !message.kind.equals("ack")) {
-//						if(!this.mmp.rcv_buf.nonblockingOffer(message)) {
-//							continue;
-//						}
-////						System.out.println("Got a multicast message: "+message.toString()+" MCID: "+message.mc_id);
-////						this.mmp.globalLock.lock();
-////						if(!this.mmp.isUsefulMessage(message)) {
-////							this.mmp.globalLock.unlock();
-////							continue;
-////						}
-////						else {
-////							if(!this.mmp.isInHBQ(message))
-////							{
-////								stored = this.mmp.insertToHBQ(new HBItem(message));
-////							}
-////							else {
-////								HBItem this_item = this.mmp.getHBItem(message.src, message.mc_id);
-////								if(this_item.message == null)
-////									this_item.message = message;
-////							}
-////							if(stored) //because otherwise we'd be acking a message that we won't receive
-////							{
-////								this.mmp.tryAckAll(message);
-////								//System.out.println("After getting reg multicast message, trying to mc_ACK message "+message.toString());
-////								this.mmp.multicastAck(message);
-////							}
-////							this.mmp.globalLock.unlock();
-////						}
-////						//System.out.println("In Recv Thread, HBQ: "); this.mmp.printHBQ();
-//					}
-//						
-//					/* get a ACK message */
-//					else if(message.type.equals("multicast") && message.kind.equals("ack")) {
-//						if(!this.mmp.rcv_buf.nonblockingOffer(message)) {
-//							continue;
-//						}
-////						//System.out.println("Got an ACK message: "+message.toString());
-////						//System.out.println("Payload VTS: "+message.payload.toString());
-////						this.mmp.globalLock.lock();
-////						if(!this.mmp.isUsefulMessage(message)) {
-////							this.mmp.globalLock.unlock();
-////							System.out.println("Not useful message "+message.toString());
-////							continue;
-////						}
-////						else {
-////							//System.out.println("Message is useful: "+message.toString());
-////							if(!this.mmp.isInHBQ(message))
-////							{
-////								//System.out.println("Before insertToHBQ with remote name "+this.remote_name);
-////								stored = this.mmp.insertToHBQ(new HBItem(message));
-////							}
-////							if(stored)
-////							{
-////								//System.out.println("Before tryAcceptAck");
-////								this.mmp.tryAckAll(message);
-////								//System.out.println("After tryAcceptAck");
-////							}
-////							this.mmp.globalLock.unlock();
-////						}
-////						//this.mmp.printHBQ(); can't print HBQ here, because we're dealing with incomplete messages as the ACK payload
-//					}
-//						
-//					/* get a retransmit kind message */
-//					else if(message.kind.equals("retransmit")) {
-//						if(!this.mmp.rcv_buf.nonblockingOffer(message)) {
-//							continue;
-//						}
-////						System.out.println("Got a retransmit message: "+message.toString());
-////						System.out.println("Retransmit payload: "+message.payload.toString());
-////						TimeStampedMessage msg = (TimeStampedMessage)message.payload;
-////						this.mmp.globalLock.lock();
-////						if(!this.mmp.isUsefulMessage(msg)) {
-////							this.mmp.multicastAck(message); //we still need to ack it, b/c somebody didn't receive our ack
-////							this.mmp.globalLock.unlock();
-////							continue;
-////						}
-////						else {
-////							if(!this.mmp.isInHBQ(msg))
-////							{
-////								stored = this.mmp.insertToHBQ(new HBItem(msg));
-////							}
-////							else {
-////								HBItem this_item = this.mmp.getHBItem(msg.src, msg.mc_id);
-////								if(this_item.message == null)
-////									this_item.message = msg;
-////							}
-////							if(stored)
-////							{
-////								//System.out.println("Before storing"); this.mmp.printHBQ();
-////								//System.out.println("Message: "+msg.kind+" and "+msg.mc_id);
-////								this.mmp.tryAckAll(message); //The incorrect message reference comes from the retransmit. no idea how to fix it, though.
-////								this.mmp.tryAckAll(msg);
-////								//System.out.println("After storing"); this.mmp.printHBQ();
-////								//System.out.println("After getting retransmit message, trying to mc_ACK message "+message.toString());
-////								this.mmp.multicastAck(message);
-////							}
-////							this.mmp.globalLock.unlock();
-////						}
-////						//this.mmp.printHBQ();
-//					}
-//						
-//					/* get a regular message */
-//					// put it into the MessagePasser's rcv_buf
-//					// drop the message if the buffer is full
-//					else
-//						if(!this.mmp.rcv_buf.nonblockingOffer(message)) {
-//							continue;
-//						}
-				//System.out.println("End of run while loop");
+					/* get a regular message */
+					else {
+						
+						/* step 1: handle this message */
+						System.out.println("***********************************************************");
+						System.out.println("Receive Thread: in receive(): src: " + message.src + " dest: " + message.dest);
+						System.out.println(" ID: " + message.id + " kind: " + message.kind + " type: " + message.type + 
+										   " timestamp: " + ((TimeStampedMessage)message).ts.toString());
+						System.out.println("rule: N/A");
+						System.out.println("***********************************************************");				
+						this.mmp.handleCSMessage(message);
+						
+						/* step 2: handle all delayed messages in the rcv_delayed_buf */
+						ArrayList<Message> delayed_messages = mmp.rcv_delayed_buf.nonblockingTakeAll();
+						while(!delayed_messages.isEmpty()) {							
+							TimeStampedMessage dl_message = (TimeStampedMessage)delayed_messages.remove(0);	
+							System.out.println("***********************************************************");
+							System.out.println("Receive Thread: in receive(): src: " + dl_message.src + " dest: " + dl_message.dest);
+							System.out.println(" ID: " + message.id + " kind: " + dl_message.kind + " type: " + dl_message.type + 
+											   " timestamp: " + ((TimeStampedMessage)dl_message).ts.toString());
+							System.out.println("rule: delayed message got released");
+							System.out.println("***********************************************************");	
+							mmp.handleCSMessage(dl_message);
+						}
+					}
+					
+					/* print out rcv_delayed_buf */
+					this.mmp.printCSReceiveBuffer();
+					
 				}
 			} finally {
 				

@@ -177,6 +177,7 @@ public class TestSuiteCriticalSection {
 //							mp.send(newMsg, clock);
 //					    }
 //						break;
+				
 					case 1:		// request the CS
 						/* break if either want it or already hold it  */
 						if(mp.state.equals("held")) {
@@ -187,6 +188,10 @@ public class TestSuiteCriticalSection {
 						}
 						/* request it */
 						else {
+
+							if(!mp.isNewestConfig(svr_conn))
+								mp.parseConfig(config_file);
+							
 							Runnable runnableCS = new CSThread();
 							Thread threadCS = new Thread(runnableCS);
 							threadCS.start();
@@ -206,13 +211,20 @@ public class TestSuiteCriticalSection {
 							System.out.println("I am holding the CS......");
 						}
 						break;
+						
 					case 2:		// release the CS
 						/* send cs_release message to everyone in the group */
 						if(!mp.state.equals("held"))
 							;
-						else
+						else {
+						
+							if(!mp.isNewestConfig(svr_conn))
+								mp.parseConfig(config_file);
+							
 							mp.releaseCS();
+						}
 						break;
+						
 					case 3:		// print out the CS status
 						String state = mp.getState();
 						if(state.equals("released"))
