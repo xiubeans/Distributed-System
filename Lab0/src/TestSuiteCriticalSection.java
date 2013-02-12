@@ -55,16 +55,16 @@ public class TestSuiteCriticalSection {
 			ClockService clock = ClockService.getInstance(clock_type, mp.getVectorSize()); //here is where we will instantiate the clock via the object factory
 			
 			
-			/* Example Code -- Take out for final version! */
-			for (Map.Entry entry : mp.names_index.entrySet()) 
-		    {
-				String name = (String)entry.getKey();
-				String[] tmp = mp.getGroup(name);
-				System.out.println("Names for "+name+" are: ");
-				for(int i=0; i<tmp.length; i++)
-					System.out.println(i+": "+tmp[i]);
-		    }
-			/* End of Example Code */
+//			/* Example Code -- Take out for final version! */
+//			for (Map.Entry entry : mp.names_index.entrySet()) 
+//		    {
+//				String name = (String)entry.getKey();
+//				String[] tmp = mp.getGroup(name);
+//				System.out.println("Names for "+name+" are: ");
+//				for(int i=0; i<tmp.length; i++)
+//					System.out.println(i+": "+tmp[i]);
+//		    }
+//			/* End of Example Code */
 			
 			
 			// TEST START
@@ -191,12 +191,6 @@ public class TestSuiteCriticalSection {
 
 							if(!mp.isNewestConfig(svr_conn))
 								mp.parseConfig(config_file);
-							
-							if(!mp.validateUserRequests(user_input, mp, local_name)) //check user input -- added in last revision
-								{	
-									System.out.println("Error: format of message not recognized.");
-									continue;
-								}
 							
 							Runnable runnableCS = new CSThread();
 							Thread threadCS = new Thread(runnableCS);

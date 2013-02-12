@@ -47,6 +47,7 @@ public class MessagePasser {
 	Hashtable<String, String> group_members = new Hashtable<String, String>();
 	Hashtable<String, String> replied_members = new Hashtable<String, String>();
 	ArrayList<TimeStampedMessage> cs_queue = new ArrayList<TimeStampedMessage>();
+	TimeStamp magical_ts;
 	
 	/* Constructor */
 	private MessagePasser() {		
@@ -54,10 +55,8 @@ public class MessagePasser {
 		this.rcv_buf = new MessageBuffer(1000);
 		this.rcv_delayed_buf = new MessageBuffer(1000);
 	}
-	
-	
-	/* Accessors */
-	
+		
+	/* Accessors */	
 	public static synchronized MessagePasser getInstance() {
 		/* Provides a way for other classes to get the
 		 * singleton instance of this class. */
@@ -202,6 +201,7 @@ public class MessagePasser {
 	    }
 	    
       /* for CS in lab3 */
+	    System.out.println("localname = " + this.local_name);
 	    String[] members = getGroup(this.local_name);
 	    for(int i = 0; i < members.length; i++) 
 	    	this.group_members.put(members[i], "");
@@ -495,8 +495,27 @@ public class MessagePasser {
 		/* Returns the members of the group given the
 		 * name of the user specified as "Name: xxx" in
 		 * the configuration file. */
+		String[] tmp_group = group_index.get(name).split(" ");
 		
-		return group_index.get(name).split(" ");
+		if(tmp_group[0].equals(this.local_name))
+			return tmp_group;
+		else
+		{
+			for(int i = 0; i < tmp_group.length; i++)
+				System.out.print(tmp_group[i] + " ");
+			int i=0;
+			for(i=0; i<tmp_group.length; i++)
+			{
+				if(tmp_group[i].equals(this.local_name))
+					break;
+			}
+			//i is the location of the local name, so swap first and ith elements
+			String switch_element = tmp_group[0];
+			tmp_group[0] = tmp_group[i]; //put the local name in the first position
+			tmp_group[i] = switch_element;
+			
+			return tmp_group;
+		}
 	}
 	
 	
@@ -921,8 +940,27 @@ public class MessagePasser {
 			HashMap rule = null;
 			rule = this.matchRules("send", message);
 			rule = checkNth(rule, "send", message);
-			
-			message = clock.affixTimestamp((TimeStampedMessage)message); //get a timestamp for the message
+						
+			/* this block trying to set the same ts for a batch of same mc messages */
+			if(message.type.equals("multicast")) 
+			{
+				/* if the first message in the mc batch */
+				if(message.dest.equals(this.local_name)) {
+					message = clock.affixTimestamp((TimeStampedMessage)message); //get a timestamp for the message
+					//if(message.dest.equals(this.getGroup(this.local_name)[0]))//names_index.firstKey()))
+					message.set_mcast_id(this.mcast_msg_id.incrementAndGet());//increment multicast ID for first message in a multicast series
+					//else
+						//message.set_mcast_id(this.mcast_msg_id.get());//add the same multicast ID all subsequent messages in a multicast series
+					this.magical_ts = ((TimeStampedMessage) message).ts;
+				}
+				else {
+					((TimeStampedMessage) message).ts = this.magical_ts;
+					((TimeStampedMessage) message).mc_id = this.mcast_msg_id.intValue();
+					System.out.println("My timestamp is " + ((TimeStampedMessage) message).ts.toString());
+				}
+			}
+			else
+				message = clock.affixTimestamp((TimeStampedMessage)message); //get a timestamp for the message
 			
 			//check against the send rules, and follow the first rule matched
 			if(rule != null) {
@@ -937,10 +975,12 @@ public class MessagePasser {
 					((TimeStampedMessage)message).ts = clock.getTimestamp();
 					oos.writeObject((TimeStampedMessage)message);
 					oos.flush();
+					conn.getAndIncrementOutMessageCounter();
 					System.out.println("******************************************************************");
 					System.out.println("Main Thread $$ send: src: " + message.src + " dest: " + message.dest);
 					System.out.println("ID: " + message.id + " kind: " + message.kind + " type: " + message.type + 
 							   " timestamp: " + ((TimeStampedMessage)message).ts.toString());
+					if(message.type.equals("multicast")) { System.out.println("MID: "+ message.mc_id); }
 					System.out.println("rule: duplicate, but just ignore this rule");
 					System.out.println("******************************************************************");
 					
@@ -991,7 +1031,8 @@ public class MessagePasser {
 					
 					// step 1: write this object to the socket
 					message.set_id(this.message_id.getAndIncrement());
-					((TimeStampedMessage)message).ts = clock.getTimestamp();
+					if(message.type.equals("unicast"))
+						((TimeStampedMessage)message).ts = clock.getTimestamp();
 
 //					if(handleSelf(message))
 //					{
@@ -1011,6 +1052,7 @@ public class MessagePasser {
 					
 					System.out.println("**************************************************************************");
 					System.out.println("Main Thread $$ send: src: " + message.src + " dest: " + message.dest);
+					if(message.type.equals("multicast")) { System.out.println("MID: "+ message.mc_id); }
 					System.out.println("ID: " + message.id + " kind: " + message.kind + " type: " + message.type + 
 							   " timestamp: " + ((TimeStampedMessage)message).ts.toString());
 					System.out.println("rule: n/a");
@@ -1892,6 +1934,8 @@ public class MessagePasser {
 	public void handleCSMessage(TimeStampedMessage msg) {
 		
 		//System.out.println("In handleCSMessage(): about to handle");
+		ClockService clock = ClockService.getInstance("logical", 1);
+		clock.updateTimestamp((TimeStampedMessage) msg);
 		
 		/* get a cs_release */
 		if(msg.kind.equals("cs_release")) {

@@ -10,8 +10,8 @@ Configuration :
     IP   : 127.0.0.1
     Port : 12449        # This is the incoming port on which MP will listen
     Group :
-      - alice
       - bob
+      - alice
       - charlie
   - Name : bob 
     IP   : 127.0.0.1
