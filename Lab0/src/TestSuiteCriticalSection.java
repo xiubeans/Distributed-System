@@ -33,11 +33,11 @@ public class TestSuiteCriticalSection {
 			local_name = args[1];
 			clock_type = args[2].toString().toLowerCase();
 			
-			if(clock_type.equalsIgnoreCase("logical"))
-			{
-				System.out.println("Logical clocks are not available for critical section service. Defaulting to vector.");
-				clock_type = "vector";
-			}
+//			if(clock_type.equalsIgnoreCase("logical"))
+//			{
+//				System.out.println("Logical clocks are not available for critical section service. Defaulting to vector.");
+//				clock_type = "vector";
+//			}
 			
 			/* get a local copy of the config from AFS */
 			SFTPConnection svr_conn = new SFTPConnection();
@@ -191,6 +191,12 @@ public class TestSuiteCriticalSection {
 
 							if(!mp.isNewestConfig(svr_conn))
 								mp.parseConfig(config_file);
+							
+							if(!mp.validateUserRequests(user_input, mp, local_name)) //check user input -- added in last revision
+								{	
+									System.out.println("Error: format of message not recognized.");
+									continue;
+								}
 							
 							Runnable runnableCS = new CSThread();
 							Thread threadCS = new Thread(runnableCS);
