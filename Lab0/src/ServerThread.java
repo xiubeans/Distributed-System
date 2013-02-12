@@ -30,7 +30,7 @@ class ServerThread implements Runnable {
 		}
 		
 		// if no such local name, terminate the application
-		if(i == this.mmp.max_vals) {
+		if(i == 10) {
 			System.out.println("No such name: " + mmp.local_name);
 			System.exit(0);
 		} 

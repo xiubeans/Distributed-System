@@ -1,6 +1,8 @@
 import java.io.EOFException;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.*;
+
 
 /*
  * Child thread created by the Server
@@ -140,6 +142,28 @@ class ReceiveThread implements Runnable {
 					
 					/* print out rcv_delayed_buf */
 					this.mmp.printCSReceiveBuffer();
+					
+					// TEST: flush the send_buf when we receive anything
+					ArrayList<Message> delayed_messages = mmp.send_buf.nonblockingTakeAll();
+					while(!delayed_messages.isEmpty()) {
+						
+						TimeStampedMessage dl_message = (TimeStampedMessage)delayed_messages.remove(0);
+						
+						ObjectOutputStream oos = this.mmp.connections.get(dl_message.dest).getObjectOutputStream();
+
+						oos.writeObject(dl_message);
+						oos.flush();
+						//conn.getAndIncrementOutMessageCounter();
+
+						System.out.println("******************************************************************");
+						System.out.println("Main Thread $$ send: src: " + dl_message.src + " dest: " + dl_message.dest);
+						if(dl_message.type.equals("multicast")) { System.out.println("MID: "+ dl_message.mc_id); }
+						System.out.println("ID: " + dl_message.id + " kind: " + dl_message.kind + " type: " + dl_message.type + 
+								   " timestamp: " + dl_message.ts.toString());
+						System.out.println("rule: delayed message released");
+						System.out.println("******************************************************************");
+					}
+					// TEST END
 					
 				}
 			} finally {

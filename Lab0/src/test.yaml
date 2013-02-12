@@ -12,24 +12,49 @@ Configuration :
     Group :
       - alice
       - bob
+      - charlie
   - Name : bob 
     IP   : 127.0.0.1
     Port : 14245
     Group :
       - bob
-      - charlie
+      - daphnie
+      - frank
   - Name : charlie
     IP   : 127.0.0.1
     Port : 19870
     Group :
       - charlie
-      - daphnie
+      - eddy
+      - frank
   - Name : daphnie 
     IP   : 127.0.0.1
     Port : 29870
     Group :
       - alice
       - daphnie 
+      - eddy
+  - Name : eddy 
+    IP   : 127.0.0.1
+    Port : 29864
+    Group :
+      - bob
+      - eddy
+      - greg 
+  - Name : frank 
+    IP   : 127.0.0.1
+    Port : 15732
+    Group :
+      - alice
+      - frank
+      - greg
+  - Name : greg 
+    IP   : 127.0.0.1
+    Port : 12844
+    Group :
+      - charlie
+      - daphnie 
+      - greg
   - Name : logger
     IP	 : 192.168.1.150
     Port : 13752
@@ -40,9 +65,9 @@ Configuration :
       - daphnie 
 
 SendRules :
-  - Action : duplicate # Every 2nd ack from bob to alice won't be sent
-    Src    : alice
-    Kind   : rukiddingme
+  - Action : delay # Every 2nd ack from bob to alice won't be sent
+    Src    : bob
+    Kind   : cs_request
 #    EveryNth : 200
 # - Action : delay # Every Lookup from alice to charlie delayed
 #    Kind   : delayer 
@@ -59,9 +84,8 @@ SendRules :
 #    Dest   : daphnie #P4
 #    EveryNth    : 3
 ReceiveRules :
-  - Action : delay
-    Src    : alice
-    Kind   : cs_request
+  - Action : duplicate
+    Kind   : whatthef
 #  - Action : delay
 #    Kind   : lookup 
 #    Dest   : charlie
