@@ -52,10 +52,10 @@ class ServerThread implements Runnable {
 					//oos_tmp.defaultWriteObject();
 					//ois_tmp.defaultReadObject();
 	
-					System.out.println("In ServerThread $$ about to receive LOGIN");
+					//System.out.println("In ServerThread $$ about to receive LOGIN");
 					Message login_msg = (Message)ois_tmp.readObject();
 					String remote_name = login_msg.src;
-					System.out.println("In ServerThread $$ just received LOGIN from: " + remote_name);
+					//System.out.println("In ServerThread $$ just received LOGIN from: " + remote_name);
 
 					ConnState conn_state = new ConnState(remote_name, s);					
 					conn_state.setObjectOutputStream(oos_tmp);
@@ -70,11 +70,11 @@ class ServerThread implements Runnable {
 					//this.mmp.printConnectsions();
 					
 					// create and run the ReceiveThread
-					System.out.println("In ServerThread $$ about to launch a new receive thread...");
+					//System.out.println("In ServerThread $$ about to launch a new receive thread...");
 					Runnable receiveRunnable = new ReceiveThread(remote_name);
 					Thread receiveThread = new Thread(receiveRunnable);
 					receiveThread.start();
-					System.out.println("In ServerThread $$ just launched a new receive thread...");
+					//System.out.println("In ServerThread $$ just launched a new receive thread...");
 
 									
 				}

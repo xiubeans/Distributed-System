@@ -19,7 +19,7 @@ public class CSThread implements Runnable{
 		try {
 						
 			// TEST
-			System.out.println("In CSThread $$ just come in");
+			//System.out.println("In CSThread $$ just come in");
 			
 			/* clear all replied members */
 			mp.replied_members.clear();
@@ -32,19 +32,16 @@ public class CSThread implements Runnable{
 			
 			/* spin here until get all replies */
 			while(mp.group_members.size() != mp.replied_members.size()) {
-				Thread.sleep(100);
-				mp.printCSSendBuffer();
-				mp.printRepliedNodes();
+				Thread.sleep(300);
+				//mp.printCSSendBuffer();
+				//mp.printRepliedNodes();
 
 			}
 			
 			/* change state */
 			mp.state = "held";
 			
-//			/* dequeue this item in cs_queue */
-//			this.mp.cs_queue.remove(0);
-			
-			System.out.println("In CSThread $$ got it, about to terminate thread. mp.state=" + mp.state);
+			//System.out.println("In CSThread $$ got it, about to terminate thread. mp.state=" + mp.state);
 
 			
 		} catch(Exception e) {

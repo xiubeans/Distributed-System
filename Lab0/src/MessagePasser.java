@@ -48,6 +48,8 @@ public class MessagePasser {
 	Hashtable<String, String> replied_members = new Hashtable<String, String>();
 	ArrayList<TimeStampedMessage> cs_queue = new ArrayList<TimeStampedMessage>();
 	TimeStamp magical_ts;
+	int send_number = 0;
+	int receive_number = 0;
 	
 	/* Constructor */
 	private MessagePasser() {		
@@ -983,6 +985,8 @@ public class MessagePasser {
 					if(message.type.equals("multicast")) { System.out.println("MID: "+ message.mc_id); }
 					System.out.println("rule: duplicate, but just ignore this rule");
 					System.out.println("******************************************************************");
+					/* update send message number */
+					this.send_number++;
 					
 					// step 2: flush send buffer
 					ArrayList<Message> delayed_messages = this.send_buf.nonblockingTakeAll();
@@ -1003,6 +1007,8 @@ public class MessagePasser {
 								   " timestamp: " + dl_message.ts.toString());
 						System.out.println("rule: delayed message released");
 						System.out.println("******************************************************************");
+						/* update send message number */
+						this.send_number++;
 					}
 				}
 				else if(action.equals("delay")){ // action: delay -- put the message in the send_buf
@@ -1057,6 +1063,8 @@ public class MessagePasser {
 							   " timestamp: " + ((TimeStampedMessage)message).ts.toString());
 					System.out.println("rule: n/a");
 					System.out.println("**************************************************************************");
+					/* update send message number */
+					this.send_number++;
 //					}
 					
 //					if(!dispatch_delayed(message))
@@ -1085,6 +1093,8 @@ public class MessagePasser {
 								   " timestamp: " + dl_message.ts.toString());
 						System.out.println("rule: delayed message released");
 						System.out.println("**************************************************************************");
+						/* update send message number */
+						this.send_number++;
 					}
 				} catch(Exception e) {
 					//System.out.println("At send, error is "+e.toString()); e.printStackTrace();
@@ -1933,6 +1943,9 @@ public class MessagePasser {
 	 */
 	public void handleCSMessage(TimeStampedMessage msg) {
 		
+		/* update incoming message counter */
+		this.receive_number++;
+		
 		//System.out.println("In handleCSMessage(): about to handle");
 		ClockService clock = ClockService.getInstance("logical", 1);
 		clock.updateTimestamp((TimeStampedMessage) msg);
@@ -1942,6 +1955,7 @@ public class MessagePasser {
 			System.out.println("In handleCSMessage(): got cs_release");
 			
 			if(this.cs_queue.size() != 0) {
+				//this.reorderCSQueue();
 				TimeStampedMessage message = this.cs_queue.remove(0);
 				this.unicastCSReply(message.src);
 				this.voted = true;				
@@ -1979,8 +1993,32 @@ public class MessagePasser {
 		return this.state;
 	}
 	
+	/* reorder the cs_queue 
+	 * use bubble sorting */
+	public void reorderCSQueue() {
+		
+	     TimeStampedMessage tmp;
+
+	     for(int i=0; i<this.cs_queue.size();++i){
+	          for(int j=this.cs_queue.size()-1;j>i;--j){
+	              if(this.cs_queue.get(j).logicalLessThan(this.cs_queue.get(j-1))){
+	                     tmp = this.cs_queue.get(j);
+	                     this.cs_queue.set(j, this.cs_queue.get(j-1));
+	                     this.cs_queue.set(j-1, tmp);	  
+	              }
+
+
+	        }
+	     }	
+	}
 	
+	public void printMessageNumbers() {
+		System.out.println("Number of outgoing messaegs: " + this.send_number);
+		System.out.println("Number of incoming messages: " + this.receive_number);
+	}
 }
+	
+	
 
 
 

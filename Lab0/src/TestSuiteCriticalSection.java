@@ -91,7 +91,7 @@ public class TestSuiteCriticalSection {
 				//offer the user three choices, then from there give usage for the specific option chosen and wait for input.
 				System.out.println("Choose your action:\n" +
 						/*"1 for send, 2 for receive, 3 for quit, 4 for send multicast\n" +*/
-						"1 for cs request, 2 for cs release, 3 for cs status"); //need request cs, release cs, others...
+						"1 for cs request, 2 for cs release, 3 for cs status, 4 for message counters"); //need request cs, release cs, others...
 				
 				user_input = cmd_line_input.nextLine(); //get the input and check it
 				user_action = mp.validOption(user_input);
@@ -202,7 +202,7 @@ public class TestSuiteCriticalSection {
 							try {
 								/* spin here until I got CS */
 								while(!mp.state.equals("held")) {
-									System.out.println("Our state is " + mp.state);
+									//System.out.println("Our state is " + mp.state);
 									Thread.sleep(100);
 								}
 							} catch(Exception e) {
@@ -234,6 +234,11 @@ public class TestSuiteCriticalSection {
 						else
 							System.out.println("I am holding CS");
 						break;
+					
+					case 4:		// print out message counters
+						mp.printMessageNumbers();
+						break;
+						
 					default: //there will be more categories added here
 						System.out.println("Unrecognized input "+user_action+".");
 						break;

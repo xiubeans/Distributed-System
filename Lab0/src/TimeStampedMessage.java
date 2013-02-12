@@ -77,6 +77,17 @@ public final class TimeStampedMessage extends Message implements Serializable {
 		  return is_matched;
 		  
 	  }
+	  
+	  public boolean logicalLessThan(TimeStampedMessage other_msg) {
+		  
+		  boolean result = false;
+		  
+		  if(this.ts.val.get(0).intValue() < other_msg.ts.val.get(0).intValue()
+				  || ((this.ts.val.get(0).intValue() == other_msg.ts.val.get(0).intValue()) && this.src.compareTo(other_msg.src) < 0))
+			  result = true;
+		  		  
+		  return result;
+	  }
  
 	  /*
 	   * Deep clone a TimeStampedMessage
